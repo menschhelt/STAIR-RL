@@ -1,0 +1,12 @@
+Starting GDELT collection: 2020-01-01 to 2025-11-30
+This will take many hours...
+2025-12-13 06:10:39,882 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 06:10:39,882 - GDELTLocalCollector - INFO - Starting GDELT collection from 2020-01-01 00:00:00+00:00 to 2025-11-30 23:59:59+00:00
+2025-12-13 06:10:50,506 - GDELTLocalCollector - INFO - Found 202408 GKG files in date range
+2025-12-13 06:13:27,988 - GDELTLocalCollector - INFO - Collected 163 crypto-related articles from GDELT
+2025-12-13 06:13:28,059 - GDELTLocalCollector - INFO - Found 163 unique articles
+2025-12-13 06:13:48,149 - GDELTLocalCollector - INFO - Scraped 96/163 URLs successfully
+2025-12-13 06:13:48,156 - GDELTLocalCollector - INFO - Retained 86 articles after scraping
+2025-12-13 06:13:48,181 - GDELTLocalCollector - INFO - Wrote 86 records to /home/work/data/stair-local/gdelt/gdelt_2020W01.parquet
+2025-12-13 06:13:48,183 - GDELTLocalCollector - INFO - Collection complete: 86 records
+GDELT collection complete! Total records: 86

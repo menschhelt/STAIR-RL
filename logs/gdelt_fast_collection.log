@@ -1,0 +1,25 @@
+Starting GDELT FAST collection: 2020-01-01 to 2025-11-30
+0.05s delay per file = 20 files/sec
+2025-12-13 06:43:38,374 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 06:43:38,374 - GDELTLocalCollector - INFO - Starting GDELT collection from 2020-01-01 00:00:00+00:00 to 2025-11-30 23:59:59+00:00
+2025-12-13 06:43:38,375 - GDELTLocalCollector - INFO - Processing 309 weeks of data
+2025-12-13 06:43:38,375 - GDELTLocalCollector - INFO - Week 1/309: 2020-01-01 to 2020-01-08
+2025-12-13 06:43:48,925 - GDELTLocalCollector - INFO - Found 673 GKG files in date range
+2025-12-13 06:43:48,926 - GDELTLocalCollector - INFO - Processing 673 GKG files...
+2025-12-13 06:45:28,787 - GDELTLocalCollector - INFO - Progress: 100/673 files processed, 163 crypto articles found
+2025-12-13 06:47:07,034 - GDELTLocalCollector - INFO - Progress: 200/673 files processed, 451 crypto articles found
+2025-12-13 06:48:48,272 - GDELTLocalCollector - INFO - Progress: 300/673 files processed, 746 crypto articles found
+2025-12-13 06:50:03,101 - GDELTLocalCollector - INFO - Progress: 400/673 files processed, 845 crypto articles found
+2025-12-13 06:51:21,069 - GDELTLocalCollector - INFO - Progress: 500/673 files processed, 958 crypto articles found
+2025-12-13 06:53:13,560 - GDELTLocalCollector - INFO - Progress: 600/673 files processed, 1501 crypto articles found
+2025-12-13 06:54:39,484 - GDELTLocalCollector - INFO - Collected 1837 crypto-related articles from GDELT
+2025-12-13 06:54:39,507 - GDELTLocalCollector - INFO - Found 1837 unique articles for this week
+2025-12-13 06:56:50,150 - GDELTLocalCollector - INFO - Scraped 1113/1837 URLs successfully
+2025-12-13 06:56:50,162 - GDELTLocalCollector - INFO - Retained 1012 articles after scraping
+2025-12-13 06:56:50,218 - GDELTLocalCollector - INFO - Wrote 527 records to /home/work/data/stair-local/gdelt/gdelt_2020W01.parquet
+2025-12-13 06:56:50,250 - GDELTLocalCollector - INFO - Wrote 485 records to /home/work/data/stair-local/gdelt/gdelt_2020W02.parquet
+2025-12-13 06:56:50,250 - GDELTLocalCollector - INFO - Week 1 complete: 1012 records (total: 1012)
+2025-12-13 06:56:50,256 - GDELTLocalCollector - INFO - Week 2/309: 2020-01-08 to 2020-01-15
+2025-12-13 06:57:00,574 - GDELTLocalCollector - INFO - Found 673 GKG files in date range
+2025-12-13 06:57:00,575 - GDELTLocalCollector - INFO - Processing 673 GKG files...
+2025-12-13 06:59:25,202 - GDELTLocalCollector - INFO - Progress: 100/673 files processed, 375 crypto articles found

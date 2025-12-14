@@ -1,0 +1,404 @@
+Starting Nostr FULL collection: 2021-01-01 to 2025-11-30
+Rate: 120 req/min (4x faster)
+Note: Data before 2022-12 will be sparse (has_signal=0)
+2025-12-13 06:45:40,093 - NostrLocalCollector - INFO - Initialized NostrLocalCollector with relay=wss://relay.nostr.band, kinds=[1, 9735], keywords=18, rate_limit=30/60s
+2025-12-13 06:45:40,094 - NostrLocalCollector - INFO - Starting Nostr collection from 2021-01-01 00:00:00+00:00 to 2025-11-30 23:59:59+00:00
+2025-12-13 06:45:40,094 - NostrLocalCollector - INFO - Collecting 2021-01-01 to 2021-01-02, kinds=[1, 9735]
+2025-12-13 06:45:41,850 - NostrLocalCollector - INFO - Collected 6 events for batch
+2025-12-13 06:45:41,851 - NostrLocalCollector - INFO - Collecting 2021-01-02 to 2021-01-03, kinds=[1, 9735]
+2025-12-13 06:45:43,555 - NostrLocalCollector - INFO - Collected 7 events for batch
+2025-12-13 06:45:43,556 - NostrLocalCollector - INFO - Collecting 2021-01-03 to 2021-01-04, kinds=[1, 9735]
+2025-12-13 06:45:45,498 - NostrLocalCollector - INFO - Collected 12 events for batch
+2025-12-13 06:45:45,499 - NostrLocalCollector - INFO - Collecting 2021-01-04 to 2021-01-05, kinds=[1, 9735]
+2025-12-13 06:45:47,289 - NostrLocalCollector - INFO - Collected 7 events for batch
+2025-12-13 06:45:47,289 - NostrLocalCollector - INFO - Collecting 2021-01-05 to 2021-01-06, kinds=[1, 9735]
+2025-12-13 06:45:49,306 - NostrLocalCollector - INFO - Collected 15 events for batch
+2025-12-13 06:45:49,306 - NostrLocalCollector - INFO - Collecting 2021-01-06 to 2021-01-07, kinds=[1, 9735]
+2025-12-13 06:46:50,457 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 06:46:50,795 - NostrLocalCollector - INFO - Trying backup relay: wss://relay.damus.io
+2025-12-13 06:46:51,738 - NostrLocalCollector - INFO - Trying backup relay: wss://nos.lol
+2025-12-13 06:46:53,742 - NostrLocalCollector - INFO - Collected 30 events for batch
+2025-12-13 06:46:53,742 - NostrLocalCollector - INFO - Collecting 2021-01-07 to 2021-01-08, kinds=[1, 9735]
+2025-12-13 06:46:55,721 - NostrLocalCollector - INFO - Collected 23 events for batch
+2025-12-13 06:46:55,721 - NostrLocalCollector - INFO - Collecting 2021-01-08 to 2021-01-09, kinds=[1, 9735]
+2025-12-13 06:46:57,486 - NostrLocalCollector - INFO - Collected 8 events for batch
+2025-12-13 06:46:57,486 - NostrLocalCollector - INFO - Collecting 2021-01-09 to 2021-01-10, kinds=[1, 9735]
+2025-12-13 06:46:59,576 - NostrLocalCollector - INFO - Collected 26 events for batch
+2025-12-13 06:46:59,576 - NostrLocalCollector - INFO - Collecting 2021-01-10 to 2021-01-11, kinds=[1, 9735]
+2025-12-13 06:47:01,554 - NostrLocalCollector - INFO - Collected 20 events for batch
+2025-12-13 06:47:01,554 - NostrLocalCollector - INFO - Collecting 2021-01-11 to 2021-01-12, kinds=[1, 9735]
+2025-12-13 06:47:03,539 - NostrLocalCollector - INFO - Collected 11 events for batch
+2025-12-13 06:47:03,539 - NostrLocalCollector - INFO - Collecting 2021-01-12 to 2021-01-13, kinds=[1, 9735]
+2025-12-13 06:47:05,284 - NostrLocalCollector - INFO - Collected 7 events for batch
+2025-12-13 06:47:05,284 - NostrLocalCollector - INFO - Collecting 2021-01-13 to 2021-01-14, kinds=[1, 9735]
+2025-12-13 06:47:06,997 - NostrLocalCollector - INFO - Collected 7 events for batch
+2025-12-13 06:47:06,998 - NostrLocalCollector - INFO - Collecting 2021-01-14 to 2021-01-15, kinds=[1, 9735]
+2025-12-13 06:47:08,681 - NostrLocalCollector - INFO - Collected 7 events for batch
+2025-12-13 06:47:08,682 - NostrLocalCollector - INFO - Collecting 2021-01-15 to 2021-01-16, kinds=[1, 9735]
+2025-12-13 06:47:10,602 - NostrLocalCollector - INFO - Collected 4 events for batch
+2025-12-13 06:47:10,602 - NostrLocalCollector - INFO - Collecting 2021-01-16 to 2021-01-17, kinds=[1, 9735]
+2025-12-13 06:47:12,566 - NostrLocalCollector - INFO - Collected 25 events for batch
+2025-12-13 06:47:12,567 - NostrLocalCollector - INFO - Collecting 2021-01-17 to 2021-01-18, kinds=[1, 9735]
+2025-12-13 06:47:14,552 - NostrLocalCollector - INFO - Collected 13 events for batch
+2025-12-13 06:47:14,552 - NostrLocalCollector - INFO - Collecting 2021-01-18 to 2021-01-19, kinds=[1, 9735]
+2025-12-13 06:47:16,263 - NostrLocalCollector - INFO - Collected 3 events for batch
+2025-12-13 06:47:16,263 - NostrLocalCollector - INFO - Collecting 2021-01-19 to 2021-01-20, kinds=[1, 9735]
+2025-12-13 06:48:17,253 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 06:48:17,579 - NostrLocalCollector - INFO - Trying backup relay: wss://relay.damus.io
+2025-12-13 06:48:18,603 - NostrLocalCollector - INFO - Trying backup relay: wss://nos.lol
+2025-12-13 06:48:20,561 - NostrLocalCollector - INFO - Collected 17 events for batch
+2025-12-13 06:48:20,561 - NostrLocalCollector - INFO - Collecting 2021-01-20 to 2021-01-21, kinds=[1, 9735]
+2025-12-13 06:49:21,570 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 06:49:21,900 - NostrLocalCollector - INFO - Trying backup relay: wss://relay.damus.io
+2025-12-13 06:49:22,727 - NostrLocalCollector - INFO - Trying backup relay: wss://nos.lol
+2025-12-13 06:49:24,807 - NostrLocalCollector - INFO - Collected 107 events for batch
+2025-12-13 06:49:24,808 - NostrLocalCollector - INFO - Collecting 2021-01-21 to 2021-01-22, kinds=[1, 9735]
+2025-12-13 06:49:26,757 - NostrLocalCollector - INFO - Collected 11 events for batch
+2025-12-13 06:49:26,757 - NostrLocalCollector - INFO - Collecting 2021-01-22 to 2021-01-23, kinds=[1, 9735]
+2025-12-13 06:50:27,790 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 06:50:28,127 - NostrLocalCollector - INFO - Trying backup relay: wss://relay.damus.io
+2025-12-13 06:50:29,012 - NostrLocalCollector - INFO - Trying backup relay: wss://nos.lol
+2025-12-13 06:50:31,022 - NostrLocalCollector - INFO - Collected 16 events for batch
+2025-12-13 06:50:31,022 - NostrLocalCollector - INFO - Collecting 2021-01-23 to 2021-01-24, kinds=[1, 9735]
+2025-12-13 06:50:32,986 - NostrLocalCollector - INFO - Collected 6 events for batch
+2025-12-13 06:50:32,987 - NostrLocalCollector - INFO - Collecting 2021-01-24 to 2021-01-25, kinds=[1, 9735]
+2025-12-13 06:50:34,780 - NostrLocalCollector - INFO - Collected 7 events for batch
+2025-12-13 06:50:34,780 - NostrLocalCollector - INFO - Collecting 2021-01-25 to 2021-01-26, kinds=[1, 9735]
+2025-12-13 06:50:36,726 - NostrLocalCollector - INFO - Collected 49 events for batch
+2025-12-13 06:50:36,726 - NostrLocalCollector - INFO - Collecting 2021-01-26 to 2021-01-27, kinds=[1, 9735]
+2025-12-13 06:51:37,730 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 06:51:38,061 - NostrLocalCollector - INFO - Trying backup relay: wss://relay.damus.io
+2025-12-13 06:51:38,895 - NostrLocalCollector - INFO - Trying backup relay: wss://nos.lol
+2025-12-13 06:51:41,003 - NostrLocalCollector - INFO - Collected 20 events for batch
+2025-12-13 06:51:41,004 - NostrLocalCollector - INFO - Collecting 2021-01-27 to 2021-01-28, kinds=[1, 9735]
+2025-12-13 06:51:43,120 - NostrLocalCollector - INFO - Collected 16 events for batch
+2025-12-13 06:51:43,120 - NostrLocalCollector - INFO - Collecting 2021-01-28 to 2021-01-29, kinds=[1, 9735]
+2025-12-13 06:51:45,094 - NostrLocalCollector - INFO - Collected 16 events for batch
+2025-12-13 06:51:45,094 - NostrLocalCollector - INFO - Collecting 2021-01-29 to 2021-01-30, kinds=[1, 9735]
+2025-12-13 06:51:47,076 - NostrLocalCollector - INFO - Collected 11 events for batch
+2025-12-13 06:51:47,076 - NostrLocalCollector - INFO - Collecting 2021-01-30 to 2021-01-31, kinds=[1, 9735]
+2025-12-13 06:51:49,041 - NostrLocalCollector - INFO - Collected 13 events for batch
+2025-12-13 06:51:49,042 - NostrLocalCollector - INFO - Collecting 2021-01-31 to 2021-02-01, kinds=[1, 9735]
+2025-12-13 06:51:51,038 - NostrLocalCollector - INFO - Collected 11 events for batch
+2025-12-13 06:51:51,038 - NostrLocalCollector - INFO - Collecting 2021-02-01 to 2021-02-02, kinds=[1, 9735]
+2025-12-13 06:51:52,887 - NostrLocalCollector - INFO - Collected 12 events for batch
+2025-12-13 06:51:52,887 - NostrLocalCollector - INFO - Collecting 2021-02-02 to 2021-02-03, kinds=[1, 9735]
+2025-12-13 06:51:55,053 - NostrLocalCollector - INFO - Collected 16 events for batch
+2025-12-13 06:51:55,053 - NostrLocalCollector - INFO - Collecting 2021-02-03 to 2021-02-04, kinds=[1, 9735]
+2025-12-13 06:51:57,088 - NostrLocalCollector - INFO - Collected 11 events for batch
+2025-12-13 06:51:57,088 - NostrLocalCollector - INFO - Collecting 2021-02-04 to 2021-02-05, kinds=[1, 9735]
+2025-12-13 06:51:59,074 - NostrLocalCollector - INFO - Collected 9 events for batch
+2025-12-13 06:51:59,074 - NostrLocalCollector - INFO - Collecting 2021-02-05 to 2021-02-06, kinds=[1, 9735]
+2025-12-13 06:52:00,794 - NostrLocalCollector - INFO - Collected 7 events for batch
+2025-12-13 06:52:00,794 - NostrLocalCollector - INFO - Collecting 2021-02-06 to 2021-02-07, kinds=[1, 9735]
+2025-12-13 06:52:02,536 - NostrLocalCollector - INFO - Collected 9 events for batch
+2025-12-13 06:52:02,537 - NostrLocalCollector - INFO - Collecting 2021-02-07 to 2021-02-08, kinds=[1, 9735]
+2025-12-13 06:52:04,534 - NostrLocalCollector - INFO - Collected 37 events for batch
+2025-12-13 06:52:04,534 - NostrLocalCollector - INFO - Collecting 2021-02-08 to 2021-02-09, kinds=[1, 9735]
+2025-12-13 06:52:06,241 - NostrLocalCollector - INFO - Collected 7 events for batch
+2025-12-13 06:52:06,242 - NostrLocalCollector - INFO - Collecting 2021-02-09 to 2021-02-10, kinds=[1, 9735]
+2025-12-13 06:53:07,216 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 06:53:07,540 - NostrLocalCollector - INFO - Trying backup relay: wss://relay.damus.io
+2025-12-13 06:53:09,302 - NostrLocalCollector - INFO - Trying backup relay: wss://nos.lol
+2025-12-13 06:53:11,272 - NostrLocalCollector - INFO - Collected 20 events for batch
+2025-12-13 06:53:11,273 - NostrLocalCollector - INFO - Collecting 2021-02-10 to 2021-02-11, kinds=[1, 9735]
+2025-12-13 06:54:12,269 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 06:54:12,597 - NostrLocalCollector - INFO - Trying backup relay: wss://relay.damus.io
+2025-12-13 06:54:13,613 - NostrLocalCollector - INFO - Trying backup relay: wss://nos.lol
+2025-12-13 06:54:15,636 - NostrLocalCollector - INFO - Collected 23 events for batch
+2025-12-13 06:54:15,636 - NostrLocalCollector - INFO - Collecting 2021-02-11 to 2021-02-12, kinds=[1, 9735]
+2025-12-13 06:54:17,321 - NostrLocalCollector - INFO - Collected 4 events for batch
+2025-12-13 06:54:17,321 - NostrLocalCollector - INFO - Collecting 2021-02-12 to 2021-02-13, kinds=[1, 9735]
+2025-12-13 06:54:19,289 - NostrLocalCollector - INFO - Collected 10 events for batch
+2025-12-13 06:54:19,290 - NostrLocalCollector - INFO - Collecting 2021-02-13 to 2021-02-14, kinds=[1, 9735]
+2025-12-13 06:54:21,306 - NostrLocalCollector - INFO - Collected 5 events for batch
+2025-12-13 06:54:21,306 - NostrLocalCollector - INFO - Collecting 2021-02-14 to 2021-02-15, kinds=[1, 9735]
+2025-12-13 06:54:22,997 - NostrLocalCollector - INFO - Collected 9 events for batch
+2025-12-13 06:54:22,997 - NostrLocalCollector - INFO - Collecting 2021-02-15 to 2021-02-16, kinds=[1, 9735]
+2025-12-13 06:54:25,062 - NostrLocalCollector - INFO - Collected 8 events for batch
+2025-12-13 06:54:25,062 - NostrLocalCollector - INFO - Collecting 2021-02-16 to 2021-02-17, kinds=[1, 9735]
+2025-12-13 06:54:27,096 - NostrLocalCollector - INFO - Collected 10 events for batch
+2025-12-13 06:54:27,097 - NostrLocalCollector - INFO - Collecting 2021-02-17 to 2021-02-18, kinds=[1, 9735]
+2025-12-13 06:54:29,061 - NostrLocalCollector - INFO - Collected 16 events for batch
+2025-12-13 06:54:29,062 - NostrLocalCollector - INFO - Collecting 2021-02-18 to 2021-02-19, kinds=[1, 9735]
+2025-12-13 06:54:31,102 - NostrLocalCollector - INFO - Collected 19 events for batch
+2025-12-13 06:54:31,102 - NostrLocalCollector - INFO - Collecting 2021-02-19 to 2021-02-20, kinds=[1, 9735]
+2025-12-13 06:54:33,073 - NostrLocalCollector - INFO - Collected 10 events for batch
+2025-12-13 06:54:33,073 - NostrLocalCollector - INFO - Collecting 2021-02-20 to 2021-02-21, kinds=[1, 9735]
+2025-12-13 06:54:35,088 - NostrLocalCollector - INFO - Collected 16 events for batch
+2025-12-13 06:54:35,088 - NostrLocalCollector - INFO - Collecting 2021-02-21 to 2021-02-22, kinds=[1, 9735]
+2025-12-13 06:54:37,040 - NostrLocalCollector - INFO - Collected 17 events for batch
+2025-12-13 06:54:37,040 - NostrLocalCollector - INFO - Collecting 2021-02-22 to 2021-02-23, kinds=[1, 9735]
+2025-12-13 06:54:39,061 - NostrLocalCollector - INFO - Collected 13 events for batch
+2025-12-13 06:54:39,061 - NostrLocalCollector - INFO - Collecting 2021-02-23 to 2021-02-24, kinds=[1, 9735]
+2025-12-13 06:54:41,003 - NostrLocalCollector - INFO - Collected 20 events for batch
+2025-12-13 06:54:41,004 - NostrLocalCollector - INFO - Collecting 2021-02-24 to 2021-02-25, kinds=[1, 9735]
+2025-12-13 06:54:43,069 - NostrLocalCollector - INFO - Collected 8 events for batch
+2025-12-13 06:54:43,069 - NostrLocalCollector - INFO - Collecting 2021-02-25 to 2021-02-26, kinds=[1, 9735]
+2025-12-13 06:54:45,874 - NostrLocalCollector - INFO - Collected 6 events for batch
+2025-12-13 06:54:45,874 - NostrLocalCollector - INFO - Collecting 2021-02-26 to 2021-02-27, kinds=[1, 9735]
+2025-12-13 06:54:47,596 - NostrLocalCollector - INFO - Collected 8 events for batch
+2025-12-13 06:54:47,596 - NostrLocalCollector - INFO - Collecting 2021-02-27 to 2021-02-28, kinds=[1, 9735]
+2025-12-13 06:54:49,330 - NostrLocalCollector - INFO - Collected 7 events for batch
+2025-12-13 06:54:49,330 - NostrLocalCollector - INFO - Collecting 2021-02-28 to 2021-03-01, kinds=[1, 9735]
+2025-12-13 06:54:50,995 - NostrLocalCollector - INFO - Collected 6 events for batch
+2025-12-13 06:54:50,996 - NostrLocalCollector - INFO - Collecting 2021-03-01 to 2021-03-02, kinds=[1, 9735]
+2025-12-13 06:55:52,030 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 06:55:52,365 - NostrLocalCollector - INFO - Trying backup relay: wss://relay.damus.io
+2025-12-13 06:55:53,186 - NostrLocalCollector - INFO - Trying backup relay: wss://nos.lol
+2025-12-13 06:55:55,005 - NostrLocalCollector - INFO - Collected 16 events for batch
+2025-12-13 06:55:55,005 - NostrLocalCollector - INFO - Collecting 2021-03-02 to 2021-03-03, kinds=[1, 9735]
+2025-12-13 06:55:59,628 - NostrLocalCollector - INFO - Collected 16 events for batch
+2025-12-13 06:55:59,628 - NostrLocalCollector - INFO - Collecting 2021-03-03 to 2021-03-04, kinds=[1, 9735]
+2025-12-13 06:56:01,616 - NostrLocalCollector - INFO - Collected 6 events for batch
+2025-12-13 06:56:01,616 - NostrLocalCollector - INFO - Collecting 2021-03-04 to 2021-03-05, kinds=[1, 9735]
+2025-12-13 06:56:03,576 - NostrLocalCollector - INFO - Collected 11 events for batch
+2025-12-13 06:56:03,576 - NostrLocalCollector - INFO - Collecting 2021-03-05 to 2021-03-06, kinds=[1, 9735]
+2025-12-13 06:56:05,235 - NostrLocalCollector - INFO - Collected 9 events for batch
+2025-12-13 06:56:05,236 - NostrLocalCollector - INFO - Collecting 2021-03-06 to 2021-03-07, kinds=[1, 9735]
+2025-12-13 06:56:06,957 - NostrLocalCollector - INFO - Collected 3 events for batch
+2025-12-13 06:56:06,958 - NostrLocalCollector - INFO - Collecting 2021-03-07 to 2021-03-08, kinds=[1, 9735]
+2025-12-13 06:56:08,927 - NostrLocalCollector - INFO - Collected 10 events for batch
+2025-12-13 06:56:08,927 - NostrLocalCollector - INFO - Collecting 2021-03-08 to 2021-03-09, kinds=[1, 9735]
+2025-12-13 06:56:10,927 - NostrLocalCollector - INFO - Collected 11 events for batch
+2025-12-13 06:56:10,927 - NostrLocalCollector - INFO - Collecting 2021-03-09 to 2021-03-10, kinds=[1, 9735]
+2025-12-13 06:56:12,912 - NostrLocalCollector - INFO - Collected 9 events for batch
+2025-12-13 06:56:12,912 - NostrLocalCollector - INFO - Collecting 2021-03-10 to 2021-03-11, kinds=[1, 9735]
+2025-12-13 06:56:14,891 - NostrLocalCollector - INFO - Collected 8 events for batch
+2025-12-13 06:56:14,891 - NostrLocalCollector - INFO - Collecting 2021-03-11 to 2021-03-12, kinds=[1, 9735]
+2025-12-13 06:57:15,878 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 06:57:16,204 - NostrLocalCollector - INFO - Trying backup relay: wss://relay.damus.io
+2025-12-13 06:57:17,087 - NostrLocalCollector - INFO - Trying backup relay: wss://nos.lol
+2025-12-13 06:57:18,831 - NostrLocalCollector - INFO - Collected 7 events for batch
+2025-12-13 06:57:18,831 - NostrLocalCollector - INFO - Collecting 2021-03-12 to 2021-03-13, kinds=[1, 9735]
+2025-12-13 06:57:20,840 - NostrLocalCollector - INFO - Collected 4 events for batch
+2025-12-13 06:57:20,841 - NostrLocalCollector - INFO - Collecting 2021-03-13 to 2021-03-14, kinds=[1, 9735]
+2025-12-13 06:57:22,512 - NostrLocalCollector - INFO - Collected 3 events for batch
+2025-12-13 06:57:22,512 - NostrLocalCollector - INFO - Collecting 2021-03-14 to 2021-03-15, kinds=[1, 9735]
+2025-12-13 06:57:24,609 - NostrLocalCollector - INFO - Collected 10 events for batch
+2025-12-13 06:57:24,609 - NostrLocalCollector - INFO - Collecting 2021-03-15 to 2021-03-16, kinds=[1, 9735]
+2025-12-13 06:57:26,353 - NostrLocalCollector - INFO - Collected 7 events for batch
+2025-12-13 06:57:26,353 - NostrLocalCollector - INFO - Collecting 2021-03-16 to 2021-03-17, kinds=[1, 9735]
+2025-12-13 06:57:28,395 - NostrLocalCollector - INFO - Collected 11 events for batch
+2025-12-13 06:57:28,395 - NostrLocalCollector - INFO - Collecting 2021-03-17 to 2021-03-18, kinds=[1, 9735]
+2025-12-13 06:57:30,408 - NostrLocalCollector - INFO - Collected 9 events for batch
+2025-12-13 06:57:30,409 - NostrLocalCollector - INFO - Collecting 2021-03-18 to 2021-03-19, kinds=[1, 9735]
+2025-12-13 06:57:32,421 - NostrLocalCollector - INFO - Collected 26 events for batch
+2025-12-13 06:57:32,421 - NostrLocalCollector - INFO - Collecting 2021-03-19 to 2021-03-20, kinds=[1, 9735]
+2025-12-13 06:57:34,449 - NostrLocalCollector - INFO - Collected 13 events for batch
+2025-12-13 06:57:34,449 - NostrLocalCollector - INFO - Collecting 2021-03-20 to 2021-03-21, kinds=[1, 9735]
+2025-12-13 06:57:36,385 - NostrLocalCollector - INFO - Collected 16 events for batch
+2025-12-13 06:57:36,385 - NostrLocalCollector - INFO - Collecting 2021-03-21 to 2021-03-22, kinds=[1, 9735]
+2025-12-13 06:57:38,460 - NostrLocalCollector - INFO - Collected 12 events for batch
+2025-12-13 06:57:38,460 - NostrLocalCollector - INFO - Collecting 2021-03-22 to 2021-03-23, kinds=[1, 9735]
+2025-12-13 06:57:40,456 - NostrLocalCollector - INFO - Collected 13 events for batch
+2025-12-13 06:57:40,456 - NostrLocalCollector - INFO - Collecting 2021-03-23 to 2021-03-24, kinds=[1, 9735]
+2025-12-13 06:57:42,444 - NostrLocalCollector - INFO - Collected 10 events for batch
+2025-12-13 06:57:42,444 - NostrLocalCollector - INFO - Collecting 2021-03-24 to 2021-03-25, kinds=[1, 9735]
+2025-12-13 06:57:44,431 - NostrLocalCollector - INFO - Collected 10 events for batch
+2025-12-13 06:57:44,431 - NostrLocalCollector - INFO - Collecting 2021-03-25 to 2021-03-26, kinds=[1, 9735]
+2025-12-13 06:57:46,455 - NostrLocalCollector - INFO - Collected 10 events for batch
+2025-12-13 06:57:46,455 - NostrLocalCollector - INFO - Collecting 2021-03-26 to 2021-03-27, kinds=[1, 9735]
+2025-12-13 06:57:48,389 - NostrLocalCollector - INFO - Collected 6 events for batch
+2025-12-13 06:57:48,390 - NostrLocalCollector - INFO - Collecting 2021-03-27 to 2021-03-28, kinds=[1, 9735]
+2025-12-13 06:57:50,378 - NostrLocalCollector - INFO - Collected 9 events for batch
+2025-12-13 06:57:50,378 - NostrLocalCollector - INFO - Collecting 2021-03-28 to 2021-03-29, kinds=[1, 9735]
+2025-12-13 06:57:52,354 - NostrLocalCollector - INFO - Collected 9 events for batch
+2025-12-13 06:57:52,354 - NostrLocalCollector - INFO - Collecting 2021-03-29 to 2021-03-30, kinds=[1, 9735]
+2025-12-13 06:58:53,366 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 06:58:53,702 - NostrLocalCollector - INFO - Trying backup relay: wss://relay.damus.io
+2025-12-13 06:58:55,129 - NostrLocalCollector - INFO - Trying backup relay: wss://nos.lol
+2025-12-13 06:58:57,148 - NostrLocalCollector - INFO - Collected 8 events for batch
+2025-12-13 06:58:57,148 - NostrLocalCollector - INFO - Collecting 2021-03-30 to 2021-03-31, kinds=[1, 9735]
+2025-12-13 06:58:59,144 - NostrLocalCollector - INFO - Collected 10 events for batch
+2025-12-13 06:58:59,145 - NostrLocalCollector - INFO - Collecting 2021-03-31 to 2021-04-01, kinds=[1, 9735]
+2025-12-13 06:59:01,175 - NostrLocalCollector - INFO - Collected 8 events for batch
+2025-12-13 06:59:01,175 - NostrLocalCollector - INFO - Collecting 2021-04-01 to 2021-04-02, kinds=[1, 9735]
+2025-12-13 06:59:02,914 - NostrLocalCollector - INFO - Collected 7 events for batch
+2025-12-13 06:59:02,914 - NostrLocalCollector - INFO - Collecting 2021-04-02 to 2021-04-03, kinds=[1, 9735]
+2025-12-13 07:00:03,931 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 07:00:04,265 - NostrLocalCollector - INFO - Trying backup relay: wss://relay.damus.io
+2025-12-13 07:00:05,051 - NostrLocalCollector - INFO - Trying backup relay: wss://nos.lol
+2025-12-13 07:00:06,707 - NostrLocalCollector - INFO - Collected 5 events for batch
+2025-12-13 07:00:06,707 - NostrLocalCollector - INFO - Collecting 2021-04-03 to 2021-04-04, kinds=[1, 9735]
+2025-12-13 07:00:08,457 - NostrLocalCollector - INFO - Collected 3 events for batch
+2025-12-13 07:00:08,457 - NostrLocalCollector - INFO - Collecting 2021-04-04 to 2021-04-05, kinds=[1, 9735]
+2025-12-13 07:00:10,466 - NostrLocalCollector - INFO - Collected 4 events for batch
+2025-12-13 07:00:10,466 - NostrLocalCollector - INFO - Collecting 2021-04-05 to 2021-04-06, kinds=[1, 9735]
+2025-12-13 07:00:12,217 - NostrLocalCollector - INFO - Collected 5 events for batch
+2025-12-13 07:00:12,217 - NostrLocalCollector - INFO - Collecting 2021-04-06 to 2021-04-07, kinds=[1, 9735]
+2025-12-13 07:00:13,904 - NostrLocalCollector - INFO - Collected 6 events for batch
+2025-12-13 07:00:13,904 - NostrLocalCollector - INFO - Collecting 2021-04-07 to 2021-04-08, kinds=[1, 9735]
+2025-12-13 07:00:15,937 - NostrLocalCollector - INFO - Collected 8 events for batch
+2025-12-13 07:00:15,937 - NostrLocalCollector - INFO - Collecting 2021-04-08 to 2021-04-09, kinds=[1, 9735]
+2025-12-13 07:00:17,889 - NostrLocalCollector - INFO - Collected 20 events for batch
+2025-12-13 07:00:17,889 - NostrLocalCollector - INFO - Collecting 2021-04-09 to 2021-04-10, kinds=[1, 9735]
+2025-12-13 07:00:35,088 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 07:00:35,089 - NostrLocalCollector - INFO - Collecting 2021-04-10 to 2021-04-11, kinds=[1, 9735]
+2025-12-13 07:01:03,150 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 07:01:03,150 - NostrLocalCollector - INFO - Collecting 2021-04-11 to 2021-04-12, kinds=[1, 9735]
+2025-12-13 07:01:05,113 - NostrLocalCollector - INFO - Collected 12 events for batch
+2025-12-13 07:01:05,113 - NostrLocalCollector - INFO - Collecting 2021-04-12 to 2021-04-13, kinds=[1, 9735]
+2025-12-13 07:01:06,794 - NostrLocalCollector - INFO - Collected 5 events for batch
+2025-12-13 07:01:06,795 - NostrLocalCollector - INFO - Collecting 2021-04-13 to 2021-04-14, kinds=[1, 9735]
+2025-12-13 07:01:08,465 - NostrLocalCollector - INFO - Collected 8 events for batch
+2025-12-13 07:01:08,465 - NostrLocalCollector - INFO - Collecting 2021-04-14 to 2021-04-15, kinds=[1, 9735]
+2025-12-13 07:01:10,396 - NostrLocalCollector - INFO - Collected 5 events for batch
+2025-12-13 07:01:10,396 - NostrLocalCollector - INFO - Collecting 2021-04-15 to 2021-04-16, kinds=[1, 9735]
+2025-12-13 07:01:12,388 - NostrLocalCollector - INFO - Collected 10 events for batch
+2025-12-13 07:01:12,388 - NostrLocalCollector - INFO - Collecting 2021-04-16 to 2021-04-17, kinds=[1, 9735]
+2025-12-13 07:01:14,389 - NostrLocalCollector - INFO - Collected 13 events for batch
+2025-12-13 07:01:14,390 - NostrLocalCollector - INFO - Collecting 2021-04-17 to 2021-04-18, kinds=[1, 9735]
+2025-12-13 07:01:16,115 - NostrLocalCollector - INFO - Collected 6 events for batch
+2025-12-13 07:01:16,115 - NostrLocalCollector - INFO - Collecting 2021-04-18 to 2021-04-19, kinds=[1, 9735]
+2025-12-13 07:01:17,832 - NostrLocalCollector - INFO - Collected 5 events for batch
+2025-12-13 07:01:17,833 - NostrLocalCollector - INFO - Collecting 2021-04-19 to 2021-04-20, kinds=[1, 9735]
+2025-12-13 07:02:18,838 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 07:02:19,167 - NostrLocalCollector - INFO - Trying backup relay: wss://relay.damus.io
+2025-12-13 07:02:19,949 - NostrLocalCollector - INFO - Trying backup relay: wss://nos.lol
+2025-12-13 07:02:21,654 - NostrLocalCollector - INFO - Collected 9 events for batch
+2025-12-13 07:02:21,655 - NostrLocalCollector - INFO - Collecting 2021-04-20 to 2021-04-21, kinds=[1, 9735]
+2025-12-13 07:02:23,340 - NostrLocalCollector - INFO - Collected 6 events for batch
+2025-12-13 07:02:23,340 - NostrLocalCollector - INFO - Collecting 2021-04-21 to 2021-04-22, kinds=[1, 9735]
+2025-12-13 07:02:25,071 - NostrLocalCollector - INFO - Collected 6 events for batch
+2025-12-13 07:02:25,071 - NostrLocalCollector - INFO - Collecting 2021-04-22 to 2021-04-23, kinds=[1, 9735]
+2025-12-13 07:02:26,784 - NostrLocalCollector - INFO - Collected 7 events for batch
+2025-12-13 07:02:26,784 - NostrLocalCollector - INFO - Collecting 2021-04-23 to 2021-04-24, kinds=[1, 9735]
+2025-12-13 07:03:27,800 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 07:03:28,132 - NostrLocalCollector - INFO - Trying backup relay: wss://relay.damus.io
+2025-12-13 07:03:29,057 - NostrLocalCollector - INFO - Trying backup relay: wss://nos.lol
+2025-12-13 07:03:31,033 - NostrLocalCollector - INFO - Collected 11 events for batch
+2025-12-13 07:03:31,033 - NostrLocalCollector - INFO - Collecting 2021-04-24 to 2021-04-25, kinds=[1, 9735]
+2025-12-13 07:03:32,716 - NostrLocalCollector - INFO - Collected 6 events for batch
+2025-12-13 07:03:32,717 - NostrLocalCollector - INFO - Collecting 2021-04-25 to 2021-04-26, kinds=[1, 9735]
+2025-12-13 07:03:34,680 - NostrLocalCollector - INFO - Collected 8 events for batch
+2025-12-13 07:03:34,680 - NostrLocalCollector - INFO - Collecting 2021-04-26 to 2021-04-27, kinds=[1, 9735]
+2025-12-13 07:03:36,719 - NostrLocalCollector - INFO - Collected 8 events for batch
+2025-12-13 07:03:36,719 - NostrLocalCollector - INFO - Collecting 2021-04-27 to 2021-04-28, kinds=[1, 9735]
+2025-12-13 07:03:38,713 - NostrLocalCollector - INFO - Collected 13 events for batch
+2025-12-13 07:03:38,713 - NostrLocalCollector - INFO - Collecting 2021-04-28 to 2021-04-29, kinds=[1, 9735]
+2025-12-13 07:03:40,709 - NostrLocalCollector - INFO - Collected 16 events for batch
+2025-12-13 07:03:40,709 - NostrLocalCollector - INFO - Collecting 2021-04-29 to 2021-04-30, kinds=[1, 9735]
+2025-12-13 07:03:42,765 - NostrLocalCollector - INFO - Collected 8 events for batch
+2025-12-13 07:03:42,765 - NostrLocalCollector - INFO - Collecting 2021-04-30 to 2021-05-01, kinds=[1, 9735]
+2025-12-13 07:03:44,776 - NostrLocalCollector - INFO - Collected 9 events for batch
+2025-12-13 07:03:44,776 - NostrLocalCollector - INFO - Collecting 2021-05-01 to 2021-05-02, kinds=[1, 9735]
+2025-12-13 07:03:46,487 - NostrLocalCollector - INFO - Collected 7 events for batch
+2025-12-13 07:03:46,487 - NostrLocalCollector - INFO - Collecting 2021-05-02 to 2021-05-03, kinds=[1, 9735]
+2025-12-13 07:03:48,482 - NostrLocalCollector - INFO - Collected 15 events for batch
+2025-12-13 07:03:48,482 - NostrLocalCollector - INFO - Collecting 2021-05-03 to 2021-05-04, kinds=[1, 9735]
+2025-12-13 07:03:50,537 - NostrLocalCollector - INFO - Collected 12 events for batch
+2025-12-13 07:03:50,538 - NostrLocalCollector - INFO - Collecting 2021-05-04 to 2021-05-05, kinds=[1, 9735]
+2025-12-13 07:03:52,545 - NostrLocalCollector - INFO - Collected 10 events for batch
+2025-12-13 07:03:52,545 - NostrLocalCollector - INFO - Collecting 2021-05-05 to 2021-05-06, kinds=[1, 9735]
+2025-12-13 07:04:53,561 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 07:04:53,901 - NostrLocalCollector - INFO - Trying backup relay: wss://relay.damus.io
+2025-12-13 07:04:54,797 - NostrLocalCollector - INFO - Trying backup relay: wss://nos.lol
+2025-12-13 07:04:56,520 - NostrLocalCollector - INFO - Collected 9 events for batch
+2025-12-13 07:04:56,520 - NostrLocalCollector - INFO - Collecting 2021-05-06 to 2021-05-07, kinds=[1, 9735]
+2025-12-13 07:05:57,532 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 07:05:57,865 - NostrLocalCollector - INFO - Trying backup relay: wss://relay.damus.io
+2025-12-13 07:05:59,397 - NostrLocalCollector - INFO - Trying backup relay: wss://nos.lol
+2025-12-13 07:06:01,408 - NostrLocalCollector - INFO - Collected 15 events for batch
+2025-12-13 07:06:01,408 - NostrLocalCollector - INFO - Collecting 2021-05-07 to 2021-05-08, kinds=[1, 9735]
+2025-12-13 07:06:03,482 - NostrLocalCollector - INFO - Collected 6 events for batch
+2025-12-13 07:06:03,482 - NostrLocalCollector - INFO - Collecting 2021-05-08 to 2021-05-09, kinds=[1, 9735]
+2025-12-13 07:06:05,162 - NostrLocalCollector - INFO - Collected 8 events for batch
+2025-12-13 07:06:05,162 - NostrLocalCollector - INFO - Collecting 2021-05-09 to 2021-05-10, kinds=[1, 9735]
+2025-12-13 07:06:06,895 - NostrLocalCollector - INFO - Collected 7 events for batch
+2025-12-13 07:06:06,895 - NostrLocalCollector - INFO - Collecting 2021-05-10 to 2021-05-11, kinds=[1, 9735]
+2025-12-13 07:06:08,659 - NostrLocalCollector - INFO - Collected 8 events for batch
+2025-12-13 07:06:08,659 - NostrLocalCollector - INFO - Collecting 2021-05-11 to 2021-05-12, kinds=[1, 9735]
+2025-12-13 07:06:10,661 - NostrLocalCollector - INFO - Collected 9 events for batch
+2025-12-13 07:06:10,661 - NostrLocalCollector - INFO - Collecting 2021-05-12 to 2021-05-13, kinds=[1, 9735]
+2025-12-13 07:06:12,617 - NostrLocalCollector - INFO - Collected 8 events for batch
+2025-12-13 07:06:12,617 - NostrLocalCollector - INFO - Collecting 2021-05-13 to 2021-05-14, kinds=[1, 9735]
+2025-12-13 07:06:14,289 - NostrLocalCollector - INFO - Collected 8 events for batch
+2025-12-13 07:06:14,289 - NostrLocalCollector - INFO - Collecting 2021-05-14 to 2021-05-15, kinds=[1, 9735]
+2025-12-13 07:06:16,226 - NostrLocalCollector - INFO - Collected 7 events for batch
+2025-12-13 07:06:16,226 - NostrLocalCollector - INFO - Collecting 2021-05-15 to 2021-05-16, kinds=[1, 9735]
+2025-12-13 07:06:17,934 - NostrLocalCollector - INFO - Collected 8 events for batch
+2025-12-13 07:06:17,934 - NostrLocalCollector - INFO - Collecting 2021-05-16 to 2021-05-17, kinds=[1, 9735]
+2025-12-13 07:07:18,942 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 07:07:19,266 - NostrLocalCollector - INFO - Trying backup relay: wss://relay.damus.io
+2025-12-13 07:07:20,139 - NostrLocalCollector - INFO - Trying backup relay: wss://nos.lol
+2025-12-13 07:07:22,220 - NostrLocalCollector - INFO - Collected 23 events for batch
+2025-12-13 07:07:22,220 - NostrLocalCollector - INFO - Collecting 2021-05-17 to 2021-05-18, kinds=[1, 9735]
+2025-12-13 07:07:24,186 - NostrLocalCollector - INFO - Collected 8 events for batch
+2025-12-13 07:07:24,186 - NostrLocalCollector - INFO - Collecting 2021-05-18 to 2021-05-19, kinds=[1, 9735]
+2025-12-13 07:07:26,151 - NostrLocalCollector - INFO - Collected 22 events for batch
+2025-12-13 07:07:26,151 - NostrLocalCollector - INFO - Collecting 2021-05-19 to 2021-05-20, kinds=[1, 9735]
+2025-12-13 07:07:28,126 - NostrLocalCollector - INFO - Collected 21 events for batch
+2025-12-13 07:07:28,126 - NostrLocalCollector - INFO - Collecting 2021-05-20 to 2021-05-21, kinds=[1, 9735]
+2025-12-13 07:07:30,128 - NostrLocalCollector - INFO - Collected 16 events for batch
+2025-12-13 07:07:30,128 - NostrLocalCollector - INFO - Collecting 2021-05-21 to 2021-05-22, kinds=[1, 9735]
+2025-12-13 07:07:32,175 - NostrLocalCollector - INFO - Collected 28 events for batch
+2025-12-13 07:07:32,175 - NostrLocalCollector - INFO - Collecting 2021-05-22 to 2021-05-23, kinds=[1, 9735]
+2025-12-13 07:07:34,139 - NostrLocalCollector - INFO - Collected 15 events for batch
+2025-12-13 07:07:34,139 - NostrLocalCollector - INFO - Collecting 2021-05-23 to 2021-05-24, kinds=[1, 9735]
+2025-12-13 07:07:35,863 - NostrLocalCollector - INFO - Collected 2 events for batch
+2025-12-13 07:07:35,863 - NostrLocalCollector - INFO - Collecting 2021-05-24 to 2021-05-25, kinds=[1, 9735]
+2025-12-13 07:07:37,600 - NostrLocalCollector - INFO - Collected 7 events for batch
+2025-12-13 07:07:37,600 - NostrLocalCollector - INFO - Collecting 2021-05-25 to 2021-05-26, kinds=[1, 9735]
+2025-12-13 07:07:39,313 - NostrLocalCollector - INFO - Collected 1 events for batch
+2025-12-13 07:07:39,313 - NostrLocalCollector - INFO - Collecting 2021-05-26 to 2021-05-27, kinds=[1, 9735]
+2025-12-13 07:08:40,332 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 07:08:40,663 - NostrLocalCollector - INFO - Trying backup relay: wss://relay.damus.io
+2025-12-13 07:08:41,463 - NostrLocalCollector - INFO - Trying backup relay: wss://nos.lol
+2025-12-13 07:08:43,410 - NostrLocalCollector - INFO - Collected 15 events for batch
+2025-12-13 07:08:43,410 - NostrLocalCollector - INFO - Collecting 2021-05-27 to 2021-05-28, kinds=[1, 9735]
+2025-12-13 07:08:45,405 - NostrLocalCollector - INFO - Collected 10 events for batch
+2025-12-13 07:08:45,406 - NostrLocalCollector - INFO - Collecting 2021-05-28 to 2021-05-29, kinds=[1, 9735]
+2025-12-13 07:08:47,099 - NostrLocalCollector - INFO - Collected 6 events for batch
+2025-12-13 07:08:47,099 - NostrLocalCollector - INFO - Collecting 2021-05-29 to 2021-05-30, kinds=[1, 9735]
+2025-12-13 07:08:49,112 - NostrLocalCollector - INFO - Collected 11 events for batch
+2025-12-13 07:08:49,112 - NostrLocalCollector - INFO - Collecting 2021-05-30 to 2021-05-31, kinds=[1, 9735]
+2025-12-13 07:08:50,802 - NostrLocalCollector - INFO - Collected 5 events for batch
+2025-12-13 07:08:50,802 - NostrLocalCollector - INFO - Collecting 2021-05-31 to 2021-06-01, kinds=[1, 9735]
+2025-12-13 07:08:52,774 - NostrLocalCollector - INFO - Collected 11 events for batch
+2025-12-13 07:08:52,774 - NostrLocalCollector - INFO - Collecting 2021-06-01 to 2021-06-02, kinds=[1, 9735]
+2025-12-13 07:08:54,515 - NostrLocalCollector - INFO - Collected 5 events for batch
+2025-12-13 07:08:54,515 - NostrLocalCollector - INFO - Collecting 2021-06-02 to 2021-06-03, kinds=[1, 9735]
+2025-12-13 07:09:13,020 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 07:09:13,020 - NostrLocalCollector - INFO - Collecting 2021-06-03 to 2021-06-04, kinds=[1, 9735]
+2025-12-13 07:09:15,581 - NostrLocalCollector - INFO - Collected 103 events for batch
+2025-12-13 07:09:15,581 - NostrLocalCollector - INFO - Collecting 2021-06-04 to 2021-06-05, kinds=[1, 9735]
+2025-12-13 07:09:20,067 - NostrLocalCollector - INFO - Collected 619 events for batch
+2025-12-13 07:09:20,067 - NostrLocalCollector - INFO - Collecting 2021-06-05 to 2021-06-06, kinds=[1, 9735]
+2025-12-13 07:09:21,795 - NostrLocalCollector - INFO - Collected 1 events for batch
+2025-12-13 07:09:21,795 - NostrLocalCollector - INFO - Collecting 2021-06-06 to 2021-06-07, kinds=[1, 9735]
+2025-12-13 07:09:23,460 - NostrLocalCollector - INFO - Collected 4 events for batch
+2025-12-13 07:09:23,461 - NostrLocalCollector - INFO - Collecting 2021-06-07 to 2021-06-08, kinds=[1, 9735]
+2025-12-13 07:09:25,186 - NostrLocalCollector - INFO - Collected 4 events for batch
+2025-12-13 07:09:25,186 - NostrLocalCollector - INFO - Collecting 2021-06-08 to 2021-06-09, kinds=[1, 9735]
+2025-12-13 07:09:26,906 - NostrLocalCollector - INFO - Collected 6 events for batch
+2025-12-13 07:09:26,906 - NostrLocalCollector - INFO - Collecting 2021-06-09 to 2021-06-10, kinds=[1, 9735]
+2025-12-13 07:09:28,878 - NostrLocalCollector - INFO - Collected 14 events for batch
+2025-12-13 07:09:28,878 - NostrLocalCollector - INFO - Collecting 2021-06-10 to 2021-06-11, kinds=[1, 9735]
+2025-12-13 07:09:30,563 - NostrLocalCollector - INFO - Collected 5 events for batch
+2025-12-13 07:09:30,563 - NostrLocalCollector - INFO - Collecting 2021-06-11 to 2021-06-12, kinds=[1, 9735]
+2025-12-13 07:09:32,275 - NostrLocalCollector - INFO - Collected 4 events for batch
+2025-12-13 07:09:32,275 - NostrLocalCollector - INFO - Collecting 2021-06-12 to 2021-06-13, kinds=[1, 9735]
+2025-12-13 07:09:33,980 - NostrLocalCollector - INFO - Collected 5 events for batch
+2025-12-13 07:09:33,980 - NostrLocalCollector - INFO - Collecting 2021-06-13 to 2021-06-14, kinds=[1, 9735]
+2025-12-13 07:09:35,750 - NostrLocalCollector - INFO - Collected 5 events for batch
+2025-12-13 07:09:35,750 - NostrLocalCollector - INFO - Collecting 2021-06-14 to 2021-06-15, kinds=[1, 9735]
+2025-12-13 07:09:37,449 - NostrLocalCollector - INFO - Collected 7 events for batch
+2025-12-13 07:09:37,449 - NostrLocalCollector - INFO - Collecting 2021-06-15 to 2021-06-16, kinds=[1, 9735]
+2025-12-13 07:09:39,127 - NostrLocalCollector - INFO - Collected 4 events for batch
+2025-12-13 07:09:39,127 - NostrLocalCollector - INFO - Collecting 2021-06-16 to 2021-06-17, kinds=[1, 9735]
+2025-12-13 07:09:40,840 - NostrLocalCollector - INFO - Collected 4 events for batch
+2025-12-13 07:09:40,841 - NostrLocalCollector - INFO - Collecting 2021-06-17 to 2021-06-18, kinds=[1, 9735]
+2025-12-13 07:09:42,808 - NostrLocalCollector - INFO - Collected 9 events for batch
+2025-12-13 07:09:42,808 - NostrLocalCollector - INFO - Collecting 2021-06-18 to 2021-06-19, kinds=[1, 9735]
+2025-12-13 07:10:43,829 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 07:10:44,167 - NostrLocalCollector - INFO - Trying backup relay: wss://relay.damus.io
+2025-12-13 07:10:45,064 - NostrLocalCollector - INFO - Trying backup relay: wss://nos.lol
+2025-12-13 07:10:47,087 - NostrLocalCollector - INFO - Collected 22 events for batch
+2025-12-13 07:10:47,088 - NostrLocalCollector - INFO - Collecting 2021-06-19 to 2021-06-20, kinds=[1, 9735]
+2025-12-13 07:10:48,837 - NostrLocalCollector - INFO - Collected 7 events for batch
+2025-12-13 07:10:48,837 - NostrLocalCollector - INFO - Collecting 2021-06-20 to 2021-06-21, kinds=[1, 9735]
+2025-12-13 07:10:50,561 - NostrLocalCollector - INFO - Collected 5 events for batch
+2025-12-13 07:10:50,561 - NostrLocalCollector - INFO - Collecting 2021-06-21 to 2021-06-22, kinds=[1, 9735]
+2025-12-13 07:10:52,489 - NostrLocalCollector - INFO - Collected 8 events for batch
+2025-12-13 07:10:52,489 - NostrLocalCollector - INFO - Collecting 2021-06-22 to 2021-06-23, kinds=[1, 9735]

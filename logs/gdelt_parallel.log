@@ -1,0 +1,228 @@
+============================================================
+GDELT PARALLEL COLLECTION - 24 Quarters
+============================================================
+Total quarters: 24
+CPU cores available: 24
+
+Using 20 parallel workers
+
+[2020_Q3] Starting: 2020-07-01 to 2020-09-30
+[2020_Q4] Starting: 2020-10-01 to 2020-12-31
+[2020_Q1] Starting: 2020-01-01 to 2020-03-31
+[2020_Q2] Starting: 2020-04-01 to 2020-06-30
+[2021_Q1] Starting: 2021-01-01 to 2021-03-31
+[2021_Q2] Starting: 2021-04-01 to 2021-06-30
+[2021_Q3] Starting: 2021-07-01 to 2021-09-30
+[2022_Q2] Starting: 2022-04-01 to 2022-06-30
+[2022_Q1] Starting: 2022-01-01 to 2022-03-31
+[2021_Q4] Starting: 2021-10-01 to 2021-12-31
+[2022_Q4] Starting: 2022-10-01 to 2022-12-31
+[2023_Q1] Starting: 2023-01-01 to 2023-03-31
+[2022_Q3] Starting: 2022-07-01 to 2022-09-30
+[2023_Q2] Starting: 2023-04-01 to 2023-06-30
+[2023_Q3] Starting: 2023-07-01 to 2023-09-30
+[2024_Q4] Starting: 2024-10-01 to 2024-12-31
+[2024_Q2] Starting: 2024-04-01 to 2024-06-30
+[2023_Q4] Starting: 2023-10-01 to 2023-12-31
+[2024_Q3] Starting: 2024-07-01 to 2024-09-30
+[2024_Q1] Starting: 2024-01-01 to 2024-03-31
+2025-12-13 07:03:53,129 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 07:03:53,130 - GDELTLocalCollector - INFO - Starting GDELT collection from 2020-10-01 00:00:00+00:00 to 2020-12-31 23:59:59+00:00
+2025-12-13 07:03:53,130 - GDELTLocalCollector - INFO - Processing 14 weeks of data
+2025-12-13 07:03:53,130 - GDELTLocalCollector - INFO - Week 1/14: 2020-10-01 to 2020-10-08
+2025-12-13 07:03:53,130 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 07:03:53,130 - GDELTLocalCollector - INFO - Starting GDELT collection from 2020-07-01 00:00:00+00:00 to 2020-09-30 23:59:59+00:00
+2025-12-13 07:03:53,130 - GDELTLocalCollector - INFO - Processing 14 weeks of data
+2025-12-13 07:03:53,130 - GDELTLocalCollector - INFO - Week 1/14: 2020-07-01 to 2020-07-08
+2025-12-13 07:03:53,130 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 07:03:53,130 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 07:03:53,130 - GDELTLocalCollector - INFO - Starting GDELT collection from 2020-04-01 00:00:00+00:00 to 2020-06-30 23:59:59+00:00
+2025-12-13 07:03:53,130 - GDELTLocalCollector - INFO - Starting GDELT collection from 2021-01-01 00:00:00+00:00 to 2021-03-31 23:59:59+00:00
+2025-12-13 07:03:53,130 - GDELTLocalCollector - INFO - Processing 13 weeks of data
+2025-12-13 07:03:53,131 - GDELTLocalCollector - INFO - Processing 13 weeks of data
+2025-12-13 07:03:53,131 - GDELTLocalCollector - INFO - Week 1/13: 2020-04-01 to 2020-04-08
+2025-12-13 07:03:53,131 - GDELTLocalCollector - INFO - Week 1/13: 2021-01-01 to 2021-01-08
+2025-12-13 07:03:53,131 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 07:03:53,131 - GDELTLocalCollector - INFO - Starting GDELT collection from 2020-01-01 00:00:00+00:00 to 2020-03-31 23:59:59+00:00
+2025-12-13 07:03:53,131 - GDELTLocalCollector - INFO - Processing 13 weeks of data
+2025-12-13 07:03:53,131 - GDELTLocalCollector - INFO - Week 1/13: 2020-01-01 to 2020-01-08
+2025-12-13 07:03:53,131 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 07:03:53,131 - GDELTLocalCollector - INFO - Starting GDELT collection from 2021-07-01 00:00:00+00:00 to 2021-09-30 23:59:59+00:00
+2025-12-13 07:03:53,131 - GDELTLocalCollector - INFO - Processing 14 weeks of data
+2025-12-13 07:03:53,131 - GDELTLocalCollector - INFO - Week 1/14: 2021-07-01 to 2021-07-08
+2025-12-13 07:03:53,131 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 07:03:53,132 - GDELTLocalCollector - INFO - Starting GDELT collection from 2021-04-01 00:00:00+00:00 to 2021-06-30 23:59:59+00:00
+2025-12-13 07:03:53,132 - GDELTLocalCollector - INFO - Processing 13 weeks of data
+2025-12-13 07:03:53,132 - GDELTLocalCollector - INFO - Week 1/13: 2021-04-01 to 2021-04-08
+2025-12-13 07:03:53,132 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 07:03:53,132 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 07:03:53,133 - GDELTLocalCollector - INFO - Starting GDELT collection from 2022-01-01 00:00:00+00:00 to 2022-03-31 23:59:59+00:00
+2025-12-13 07:03:53,133 - GDELTLocalCollector - INFO - Starting GDELT collection from 2022-04-01 00:00:00+00:00 to 2022-06-30 23:59:59+00:00
+2025-12-13 07:03:53,133 - GDELTLocalCollector - INFO - Processing 13 weeks of data
+2025-12-13 07:03:53,133 - GDELTLocalCollector - INFO - Processing 13 weeks of data
+2025-12-13 07:03:53,133 - GDELTLocalCollector - INFO - Week 1/13: 2022-01-01 to 2022-01-08
+2025-12-13 07:03:53,133 - GDELTLocalCollector - INFO - Week 1/13: 2022-04-01 to 2022-04-08
+2025-12-13 07:03:53,133 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 07:03:53,133 - GDELTLocalCollector - INFO - Starting GDELT collection from 2022-10-01 00:00:00+00:00 to 2022-12-31 23:59:59+00:00
+2025-12-13 07:03:53,133 - GDELTLocalCollector - INFO - Processing 14 weeks of data
+2025-12-13 07:03:53,133 - GDELTLocalCollector - INFO - Week 1/14: 2022-10-01 to 2022-10-08
+2025-12-13 07:03:53,133 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 07:03:53,134 - GDELTLocalCollector - INFO - Starting GDELT collection from 2023-01-01 00:00:00+00:00 to 2023-03-31 23:59:59+00:00
+2025-12-13 07:03:53,134 - GDELTLocalCollector - INFO - Processing 13 weeks of data
+2025-12-13 07:03:53,134 - GDELTLocalCollector - INFO - Week 1/13: 2023-01-01 to 2023-01-08
+2025-12-13 07:03:53,134 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 07:03:53,134 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 07:03:53,134 - GDELTLocalCollector - INFO - Starting GDELT collection from 2021-10-01 00:00:00+00:00 to 2021-12-31 23:59:59+00:00
+2025-12-13 07:03:53,134 - GDELTLocalCollector - INFO - Starting GDELT collection from 2022-07-01 00:00:00+00:00 to 2022-09-30 23:59:59+00:00
+2025-12-13 07:03:53,134 - GDELTLocalCollector - INFO - Processing 14 weeks of data
+2025-12-13 07:03:53,134 - GDELTLocalCollector - INFO - Processing 14 weeks of data
+2025-12-13 07:03:53,134 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 07:03:53,134 - GDELTLocalCollector - INFO - Week 1/14: 2021-10-01 to 2021-10-08
+2025-12-13 07:03:53,135 - GDELTLocalCollector - INFO - Week 1/14: 2022-07-01 to 2022-07-08
+2025-12-13 07:03:53,135 - GDELTLocalCollector - INFO - Starting GDELT collection from 2024-10-01 00:00:00+00:00 to 2024-12-31 23:59:59+00:00
+2025-12-13 07:03:53,135 - GDELTLocalCollector - INFO - Processing 14 weeks of data
+2025-12-13 07:03:53,135 - GDELTLocalCollector - INFO - Week 1/14: 2024-10-01 to 2024-10-08
+2025-12-13 07:03:53,136 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 07:03:53,136 - GDELTLocalCollector - INFO - Starting GDELT collection from 2024-04-01 00:00:00+00:00 to 2024-06-30 23:59:59+00:00
+2025-12-13 07:03:53,136 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 07:03:53,136 - GDELTLocalCollector - INFO - Processing 13 weeks of data
+2025-12-13 07:03:53,136 - GDELTLocalCollector - INFO - Starting GDELT collection from 2023-04-01 00:00:00+00:00 to 2023-06-30 23:59:59+00:00
+2025-12-13 07:03:53,136 - GDELTLocalCollector - INFO - Week 1/13: 2024-04-01 to 2024-04-08
+2025-12-13 07:03:53,136 - GDELTLocalCollector - INFO - Processing 13 weeks of data
+2025-12-13 07:03:53,136 - GDELTLocalCollector - INFO - Week 1/13: 2023-04-01 to 2023-04-08
+2025-12-13 07:03:53,136 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 07:03:53,136 - GDELTLocalCollector - INFO - Starting GDELT collection from 2023-07-01 00:00:00+00:00 to 2023-09-30 23:59:59+00:00
+2025-12-13 07:03:53,137 - GDELTLocalCollector - INFO - Processing 14 weeks of data
+2025-12-13 07:03:53,137 - GDELTLocalCollector - INFO - Week 1/14: 2023-07-01 to 2023-07-08
+2025-12-13 07:03:53,137 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 07:03:53,137 - GDELTLocalCollector - INFO - Starting GDELT collection from 2023-10-01 00:00:00+00:00 to 2023-12-31 23:59:59+00:00
+2025-12-13 07:03:53,137 - GDELTLocalCollector - INFO - Processing 14 weeks of data
+2025-12-13 07:03:53,137 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 07:03:53,137 - GDELTLocalCollector - INFO - Week 1/14: 2023-10-01 to 2023-10-08
+2025-12-13 07:03:53,137 - GDELTLocalCollector - INFO - Starting GDELT collection from 2024-07-01 00:00:00+00:00 to 2024-09-30 23:59:59+00:00
+2025-12-13 07:03:53,137 - GDELTLocalCollector - INFO - Processing 14 weeks of data
+2025-12-13 07:03:53,137 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 07:03:53,137 - GDELTLocalCollector - INFO - Week 1/14: 2024-07-01 to 2024-07-08
+2025-12-13 07:03:53,137 - GDELTLocalCollector - INFO - Starting GDELT collection from 2024-01-01 00:00:00+00:00 to 2024-03-31 23:59:59+00:00
+2025-12-13 07:03:53,138 - GDELTLocalCollector - INFO - Processing 13 weeks of data
+2025-12-13 07:03:53,138 - GDELTLocalCollector - INFO - Week 1/13: 2024-01-01 to 2024-01-08
+2025-12-13 07:04:04,113 - GDELTLocalCollector - INFO - Found 487 GKG files in date range
+2025-12-13 07:04:04,113 - GDELTLocalCollector - INFO - Processing 487 GKG files...
+2025-12-13 07:04:04,845 - GDELTLocalCollector - INFO - Found 673 GKG files in date range
+2025-12-13 07:04:04,846 - GDELTLocalCollector - INFO - Processing 673 GKG files...
+2025-12-13 07:04:04,900 - GDELTLocalCollector - INFO - Found 673 GKG files in date range
+2025-12-13 07:04:04,900 - GDELTLocalCollector - INFO - Processing 673 GKG files...
+2025-12-13 07:04:05,090 - GDELTLocalCollector - INFO - Found 673 GKG files in date range
+2025-12-13 07:04:05,090 - GDELTLocalCollector - INFO - Processing 673 GKG files...
+2025-12-13 07:04:05,183 - GDELTLocalCollector - INFO - Found 673 GKG files in date range
+2025-12-13 07:04:05,183 - GDELTLocalCollector - INFO - Processing 673 GKG files...
+2025-12-13 07:04:05,203 - GDELTLocalCollector - INFO - Found 673 GKG files in date range
+2025-12-13 07:04:05,203 - GDELTLocalCollector - INFO - Processing 673 GKG files...
+2025-12-13 07:04:05,284 - GDELTLocalCollector - INFO - Found 673 GKG files in date range
+2025-12-13 07:04:05,284 - GDELTLocalCollector - INFO - Processing 673 GKG files...
+2025-12-13 07:04:05,517 - GDELTLocalCollector - INFO - Found 673 GKG files in date range
+2025-12-13 07:04:05,517 - GDELTLocalCollector - INFO - Processing 673 GKG files...
+2025-12-13 07:04:05,668 - GDELTLocalCollector - INFO - Found 673 GKG files in date range
+2025-12-13 07:04:05,669 - GDELTLocalCollector - INFO - Processing 673 GKG files...
+2025-12-13 07:04:05,813 - GDELTLocalCollector - INFO - Found 673 GKG files in date range
+2025-12-13 07:04:05,814 - GDELTLocalCollector - INFO - Processing 673 GKG files...
+2025-12-13 07:04:05,814 - GDELTLocalCollector - INFO - Found 673 GKG files in date range
+2025-12-13 07:04:05,814 - GDELTLocalCollector - INFO - Processing 673 GKG files...
+2025-12-13 07:04:05,867 - GDELTLocalCollector - INFO - Found 673 GKG files in date range
+2025-12-13 07:04:05,867 - GDELTLocalCollector - INFO - Processing 673 GKG files...
+2025-12-13 07:04:05,873 - GDELTLocalCollector - INFO - Found 673 GKG files in date range
+2025-12-13 07:04:05,873 - GDELTLocalCollector - INFO - Processing 673 GKG files...
+2025-12-13 07:04:05,896 - GDELTLocalCollector - INFO - Found 672 GKG files in date range
+2025-12-13 07:04:05,896 - GDELTLocalCollector - INFO - Processing 672 GKG files...
+2025-12-13 07:04:06,379 - GDELTLocalCollector - INFO - Found 673 GKG files in date range
+2025-12-13 07:04:06,379 - GDELTLocalCollector - INFO - Processing 673 GKG files...
+2025-12-13 07:04:06,901 - GDELTLocalCollector - INFO - Found 672 GKG files in date range
+2025-12-13 07:04:06,902 - GDELTLocalCollector - INFO - Processing 672 GKG files...
+2025-12-13 07:04:06,993 - GDELTLocalCollector - INFO - Found 673 GKG files in date range
+2025-12-13 07:04:06,993 - GDELTLocalCollector - INFO - Processing 673 GKG files...
+2025-12-13 07:04:07,721 - GDELTLocalCollector - INFO - Found 673 GKG files in date range
+2025-12-13 07:04:07,721 - GDELTLocalCollector - INFO - Processing 673 GKG files...
+2025-12-13 07:04:07,734 - GDELTLocalCollector - INFO - Found 673 GKG files in date range
+2025-12-13 07:04:07,735 - GDELTLocalCollector - INFO - Processing 673 GKG files...
+2025-12-13 07:04:07,738 - GDELTLocalCollector - INFO - Found 673 GKG files in date range
+2025-12-13 07:04:07,738 - GDELTLocalCollector - INFO - Processing 673 GKG files...
+2025-12-13 07:04:34,768 - GDELTLocalCollector - INFO - Progress: 100/673 files processed, 163 crypto articles found
+2025-12-13 07:05:11,762 - GDELTLocalCollector - INFO - Progress: 200/673 files processed, 451 crypto articles found
+2025-12-13 07:05:31,795 - GDELTLocalCollector - INFO - Progress: 100/672 files processed, 151 crypto articles found
+2025-12-13 07:05:35,054 - GDELTLocalCollector - INFO - Progress: 100/673 files processed, 202 crypto articles found
+2025-12-13 07:05:39,579 - GDELTLocalCollector - INFO - Progress: 100/673 files processed, 739 crypto articles found
+2025-12-13 07:05:44,358 - GDELTLocalCollector - INFO - Progress: 100/673 files processed, 156 crypto articles found
+2025-12-13 07:05:52,038 - GDELTLocalCollector - INFO - Progress: 100/673 files processed, 1669 crypto articles found
+2025-12-13 07:05:52,626 - GDELTLocalCollector - INFO - Progress: 300/673 files processed, 746 crypto articles found
+2025-12-13 07:05:52,806 - GDELTLocalCollector - INFO - Progress: 100/673 files processed, 234 crypto articles found
+2025-12-13 07:05:53,407 - GDELTLocalCollector - INFO - Progress: 100/673 files processed, 754 crypto articles found
+2025-12-13 07:05:57,394 - GDELTLocalCollector - INFO - Progress: 100/673 files processed, 672 crypto articles found
+2025-12-13 07:05:58,986 - GDELTLocalCollector - INFO - Progress: 100/673 files processed, 945 crypto articles found
+2025-12-13 07:06:01,141 - GDELTLocalCollector - INFO - Progress: 100/673 files processed, 853 crypto articles found
+2025-12-13 07:06:01,682 - GDELTLocalCollector - INFO - Progress: 100/673 files processed, 1519 crypto articles found
+2025-12-13 07:06:04,841 - GDELTLocalCollector - INFO - Progress: 100/672 files processed, 1448 crypto articles found
+2025-12-13 07:06:06,881 - GDELTLocalCollector - INFO - Progress: 100/673 files processed, 751 crypto articles found
+2025-12-13 07:06:07,200 - GDELTLocalCollector - INFO - Progress: 100/673 files processed, 1069 crypto articles found
+2025-12-13 07:06:11,065 - GDELTLocalCollector - INFO - Progress: 100/673 files processed, 1588 crypto articles found
+2025-12-13 07:06:11,773 - GDELTLocalCollector - INFO - Progress: 100/673 files processed, 765 crypto articles found
+2025-12-13 07:06:18,213 - GDELTLocalCollector - INFO - Progress: 400/673 files processed, 845 crypto articles found
+2025-12-13 07:06:18,732 - GDELTLocalCollector - INFO - Progress: 100/673 files processed, 309 crypto articles found
+2025-12-13 07:06:21,099 - GDELTLocalCollector - INFO - Progress: 100/487 files processed, 325 crypto articles found
+2025-12-13 07:06:31,048 - GDELTLocalCollector - INFO - Progress: 100/673 files processed, 288 crypto articles found
+2025-12-13 07:06:44,316 - GDELTLocalCollector - INFO - Progress: 500/673 files processed, 958 crypto articles found
+2025-12-13 07:06:53,787 - GDELTLocalCollector - INFO - Progress: 200/672 files processed, 417 crypto articles found
+2025-12-13 07:06:59,370 - GDELTLocalCollector - INFO - Progress: 200/673 files processed, 440 crypto articles found
+2025-12-13 07:07:05,053 - GDELTLocalCollector - INFO - Progress: 200/673 files processed, 293 crypto articles found
+2025-12-13 07:07:18,708 - GDELTLocalCollector - INFO - Progress: 200/673 files processed, 485 crypto articles found
+2025-12-13 07:07:20,368 - GDELTLocalCollector - INFO - Progress: 200/673 files processed, 3220 crypto articles found
+2025-12-13 07:07:20,741 - GDELTLocalCollector - INFO - Progress: 200/673 files processed, 2078 crypto articles found
+2025-12-13 07:07:20,874 - GDELTLocalCollector - INFO - Progress: 200/673 files processed, 1169 crypto articles found
+2025-12-13 07:07:21,960 - GDELTLocalCollector - INFO - Progress: 200/673 files processed, 883 crypto articles found
+2025-12-13 07:07:27,326 - GDELTLocalCollector - INFO - Progress: 200/673 files processed, 1336 crypto articles found
+2025-12-13 07:07:29,087 - GDELTLocalCollector - INFO - Progress: 600/673 files processed, 1501 crypto articles found
+2025-12-13 07:07:41,748 - GDELTLocalCollector - INFO - Progress: 200/673 files processed, 3277 crypto articles found
+2025-12-13 07:07:43,952 - GDELTLocalCollector - INFO - Progress: 200/673 files processed, 1970 crypto articles found
+2025-12-13 07:07:55,523 - GDELTLocalCollector - INFO - Progress: 200/673 files processed, 1449 crypto articles found
+2025-12-13 07:07:56,052 - GDELTLocalCollector - INFO - Progress: 200/673 files processed, 2159 crypto articles found
+2025-12-13 07:07:56,999 - GDELTLocalCollector - INFO - Progress: 200/672 files processed, 2971 crypto articles found
+2025-12-13 07:07:57,258 - GDELTLocalCollector - INFO - Progress: 200/673 files processed, 1404 crypto articles found
+2025-12-13 07:08:07,508 - GDELTLocalCollector - INFO - Progress: 200/673 files processed, 3871 crypto articles found
+2025-12-13 07:08:09,578 - GDELTLocalCollector - INFO - Collected 1837 crypto-related articles from GDELT
+2025-12-13 07:08:09,595 - GDELTLocalCollector - INFO - Found 1837 unique articles for this week
+2025-12-13 07:08:17,391 - GDELTLocalCollector - INFO - Progress: 200/487 files processed, 552 crypto articles found
+2025-12-13 07:08:20,829 - GDELTLocalCollector - INFO - Progress: 200/673 files processed, 596 crypto articles found
+2025-12-13 07:08:26,051 - GDELTLocalCollector - INFO - Progress: 300/672 files processed, 1376 crypto articles found
+2025-12-13 07:08:32,916 - GDELTLocalCollector - INFO - Progress: 300/673 files processed, 1004 crypto articles found
+2025-12-13 07:08:40,486 - GDELTLocalCollector - INFO - Progress: 300/673 files processed, 772 crypto articles found
+2025-12-13 07:08:40,705 - GDELTLocalCollector - INFO - Progress: 300/673 files processed, 1383 crypto articles found
+2025-12-13 07:08:41,362 - GDELTLocalCollector - INFO - Progress: 300/673 files processed, 1472 crypto articles found
+2025-12-13 07:08:43,846 - GDELTLocalCollector - INFO - Progress: 300/673 files processed, 1055 crypto articles found
+2025-12-13 07:08:46,333 - GDELTLocalCollector - INFO - Progress: 200/673 files processed, 561 crypto articles found
+2025-12-13 07:08:47,821 - GDELTLocalCollector - INFO - Progress: 300/673 files processed, 1777 crypto articles found
+2025-12-13 07:09:06,393 - GDELTLocalCollector - INFO - Progress: 300/673 files processed, 5290 crypto articles found
+2025-12-13 07:09:08,636 - GDELTLocalCollector - INFO - Progress: 300/673 files processed, 3514 crypto articles found
+2025-12-13 07:09:17,026 - GDELTLocalCollector - INFO - Progress: 300/673 files processed, 1748 crypto articles found
+2025-12-13 07:09:21,427 - GDELTLocalCollector - INFO - Progress: 300/673 files processed, 1597 crypto articles found
+2025-12-13 07:09:40,461 - GDELTLocalCollector - INFO - Progress: 300/673 files processed, 3381 crypto articles found
+2025-12-13 07:09:44,494 - GDELTLocalCollector - INFO - Progress: 300/673 files processed, 3171 crypto articles found
+2025-12-13 07:09:48,427 - GDELTLocalCollector - INFO - Progress: 300/487 files processed, 668 crypto articles found
+2025-12-13 07:09:49,620 - GDELTLocalCollector - INFO - Progress: 300/672 files processed, 4807 crypto articles found
+2025-12-13 07:09:52,579 - GDELTLocalCollector - INFO - Progress: 300/673 files processed, 5568 crypto articles found
+2025-12-13 07:10:01,109 - GDELTLocalCollector - INFO - Progress: 400/672 files processed, 2168 crypto articles found
+2025-12-13 07:10:01,371 - GDELTLocalCollector - INFO - Progress: 300/673 files processed, 5512 crypto articles found
+2025-12-13 07:10:06,144 - GDELTLocalCollector - INFO - Progress: 300/673 files processed, 784 crypto articles found
+2025-12-13 07:10:06,805 - GDELTLocalCollector - INFO - Progress: 400/673 files processed, 1810 crypto articles found
+2025-12-13 07:10:10,639 - GDELTLocalCollector - INFO - Progress: 400/673 files processed, 1810 crypto articles found
+2025-12-13 07:10:17,150 - GDELTLocalCollector - INFO - Scraped 1116/1837 URLs successfully
+2025-12-13 07:10:17,165 - GDELTLocalCollector - INFO - Retained 1014 articles after scraping
+2025-12-13 07:10:17,269 - GDELTLocalCollector - INFO - Appended 528 records to /home/work/data/stair-local/gdelt/gdelt_2020W01.parquet
+2025-12-13 07:10:17,330 - GDELTLocalCollector - INFO - Appended 486 records to /home/work/data/stair-local/gdelt/gdelt_2020W02.parquet
+2025-12-13 07:10:17,331 - GDELTLocalCollector - INFO - Week 1 complete: 1014 records (total: 1014)
+2025-12-13 07:10:17,335 - GDELTLocalCollector - INFO - Week 2/13: 2020-01-08 to 2020-01-15
+2025-12-13 07:10:21,689 - GDELTLocalCollector - INFO - Progress: 400/673 files processed, 2112 crypto articles found
+2025-12-13 07:10:23,219 - GDELTLocalCollector - INFO - Progress: 400/673 files processed, 1680 crypto articles found
+2025-12-13 07:10:24,617 - GDELTLocalCollector - INFO - Progress: 400/673 files processed, 1641 crypto articles found
+2025-12-13 07:10:26,346 - GDELTLocalCollector - INFO - Progress: 400/673 files processed, 2745 crypto articles found
+2025-12-13 07:10:26,891 - GDELTLocalCollector - INFO - Found 673 GKG files in date range
+2025-12-13 07:10:26,891 - GDELTLocalCollector - INFO - Processing 673 GKG files...
+2025-12-13 07:10:35,822 - GDELTLocalCollector - INFO - Progress: 400/673 files processed, 1929 crypto articles found

@@ -1,0 +1,12 @@
+Starting GDELT collection (FIXED): 2020-01-01 to 2025-11-30
+Processing week by week (310+ weeks)...
+2025-12-13 06:30:38,386 - GDELTLocalCollector - INFO - Initialized GDELTLocalCollector with use_bigquery=False, batch_size=50
+2025-12-13 06:30:38,386 - GDELTLocalCollector - INFO - Starting GDELT collection from 2020-01-01 00:00:00+00:00 to 2025-11-30 23:59:59+00:00
+2025-12-13 06:30:38,386 - GDELTLocalCollector - INFO - Processing 309 weeks of data
+2025-12-13 06:30:38,386 - GDELTLocalCollector - INFO - Week 1/309: 2020-01-01 to 2020-01-08
+2025-12-13 06:30:49,340 - GDELTLocalCollector - INFO - Found 673 GKG files in date range
+2025-12-13 06:30:49,341 - GDELTLocalCollector - INFO - Processing 673 GKG files...
+2025-12-13 06:32:06,048 - GDELTLocalCollector - INFO - Progress: 100/673 files processed, 163 crypto articles found
+2025-12-13 06:34:59,201 - GDELTLocalCollector - INFO - Progress: 200/673 files processed, 451 crypto articles found
+2025-12-13 06:38:05,197 - GDELTLocalCollector - INFO - Progress: 300/673 files processed, 746 crypto articles found
+2025-12-13 06:40:26,823 - GDELTLocalCollector - INFO - Progress: 400/673 files processed, 845 crypto articles found

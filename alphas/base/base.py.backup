@@ -1,0 +1,499 @@
+
+import pandas as pd
+import numpy as np
+from pandas import DataFrame
+from typing import Optional, Dict, List
+import importlib
+from abc import ABC, abstractmethod
+from scipy import stats
+
+class BaseAlpha(ABC):
+    """알파 팩터 베이스 클래스"""
+    
+    # 각 알파별 처리 설정 (하위 클래스에서 오버라이드 가능)
+    neutralizer_type: str = "mean"  # "none", "mean", "factor"
+    decay_period: int = 3  # 선형 디케이 기간 (일수)
+    
+    @abstractmethod
+    def calculate(self, dataframe: DataFrame, pair: str) -> pd.Series:
+        """
+        Raw 알파 계산
+        Returns: pd.Series with alpha values
+        """
+        pass
+    
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """알파 이름"""
+        pass
+    
+    # ========== 시계열 연산자 (ts_) ==========
+    
+    def ts_delta(self, series: pd.Series, period: int = 1) -> pd.Series:
+        """시계열 차분 (lag difference)"""
+        return series.diff(periods=period)
+    
+    def ts_rank(self, series: pd.Series, window: int) -> pd.Series:
+        """시계열 롤링 랭킹 (0~1 사이 값)"""
+        return series.rolling(window).rank(pct=True)
+    
+    def ts_sum(self, series: pd.Series, window: int) -> pd.Series:
+        """시계열 롤링 합계"""
+        return series.rolling(window).sum()
+    
+    def ts_mean(self, series: pd.Series, window: int) -> pd.Series:
+        """시계열 롤링 평균"""
+        return series.rolling(window).mean()
+    
+    def ts_min(self, series: pd.Series, window: int) -> pd.Series:
+        """시계열 롤링 최소값"""
+        return series.rolling(window).min()
+    
+    def ts_max(self, series: pd.Series, window: int) -> pd.Series:
+        """시계열 롤링 최대값"""
+        return series.rolling(window).max()
+    
+    def ts_std(self, series: pd.Series, window: int) -> pd.Series:
+        """시계열 롤링 표준편차"""
+        return series.rolling(window).std()
+    
+    def ts_corr(self, x: pd.Series, y: pd.Series, window: int) -> pd.Series:
+        """시계열 롤링 상관계수"""
+        return x.rolling(window).corr(y)
+    
+    def ts_cov(self, x: pd.Series, y: pd.Series, window: int) -> pd.Series:
+        """시계열 롤링 공분산"""
+        return x.rolling(window).cov(y)
+    
+    def ts_argmax(self, series: pd.Series, window: int) -> pd.Series:
+        """시계열 롤링 최대값 인덱스"""
+        return series.rolling(window).apply(lambda x: x.argmax() if len(x) > 0 else np.nan)
+    
+    def ts_argmin(self, series: pd.Series, window: int) -> pd.Series:
+        """시계열 롤링 최소값 인덱스"""
+        return series.rolling(window).apply(lambda x: x.argmin() if len(x) > 0 else np.nan)
+    
+    def ts_product(self, series: pd.Series, window: int) -> pd.Series:
+        """시계열 롤링 곱"""
+        return series.rolling(window).apply(lambda x: x.prod())  
+    
+    def ts_decayed_linear(self, series: pd.Series, window: int) -> pd.Series:
+        """선형 감쇠 가중평균"""
+        weights = np.arange(1, window + 1)
+        weights = weights / weights.sum()
+        return series.rolling(window).apply(lambda x: np.dot(x, weights) if len(x) == window else np.nan)
+    
+    # ========== 크로스섹션 연산자 ==========
+    
+    def rank(self, series: pd.Series) -> pd.Series:
+        """크로스섹션 랭킹 (0~1 사이 값)"""
+        return series.rank(pct=True)
+    
+    def condition(self, cond: pd.Series, true_val, false_val) -> pd.Series:
+        """조건부 연산 (if-then-else) - true_val, false_val은 Series 또는 스칼라 가능"""
+        # pandas where 사용하여 인덱스 보존
+        if isinstance(true_val, (int, float)):
+            true_val = pd.Series(true_val, index=cond.index)
+        if isinstance(false_val, (int, float)):
+            false_val = pd.Series(false_val, index=cond.index)
+        return true_val.where(cond, false_val)
+    
+    def sign(self, series: pd.Series) -> pd.Series:
+        """부호 함수"""
+        return np.sign(series).fillna(0)
+    
+    def delay(self, series: pd.Series, period: int) -> pd.Series:
+        """지연 (lag)"""
+        return series.shift(period)
+    
+    def grouped_demean(self, series: pd.Series, group: str = None) -> pd.Series:
+        """그룹별 평균 제거 (업종 중립화 등)"""
+        # 간단한 구현: 전체 평균 제거
+        return (series - series.mean())
+    
+    def twise_a_scale(self, series: pd.Series, scale: float = 1.0) -> pd.Series:
+        """스케일링 (표준화)"""
+        std = series.std()
+        if std == 0 or pd.isna(std):
+            return pd.Series(0, index=series.index)
+        return ((series - series.mean()) / std) * scale
+    
+    # ========== 기본 연산자 ==========
+    
+    def add(self, x: pd.Series, y) -> pd.Series:
+        """덧셈 (y는 Series 또는 스칼라)"""
+        return (x + y).fillna(0)
+    
+    def sub(self, x: pd.Series, y) -> pd.Series:
+        """뺄셈 (y는 Series 또는 스칼라)"""
+        return (x - y).fillna(0)
+    
+    def mul(self, x: pd.Series, y) -> pd.Series:
+        """곱셈 (y는 Series 또는 스칼라)"""
+        return (x * y).fillna(0)
+    
+    def div(self, x: pd.Series, y) -> pd.Series:
+        """
+        나눗셈 (y는 Series 또는 스칼라)
+
+        Zero division and edge case handling:
+        - When denominator is 0 or near-zero (< 1e-10), return 0
+        - Replace inf/-inf with 0
+        - Replace NaN with 0
+        """
+        if isinstance(y, pd.Series):
+            # For Series, use mask to avoid division by zero
+            result = x / y.replace(0, np.nan)  # Replace 0 with NaN to avoid division by zero
+        else:
+            # For scalar
+            if abs(y) < 1e-10:
+                return pd.Series(0, index=x.index)
+            result = x / y
+
+        # Replace inf/-inf and NaN with 0
+        result = result.replace([np.inf, -np.inf], 0).fillna(0)
+        return result
+    
+    def pow(self, x: pd.Series, exp: float) -> pd.Series:
+        """거듭제곱"""
+        return x ** exp
+    
+    def log(self, series: pd.Series) -> pd.Series:
+        """자연로그"""
+        return np.log(series).fillna(0)
+    
+    def abs(self, series: pd.Series) -> pd.Series:
+        """절댓값"""
+        return series.abs()
+    
+    def lt(self, x: pd.Series, y) -> pd.Series:
+        """미만 비교 (y는 Series 또는 스칼라)"""
+        return x < y
+
+    def gt(self, x: pd.Series, y) -> pd.Series:
+        """초과 비교 (y는 Series 또는 스칼라)"""
+        return x > y
+
+    def le(self, x: pd.Series, y) -> pd.Series:
+        """이하 비교 (y는 Series 또는 스칼라)"""
+        return x <= y
+
+    def ge(self, x: pd.Series, y) -> pd.Series:
+        """이상 비교 (y는 Series 또는 스칼라)"""
+        return x >= y
+
+    def eq(self, x: pd.Series, y) -> pd.Series:
+        """같음 비교 (y는 Series 또는 스칼라)"""
+        return x == y
+    
+    def or_(self, x: pd.Series, y: pd.Series) -> pd.Series:
+        """논리 OR"""
+        return x | y
+    
+    def min(self, x: pd.Series, y) -> pd.Series:
+        """최소값 (y는 Series 또는 스칼라)"""
+        return np.minimum(x, y)
+    
+    def max(self, x: pd.Series, y) -> pd.Series:
+        """최대값 (y는 Series 또는 스칼라)"""
+        return np.maximum(x, y)
+    
+    # ========== 추가 유틸리티 함수 ==========
+    
+    def sma(self, series: pd.Series, n: int, m: int = 1) -> pd.Series:
+        """지수이동평균"""
+        return series.ewm(alpha=m/n, adjust=False).mean()
+    
+    def sequence(self, n: int) -> np.ndarray:
+        """1~n 등차수열 생성"""
+        return np.arange(1, n+1)
+    
+    def regbeta(self, series: pd.Series, x: np.ndarray) -> pd.Series:
+        """회귀 베타 계산"""
+        window = len(x)
+        return series.rolling(window).apply(lambda y: np.polyfit(x, y, deg=1)[0])
+    
+    def returns(self, close: pd.Series) -> pd.Series:
+        """수익률 계산"""
+        return close.pct_change()
+    
+    def vwap_calc(self, high: pd.Series, low: pd.Series, close: pd.Series, volume: pd.Series) -> pd.Series:
+        """VWAP 계산"""
+        typical_price = (high + low + close) / 3
+        return (typical_price * volume).cumsum() / volume.cumsum()
+
+    # ========== Alpha 158 추가 메서드 ==========
+
+    def slope(self, series: pd.Series, window: int) -> pd.Series:
+        """선형 회귀 기울기"""
+        def calc_slope(y):
+            if len(y) < 2:
+                return np.nan
+            x = np.arange(len(y))
+            return np.polyfit(x, y, 1)[0]
+        return series.rolling(window).apply(calc_slope)
+
+    def ts_rsquare(self, x: pd.Series, y: pd.Series, window: int) -> pd.Series:
+        """시계열 롤링 R-squared"""
+        def calc_rsquare(data):
+            x_vals, y_vals = data[:len(data)//2], data[len(data)//2:]
+            if len(x_vals) < 2:
+                return np.nan
+            corr = np.corrcoef(x_vals, y_vals)[0, 1]
+            return corr ** 2 if not np.isnan(corr) else np.nan
+
+        combined = pd.concat([x, y], axis=1)
+        return combined.rolling(window).apply(lambda w: calc_rsquare(w.values.flatten()))
+
+    def residual(self, y: pd.Series, x: pd.Series, window: int) -> pd.Series:
+        """선형 회귀 잔차"""
+        def calc_residual(data):
+            if len(data) < 2:
+                return np.nan
+            x_vals = np.arange(len(data))
+            coeffs = np.polyfit(x_vals, data, 1)
+            fitted = np.polyval(coeffs, x_vals)
+            return data[-1] - fitted[-1]
+        return y.rolling(window).apply(calc_residual)
+
+    def ts_quantile(self, series: pd.Series, window: int, q: float = 0.5) -> pd.Series:
+        """시계열 롤링 분위수"""
+        return series.rolling(window).quantile(q)
+
+    # ========== Alpha 191 추가 메서드 ==========
+
+    def ts_linear_reg_with_seq(self, series: pd.Series, window: int) -> pd.Series:
+        """시계열 선형 회귀 (시퀀스 사용)"""
+        def calc_reg(y):
+            if len(y) < 2:
+                return np.nan
+            x = np.arange(len(y))
+            return np.polyfit(x, y, 1)[0] * (len(y) - 1) + np.polyfit(x, y, 1)[1]
+        return series.rolling(window).apply(calc_reg)
+
+    def ema(self, series: pd.Series, span: int) -> pd.Series:
+        """지수 이동 평균"""
+        return series.ewm(span=span, adjust=False).mean()
+
+    def ma(self, series: pd.Series, window: int) -> pd.Series:
+        """이동 평균 (Simple Moving Average)"""
+        return series.rolling(window).mean()
+
+    def reg_resi(self, y: pd.Series, x: pd.Series, window: int) -> pd.Series:
+        """회귀 잔차 (residual의 별칭)"""
+        return self.residual(y, x, window)
+
+    def neg(self, series: pd.Series) -> pd.Series:
+        """음수 변환 (-1 곱하기)"""
+        return -series
+
+    def and_(self, x: pd.Series, y: pd.Series) -> pd.Series:
+        """논리 AND"""
+        return x & y
+
+    def lowday(self, series: pd.Series, window: int) -> pd.Series:
+        """롤링 윈도우에서 최저점 이후 경과 일수"""
+        return series.rolling(window).apply(lambda x: len(x) - x.argmin() - 1 if len(x) > 0 else np.nan)
+
+    def highday(self, series: pd.Series, window: int) -> pd.Series:
+        """롤링 윈도우에서 최고점 이후 경과 일수"""
+        return series.rolling(window).apply(lambda x: len(x) - x.argmax() - 1 if len(x) > 0 else np.nan)
+
+
+
+class BaseNeutralizer(ABC):
+    """중립화 베이스 클래스"""
+    
+    @abstractmethod
+    def neutralize(self, alpha_dict: Dict[str, pd.Series], 
+                  loading_matrix: Optional[Dict] = None) -> Dict[str, pd.Series]:
+        """
+        알파 중립화
+        Args:
+            alpha_dict: {pair: alpha_series}
+            loading_matrix: 팩터 로딩 매트릭스 (B matrix)
+        Returns: 중립화된 알파 딕셔너리
+        """
+        pass
+
+class AlphaProcessor:
+    """알파 처리 엔진"""
+    
+    def __init__(self, neutralizer: BaseNeutralizer):
+        self.neutralizer = neutralizer
+    
+    def l1_normalize_cross_section(self, alpha_dict: Dict[str, pd.Series]) -> Dict[str, pd.Series]:
+        """전체 유니버스에서 L1 정규화 - Timestamp별로 available한 페어만 사용"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        result = {}
+        all_pairs = list(alpha_dict.keys())
+
+        if not all_pairs:
+            return alpha_dict
+
+        # Skip normalization if universe is too small (< 3 pairs)
+        if len(all_pairs) < 3:
+            return alpha_dict
+
+        # 모든 unique timestamp 수집
+        all_timestamps = set()
+        for pair in all_pairs:
+            all_timestamps.update(alpha_dict[pair].index)
+
+        # 각 페어의 결과 시리즈 초기화 (원본 인덱스 유지)
+        for pair in all_pairs:
+            result[pair] = pd.Series(0.0, index=alpha_dict[pair].index, dtype=float)
+
+        # 각 timestamp별로 정규화
+        for timestamp in all_timestamps:
+            # 이 timestamp에 값이 있는 페어들만 수집
+            cross_section_values = {}
+            for pair in all_pairs:
+                if timestamp in alpha_dict[pair].index:
+                    value = alpha_dict[pair].loc[timestamp]
+                    # NaN이 아니고 유효한 값인 경우만 포함
+                    if pd.notna(value):
+                        cross_section_values[pair] = value
+
+            if cross_section_values:
+                values_array = np.array(list(cross_section_values.values()))
+                l1_norm = np.sum(np.abs(values_array))
+
+                if l1_norm > 0:
+                    # L1 normalization 적용
+                    for pair, value in cross_section_values.items():
+                        result[pair].loc[timestamp] = value / l1_norm
+                else:
+                    # L1 norm이 0이면 (모든 값이 0) 그대로 0 유지
+                    for pair in cross_section_values.keys():
+                        result[pair].loc[timestamp] = 0
+
+        return result
+    
+    def l2_normalize_cross_section(self, alpha_dict: Dict[str, pd.Series]) -> Dict[str, pd.Series]:
+        """전체 유니버스에서 L2 정규화 (유클리디안 정규화) - Timestamp별로 available한 페어만 사용"""
+        result = {}
+        all_pairs = list(alpha_dict.keys())
+
+        if not all_pairs:
+            return alpha_dict
+
+        # Skip normalization if universe is too small (< 3 pairs)
+        if len(all_pairs) < 3:
+            return alpha_dict
+
+        # 모든 unique timestamp 수집
+        all_timestamps = set()
+        for pair in all_pairs:
+            all_timestamps.update(alpha_dict[pair].index)
+
+        # 각 페어의 결과 시리즈 초기화 (원본 인덱스 유지)
+        for pair in all_pairs:
+            result[pair] = pd.Series(0.0, index=alpha_dict[pair].index, dtype=float)
+
+        # 각 timestamp별로 정규화
+        for timestamp in all_timestamps:
+            # 이 timestamp에 값이 있는 페어들만 수집
+            cross_section_values = {}
+            for pair in all_pairs:
+                if timestamp in alpha_dict[pair].index:
+                    value = alpha_dict[pair].loc[timestamp]
+                    # NaN이 아니고 유효한 값인 경우만 포함
+                    if pd.notna(value):
+                        cross_section_values[pair] = value
+
+            if cross_section_values:
+                values_array = np.array(list(cross_section_values.values()))
+                l2_norm = np.sqrt(np.sum(values_array ** 2))
+
+                if l2_norm > 0:
+                    # L2 normalization 적용
+                    for pair, value in cross_section_values.items():
+                        result[pair].loc[timestamp] = value / l2_norm
+                else:
+                    # L2 norm이 0이면 (모든 값이 0) 그대로 0 유지
+                    for pair in cross_section_values.keys():
+                        result[pair].loc[timestamp] = 0
+
+        return result
+    
+    def apply_linear_decay(self, alpha_series: pd.Series, decay_period: int) -> pd.Series:
+        """선형 디케이 적용"""
+        if len(alpha_series) < decay_period:
+            return alpha_series
+            
+        weights = np.linspace(1, 0, decay_period)
+        weights = weights / weights.sum()
+        
+        result = alpha_series.copy()
+        for i in range(decay_period-1, len(alpha_series)):
+            window_data = alpha_series.iloc[i-decay_period+1:i+1]
+            if len(window_data) == decay_period:
+                result.iloc[i] = np.sum(window_data * weights)
+        
+        return result
+    
+    def process_alpha(self, raw_alpha_dict: Dict[str, pd.Series],
+                     loading_matrix: Optional[Dict] = None,
+                     decay_period: int = 3,
+                     norm_type: str = 'l1') -> Dict[str, pd.Series]:
+        """
+        알파 처리 파이프라인 (올바른 순서):
+        1. Mean Neutralization (neutralizer에서 처리)
+        2. Factor Neutralization (neutralizer에서 처리)
+        3. Normalization (L1 또는 L2)
+        4. Decay
+
+        Args:
+            raw_alpha_dict: 원시 알파 딕셔너리
+            loading_matrix: 팩터 로딩 매트릭스 (factor neutralization에 사용)
+            decay_period: 선형 디케이 기간 (일수)
+            norm_type: 정규화 타입 ('l1' 또는 'l2')
+        """
+        result = raw_alpha_dict.copy()
+
+        # 1 & 2. 중립화 (mean + factor, neutralizer에서 순서 보장)
+        result = self.neutralizer.neutralize(result, loading_matrix)
+
+        # 3. 정규화 (L1 or L2)
+        if norm_type == 'l2':
+            result = self.l2_normalize_cross_section(result)
+        else:  # 기본값: l1
+            result = self.l1_normalize_cross_section(result)
+
+        # 4. 선형 디케이
+        for pair in result:
+            result[pair] = self.apply_linear_decay(result[pair], decay_period)
+
+        return result
+    
+class AlphaLoader:
+    """알파 동적 로딩 클래스"""
+    
+    @staticmethod
+    def load_alpha(alpha_name: str, alphas_folder: str = "alphas") -> BaseAlpha:
+        """
+        alphas 폴더에서 알파 클래스를 동적으로 로드
+        Args:
+            alpha_name: 알파 이름 (예: 'momentum_reversal')
+            alphas_folder: 알파 파일들이 있는 폴더
+        """
+        try:
+            module_path = f"{alphas_folder}.{alpha_name}"
+            module = importlib.import_module(module_path)
+            
+            # 모듈에서 BaseAlpha를 상속한 클래스 찾기
+            for attr_name in dir(module):
+                attr = getattr(module, attr_name)
+                if (isinstance(attr, type) and 
+                    issubclass(attr, BaseAlpha) and 
+                    attr != BaseAlpha):
+                    return attr()
+            
+            raise ValueError(f"No BaseAlpha subclass found in {module_path}")
+            
+        except ImportError as e:
+            raise ImportError(f"Could not load alpha {alpha_name}: {e}")

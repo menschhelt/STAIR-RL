@@ -1,0 +1,207 @@
+Starting Nostr collection: 2022-12-01 to 2025-11-30
+This will take many hours...
+2025-12-13 06:12:43,813 - NostrLocalCollector - INFO - Initialized NostrLocalCollector with relay=wss://relay.nostr.band, kinds=[1, 9735], keywords=18, rate_limit=30/60s
+2025-12-13 06:12:43,814 - NostrLocalCollector - INFO - Starting Nostr collection from 2022-12-01 00:00:00+00:00 to 2025-11-30 23:59:59+00:00
+2025-12-13 06:12:43,814 - NostrLocalCollector - INFO - Collecting 2022-12-01 to 2022-12-02, kinds=[1, 9735]
+2025-12-13 06:12:51,825 - NostrLocalCollector - INFO - Collected 322 events for batch
+2025-12-13 06:12:51,825 - NostrLocalCollector - INFO - Collecting 2022-12-02 to 2022-12-03, kinds=[1, 9735]
+2025-12-13 06:12:59,157 - NostrLocalCollector - INFO - Collected 378 events for batch
+2025-12-13 06:12:59,158 - NostrLocalCollector - INFO - Collecting 2022-12-03 to 2022-12-04, kinds=[1, 9735]
+2025-12-13 06:13:01,948 - NostrLocalCollector - INFO - Collected 231 events for batch
+2025-12-13 06:13:01,949 - NostrLocalCollector - INFO - Collecting 2022-12-04 to 2022-12-05, kinds=[1, 9735]
+2025-12-13 06:13:04,729 - NostrLocalCollector - INFO - Collected 218 events for batch
+2025-12-13 06:13:04,729 - NostrLocalCollector - INFO - Collecting 2022-12-05 to 2022-12-06, kinds=[1, 9735]
+2025-12-13 06:13:12,355 - NostrLocalCollector - INFO - Collected 328 events for batch
+2025-12-13 06:13:12,355 - NostrLocalCollector - INFO - Collecting 2022-12-06 to 2022-12-07, kinds=[1, 9735]
+2025-12-13 06:13:15,183 - NostrLocalCollector - INFO - Collected 203 events for batch
+2025-12-13 06:13:15,184 - NostrLocalCollector - INFO - Collecting 2022-12-07 to 2022-12-08, kinds=[1, 9735]
+2025-12-13 06:13:17,833 - NostrLocalCollector - INFO - Collected 221 events for batch
+2025-12-13 06:13:17,833 - NostrLocalCollector - INFO - Collecting 2022-12-08 to 2022-12-09, kinds=[1, 9735]
+2025-12-13 06:13:20,905 - NostrLocalCollector - INFO - Collected 589 events for batch
+2025-12-13 06:13:20,906 - NostrLocalCollector - INFO - Collecting 2022-12-09 to 2022-12-10, kinds=[1, 9735]
+2025-12-13 06:13:25,862 - NostrLocalCollector - INFO - Collected 985 events for batch
+2025-12-13 06:13:25,862 - NostrLocalCollector - INFO - Collecting 2022-12-10 to 2022-12-11, kinds=[1, 9735]
+2025-12-13 06:13:29,028 - NostrLocalCollector - INFO - Collected 362 events for batch
+2025-12-13 06:13:29,028 - NostrLocalCollector - INFO - Collecting 2022-12-11 to 2022-12-12, kinds=[1, 9735]
+2025-12-13 06:13:31,747 - NostrLocalCollector - INFO - Collected 193 events for batch
+2025-12-13 06:13:31,747 - NostrLocalCollector - INFO - Collecting 2022-12-12 to 2022-12-13, kinds=[1, 9735]
+2025-12-13 06:13:34,322 - NostrLocalCollector - INFO - Collected 241 events for batch
+2025-12-13 06:13:34,322 - NostrLocalCollector - INFO - Collecting 2022-12-13 to 2022-12-14, kinds=[1, 9735]
+2025-12-13 06:13:37,437 - NostrLocalCollector - INFO - Collected 420 events for batch
+2025-12-13 06:13:37,437 - NostrLocalCollector - INFO - Collecting 2022-12-14 to 2022-12-15, kinds=[1, 9735]
+2025-12-13 06:13:46,465 - NostrLocalCollector - INFO - Collected 1150 events for batch
+2025-12-13 06:13:46,465 - NostrLocalCollector - INFO - Collecting 2022-12-15 to 2022-12-16, kinds=[1, 9735]
+2025-12-13 06:13:53,707 - NostrLocalCollector - INFO - Collected 2051 events for batch
+2025-12-13 06:13:53,707 - NostrLocalCollector - INFO - Collecting 2022-12-16 to 2022-12-17, kinds=[1, 9735]
+2025-12-13 06:13:59,119 - NostrLocalCollector - INFO - Collected 2600 events for batch
+2025-12-13 06:13:59,119 - NostrLocalCollector - INFO - Collecting 2022-12-17 to 2022-12-18, kinds=[1, 9735]
+2025-12-13 06:14:27,548 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:14:27,548 - NostrLocalCollector - INFO - Collecting 2022-12-18 to 2022-12-19, kinds=[1, 9735]
+2025-12-13 06:14:37,094 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:14:37,095 - NostrLocalCollector - INFO - Collecting 2022-12-19 to 2022-12-20, kinds=[1, 9735]
+2025-12-13 06:14:57,170 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:14:57,171 - NostrLocalCollector - INFO - Collecting 2022-12-20 to 2022-12-21, kinds=[1, 9735]
+2025-12-13 06:15:15,851 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:15:15,851 - NostrLocalCollector - INFO - Collecting 2022-12-21 to 2022-12-22, kinds=[1, 9735]
+2025-12-13 06:15:23,681 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:15:23,681 - NostrLocalCollector - INFO - Collecting 2022-12-22 to 2022-12-23, kinds=[1, 9735]
+2025-12-13 06:15:47,312 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:15:47,313 - NostrLocalCollector - INFO - Collecting 2022-12-23 to 2022-12-24, kinds=[1, 9735]
+2025-12-13 06:15:55,435 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:15:55,436 - NostrLocalCollector - INFO - Collecting 2022-12-24 to 2022-12-25, kinds=[1, 9735]
+2025-12-13 06:16:06,864 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:16:06,864 - NostrLocalCollector - INFO - Collecting 2022-12-25 to 2022-12-26, kinds=[1, 9735]
+2025-12-13 06:16:13,799 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:16:13,800 - NostrLocalCollector - INFO - Collecting 2022-12-26 to 2022-12-27, kinds=[1, 9735]
+2025-12-13 06:16:30,014 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:16:30,014 - NostrLocalCollector - INFO - Collecting 2022-12-27 to 2022-12-28, kinds=[1, 9735]
+2025-12-13 06:16:38,142 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:16:38,143 - NostrLocalCollector - INFO - Collecting 2022-12-28 to 2022-12-29, kinds=[1, 9735]
+2025-12-13 06:16:46,537 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:16:46,537 - NostrLocalCollector - INFO - Collecting 2022-12-29 to 2022-12-30, kinds=[1, 9735]
+2025-12-13 06:16:57,038 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:16:57,038 - NostrLocalCollector - INFO - Collecting 2022-12-30 to 2022-12-31, kinds=[1, 9735]
+2025-12-13 06:17:03,691 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:17:03,692 - NostrLocalCollector - INFO - Collecting 2022-12-31 to 2023-01-01, kinds=[1, 9735]
+2025-12-13 06:17:16,607 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:17:16,607 - NostrLocalCollector - INFO - Collecting 2023-01-01 to 2023-01-02, kinds=[1, 9735]
+2025-12-13 06:17:29,684 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:17:29,684 - NostrLocalCollector - INFO - Collecting 2023-01-02 to 2023-01-03, kinds=[1, 9735]
+2025-12-13 06:18:03,642 - NostrLocalCollector - WARNING - Connection closed: sent 1011 (internal error) keepalive ping timeout; no close frame received
+2025-12-13 06:18:03,642 - NostrLocalCollector - INFO - Collected 4832 events for batch
+2025-12-13 06:18:03,642 - NostrLocalCollector - INFO - Collecting 2023-01-03 to 2023-01-04, kinds=[1, 9735]
+2025-12-13 06:18:28,367 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:18:28,367 - NostrLocalCollector - INFO - Collecting 2023-01-04 to 2023-01-05, kinds=[1, 9735]
+2025-12-13 06:18:51,878 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:18:51,879 - NostrLocalCollector - INFO - Collecting 2023-01-05 to 2023-01-06, kinds=[1, 9735]
+2025-12-13 06:19:28,786 - NostrLocalCollector - WARNING - Connection closed: sent 1011 (internal error) keepalive ping timeout; no close frame received
+2025-12-13 06:19:28,786 - NostrLocalCollector - INFO - Collected 3075 events for batch
+2025-12-13 06:19:28,786 - NostrLocalCollector - INFO - Collecting 2023-01-06 to 2023-01-07, kinds=[1, 9735]
+2025-12-13 06:19:50,831 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:19:50,831 - NostrLocalCollector - INFO - Collecting 2023-01-07 to 2023-01-08, kinds=[1, 9735]
+2025-12-13 06:20:54,169 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 06:20:54,511 - NostrLocalCollector - INFO - Collected 0 events for batch
+2025-12-13 06:20:54,511 - NostrLocalCollector - INFO - Collecting 2023-01-08 to 2023-01-09, kinds=[1, 9735]
+2025-12-13 06:21:56,807 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 06:21:57,134 - NostrLocalCollector - INFO - Collected 0 events for batch
+2025-12-13 06:21:57,134 - NostrLocalCollector - INFO - Collecting 2023-01-09 to 2023-01-10, kinds=[1, 9735]
+2025-12-13 06:22:08,477 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:22:08,477 - NostrLocalCollector - INFO - Collecting 2023-01-10 to 2023-01-11, kinds=[1, 9735]
+2025-12-13 06:22:23,759 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:22:23,759 - NostrLocalCollector - INFO - Collecting 2023-01-11 to 2023-01-12, kinds=[1, 9735]
+2025-12-13 06:22:44,285 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:22:44,286 - NostrLocalCollector - INFO - Collecting 2023-01-12 to 2023-01-13, kinds=[1, 9735]
+2025-12-13 06:23:00,984 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:23:00,984 - NostrLocalCollector - INFO - Collecting 2023-01-13 to 2023-01-14, kinds=[1, 9735]
+2025-12-13 06:23:13,947 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:23:13,947 - NostrLocalCollector - INFO - Collecting 2023-01-14 to 2023-01-15, kinds=[1, 9735]
+2025-12-13 06:23:39,120 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:23:39,120 - NostrLocalCollector - INFO - Collecting 2023-01-15 to 2023-01-16, kinds=[1, 9735]
+2025-12-13 06:23:53,528 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:23:53,528 - NostrLocalCollector - INFO - Collecting 2023-01-16 to 2023-01-17, kinds=[1, 9735]
+2025-12-13 06:24:09,287 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:24:09,287 - NostrLocalCollector - INFO - Collecting 2023-01-17 to 2023-01-18, kinds=[1, 9735]
+2025-12-13 06:24:24,426 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:24:24,427 - NostrLocalCollector - INFO - Collecting 2023-01-18 to 2023-01-19, kinds=[1, 9735]
+2025-12-13 06:24:37,200 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:24:37,200 - NostrLocalCollector - INFO - Collecting 2023-01-19 to 2023-01-20, kinds=[1, 9735]
+2025-12-13 06:24:44,807 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:24:44,807 - NostrLocalCollector - INFO - Collecting 2023-01-20 to 2023-01-21, kinds=[1, 9735]
+2025-12-13 06:25:14,674 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:25:14,674 - NostrLocalCollector - INFO - Collecting 2023-01-21 to 2023-01-22, kinds=[1, 9735]
+2025-12-13 06:25:22,191 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:25:22,191 - NostrLocalCollector - INFO - Collecting 2023-01-22 to 2023-01-23, kinds=[1, 9735]
+2025-12-13 06:25:43,148 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:25:43,148 - NostrLocalCollector - INFO - Collecting 2023-01-23 to 2023-01-24, kinds=[1, 9735]
+2025-12-13 06:26:05,301 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:26:05,301 - NostrLocalCollector - INFO - Collecting 2023-01-24 to 2023-01-25, kinds=[1, 9735]
+2025-12-13 06:26:17,928 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:26:17,928 - NostrLocalCollector - INFO - Collecting 2023-01-25 to 2023-01-26, kinds=[1, 9735]
+2025-12-13 06:26:51,326 - NostrLocalCollector - WARNING - Connection closed: sent 1011 (internal error) keepalive ping timeout; no close frame received
+2025-12-13 06:26:51,327 - NostrLocalCollector - INFO - Collected 4209 events for batch
+2025-12-13 06:26:51,327 - NostrLocalCollector - INFO - Collecting 2023-01-26 to 2023-01-27, kinds=[1, 9735]
+2025-12-13 06:27:21,438 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:27:21,438 - NostrLocalCollector - INFO - Collecting 2023-01-27 to 2023-01-28, kinds=[1, 9735]
+2025-12-13 06:27:34,642 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:27:34,642 - NostrLocalCollector - INFO - Collecting 2023-01-28 to 2023-01-29, kinds=[1, 9735]
+2025-12-13 06:28:35,667 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 06:28:36,003 - NostrLocalCollector - INFO - Collected 0 events for batch
+2025-12-13 06:28:36,003 - NostrLocalCollector - INFO - Collecting 2023-01-29 to 2023-01-30, kinds=[1, 9735]
+2025-12-13 06:28:43,871 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:28:43,871 - NostrLocalCollector - INFO - Collecting 2023-01-30 to 2023-01-31, kinds=[1, 9735]
+2025-12-13 06:29:49,898 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 06:29:50,235 - NostrLocalCollector - INFO - Collected 0 events for batch
+2025-12-13 06:29:50,235 - NostrLocalCollector - INFO - Collecting 2023-01-31 to 2023-02-01, kinds=[1, 9735]
+2025-12-13 06:30:11,645 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:30:11,645 - NostrLocalCollector - INFO - Collecting 2023-02-01 to 2023-02-02, kinds=[1, 9735]
+2025-12-13 06:30:19,736 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:30:19,736 - NostrLocalCollector - INFO - Collecting 2023-02-02 to 2023-02-03, kinds=[1, 9735]
+2025-12-13 06:30:49,182 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:30:49,182 - NostrLocalCollector - INFO - Collecting 2023-02-03 to 2023-02-04, kinds=[1, 9735]
+2025-12-13 06:31:02,878 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:31:02,878 - NostrLocalCollector - INFO - Collecting 2023-02-04 to 2023-02-05, kinds=[1, 9735]
+2025-12-13 06:31:25,517 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:31:25,517 - NostrLocalCollector - INFO - Collecting 2023-02-05 to 2023-02-06, kinds=[1, 9735]
+2025-12-13 06:31:38,922 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:31:38,922 - NostrLocalCollector - INFO - Collecting 2023-02-06 to 2023-02-07, kinds=[1, 9735]
+2025-12-13 06:31:53,050 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:31:53,050 - NostrLocalCollector - INFO - Collecting 2023-02-07 to 2023-02-08, kinds=[1, 9735]
+2025-12-13 06:32:16,752 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:32:16,752 - NostrLocalCollector - INFO - Collecting 2023-02-08 to 2023-02-09, kinds=[1, 9735]
+2025-12-13 06:32:47,969 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:32:47,969 - NostrLocalCollector - INFO - Collecting 2023-02-09 to 2023-02-10, kinds=[1, 9735]
+2025-12-13 06:33:48,967 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 06:33:49,295 - NostrLocalCollector - INFO - Collected 0 events for batch
+2025-12-13 06:33:49,295 - NostrLocalCollector - INFO - Collecting 2023-02-10 to 2023-02-11, kinds=[1, 9735]
+2025-12-13 06:34:10,542 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:34:10,542 - NostrLocalCollector - INFO - Collecting 2023-02-11 to 2023-02-12, kinds=[1, 9735]
+2025-12-13 06:34:31,158 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:34:31,158 - NostrLocalCollector - INFO - Collecting 2023-02-12 to 2023-02-13, kinds=[1, 9735]
+2025-12-13 06:34:47,157 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:34:47,157 - NostrLocalCollector - INFO - Collecting 2023-02-13 to 2023-02-14, kinds=[1, 9735]
+2025-12-13 06:35:13,669 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:35:13,669 - NostrLocalCollector - INFO - Collecting 2023-02-14 to 2023-02-15, kinds=[1, 9735]
+2025-12-13 06:35:29,147 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:35:29,148 - NostrLocalCollector - INFO - Collecting 2023-02-15 to 2023-02-16, kinds=[1, 9735]
+2025-12-13 06:35:47,103 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:35:47,103 - NostrLocalCollector - INFO - Collecting 2023-02-16 to 2023-02-17, kinds=[1, 9735]
+2025-12-13 06:36:12,975 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:36:12,975 - NostrLocalCollector - INFO - Collecting 2023-02-17 to 2023-02-18, kinds=[1, 9735]
+2025-12-13 06:36:50,327 - NostrLocalCollector - WARNING - Connection closed: sent 1011 (internal error) keepalive ping timeout; no close frame received
+2025-12-13 06:36:50,327 - NostrLocalCollector - INFO - Collected 3232 events for batch
+2025-12-13 06:36:50,328 - NostrLocalCollector - INFO - Collecting 2023-02-18 to 2023-02-19, kinds=[1, 9735]
+2025-12-13 06:37:13,482 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:37:13,482 - NostrLocalCollector - INFO - Collecting 2023-02-19 to 2023-02-20, kinds=[1, 9735]
+2025-12-13 06:37:49,486 - NostrLocalCollector - WARNING - Connection closed: sent 1011 (internal error) keepalive ping timeout; no close frame received
+2025-12-13 06:37:49,486 - NostrLocalCollector - INFO - Collected 1864 events for batch
+2025-12-13 06:37:49,486 - NostrLocalCollector - INFO - Collecting 2023-02-20 to 2023-02-21, kinds=[1, 9735]
+2025-12-13 06:37:59,608 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:37:59,609 - NostrLocalCollector - INFO - Collecting 2023-02-21 to 2023-02-22, kinds=[1, 9735]
+2025-12-13 06:39:00,626 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 06:39:00,963 - NostrLocalCollector - INFO - Collected 0 events for batch
+2025-12-13 06:39:00,963 - NostrLocalCollector - INFO - Collecting 2023-02-22 to 2023-02-23, kinds=[1, 9735]
+2025-12-13 06:39:10,715 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:39:10,715 - NostrLocalCollector - INFO - Collecting 2023-02-23 to 2023-02-24, kinds=[1, 9735]
+2025-12-13 06:39:20,825 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:39:20,826 - NostrLocalCollector - INFO - Collecting 2023-02-24 to 2023-02-25, kinds=[1, 9735]
+2025-12-13 06:39:31,309 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:39:31,310 - NostrLocalCollector - INFO - Collecting 2023-02-25 to 2023-02-26, kinds=[1, 9735]
+2025-12-13 06:39:41,191 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:39:41,191 - NostrLocalCollector - INFO - Collecting 2023-02-26 to 2023-02-27, kinds=[1, 9735]
+2025-12-13 06:39:54,902 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:39:54,902 - NostrLocalCollector - INFO - Collecting 2023-02-27 to 2023-02-28, kinds=[1, 9735]
+2025-12-13 06:40:18,115 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:40:18,116 - NostrLocalCollector - INFO - Collecting 2023-02-28 to 2023-03-01, kinds=[1, 9735]
+2025-12-13 06:40:28,328 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:40:28,328 - NostrLocalCollector - INFO - Collecting 2023-03-01 to 2023-03-02, kinds=[1, 9735]
+2025-12-13 06:40:43,088 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:40:43,088 - NostrLocalCollector - INFO - Collecting 2023-03-02 to 2023-03-03, kinds=[1, 9735]
+2025-12-13 06:40:57,476 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:40:57,476 - NostrLocalCollector - INFO - Collecting 2023-03-03 to 2023-03-04, kinds=[1, 9735]
+2025-12-13 06:41:11,328 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:41:11,328 - NostrLocalCollector - INFO - Collecting 2023-03-04 to 2023-03-05, kinds=[1, 9735]
+2025-12-13 06:41:21,483 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 06:41:21,484 - NostrLocalCollector - INFO - Collecting 2023-03-05 to 2023-03-06, kinds=[1, 9735]
+2025-12-13 06:42:22,496 - NostrLocalCollector - WARNING - Timeout waiting for events from wss://relay.nostr.band
+2025-12-13 06:42:22,826 - NostrLocalCollector - INFO - Collected 0 events for batch
+2025-12-13 06:42:22,826 - NostrLocalCollector - INFO - Collecting 2023-03-06 to 2023-03-07, kinds=[1, 9735]

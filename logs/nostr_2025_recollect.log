@@ -1,0 +1,747 @@
+2025-12-13 17:33:56,472 - NostrLocalCollector - INFO - Initialized NostrLocalCollector with relay=wss://relay.nostr.band, kinds=[1, 9735], keywords=18, rate_limit=60/60s
+2025-12-13 17:33:56,474 - NostrLocalCollector - INFO - Starting Nostr collection from 2025-01-01 00:00:00+00:00 to 2025-12-13 00:00:00+00:00
+2025-12-13 17:33:56,475 - NostrLocalCollector - INFO - Collecting 2025-01-01 to 2025-01-02, kinds=[1, 9735]
+2025-12-13 17:34:00,967 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:34:00,967 - NostrLocalCollector - INFO - Collecting 2025-01-02 to 2025-01-03, kinds=[1, 9735]
+2025-12-13 17:34:05,813 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:34:05,814 - NostrLocalCollector - INFO - Collecting 2025-01-03 to 2025-01-04, kinds=[1, 9735]
+2025-12-13 17:34:10,256 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:34:10,257 - NostrLocalCollector - INFO - Collecting 2025-01-04 to 2025-01-05, kinds=[1, 9735]
+2025-12-13 17:34:14,708 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:34:14,708 - NostrLocalCollector - INFO - Collecting 2025-01-05 to 2025-01-06, kinds=[1, 9735]
+2025-12-13 17:34:19,771 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:34:19,772 - NostrLocalCollector - INFO - Collecting 2025-01-06 to 2025-01-07, kinds=[1, 9735]
+2025-12-13 17:34:24,837 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:34:24,837 - NostrLocalCollector - INFO - Collecting 2025-01-07 to 2025-01-08, kinds=[1, 9735]
+2025-12-13 17:34:29,009 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:34:29,009 - NostrLocalCollector - INFO - Collecting 2025-01-08 to 2025-01-09, kinds=[1, 9735]
+2025-12-13 17:34:35,420 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:34:35,420 - NostrLocalCollector - INFO - Collecting 2025-01-09 to 2025-01-10, kinds=[1, 9735]
+2025-12-13 17:34:40,684 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:34:40,684 - NostrLocalCollector - INFO - Collecting 2025-01-10 to 2025-01-11, kinds=[1, 9735]
+2025-12-13 17:34:46,179 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:34:46,180 - NostrLocalCollector - INFO - Collecting 2025-01-11 to 2025-01-12, kinds=[1, 9735]
+2025-12-13 17:34:50,953 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:34:50,953 - NostrLocalCollector - INFO - Collecting 2025-01-12 to 2025-01-13, kinds=[1, 9735]
+2025-12-13 17:34:55,858 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:34:55,858 - NostrLocalCollector - INFO - Collecting 2025-01-13 to 2025-01-14, kinds=[1, 9735]
+2025-12-13 17:35:00,314 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:35:00,314 - NostrLocalCollector - INFO - Collecting 2025-01-14 to 2025-01-15, kinds=[1, 9735]
+2025-12-13 17:35:04,622 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:35:04,623 - NostrLocalCollector - INFO - Collecting 2025-01-15 to 2025-01-16, kinds=[1, 9735]
+2025-12-13 17:35:09,304 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:35:09,304 - NostrLocalCollector - INFO - Collecting 2025-01-16 to 2025-01-17, kinds=[1, 9735]
+2025-12-13 17:35:13,773 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:35:13,773 - NostrLocalCollector - INFO - Collecting 2025-01-17 to 2025-01-18, kinds=[1, 9735]
+2025-12-13 17:35:17,909 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:35:17,910 - NostrLocalCollector - INFO - Collecting 2025-01-18 to 2025-01-19, kinds=[1, 9735]
+2025-12-13 17:35:23,066 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:35:23,066 - NostrLocalCollector - INFO - Collecting 2025-01-19 to 2025-01-20, kinds=[1, 9735]
+2025-12-13 17:35:27,408 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:35:27,408 - NostrLocalCollector - INFO - Collecting 2025-01-20 to 2025-01-21, kinds=[1, 9735]
+2025-12-13 17:35:32,597 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:35:32,598 - NostrLocalCollector - INFO - Collecting 2025-01-21 to 2025-01-22, kinds=[1, 9735]
+2025-12-13 17:35:36,925 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:35:36,926 - NostrLocalCollector - INFO - Collecting 2025-01-22 to 2025-01-23, kinds=[1, 9735]
+2025-12-13 17:35:42,157 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:35:42,157 - NostrLocalCollector - INFO - Collecting 2025-01-23 to 2025-01-24, kinds=[1, 9735]
+2025-12-13 17:35:46,369 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:35:46,369 - NostrLocalCollector - INFO - Collecting 2025-01-24 to 2025-01-25, kinds=[1, 9735]
+2025-12-13 17:35:50,656 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:35:50,656 - NostrLocalCollector - INFO - Collecting 2025-01-25 to 2025-01-26, kinds=[1, 9735]
+2025-12-13 17:35:54,888 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:35:54,889 - NostrLocalCollector - INFO - Collecting 2025-01-26 to 2025-01-27, kinds=[1, 9735]
+2025-12-13 17:35:59,397 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:35:59,397 - NostrLocalCollector - INFO - Collecting 2025-01-27 to 2025-01-28, kinds=[1, 9735]
+2025-12-13 17:36:03,582 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:36:03,583 - NostrLocalCollector - INFO - Collecting 2025-01-28 to 2025-01-29, kinds=[1, 9735]
+2025-12-13 17:36:07,908 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:36:07,908 - NostrLocalCollector - INFO - Collecting 2025-01-29 to 2025-01-30, kinds=[1, 9735]
+2025-12-13 17:36:12,211 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:36:12,212 - NostrLocalCollector - INFO - Collecting 2025-01-30 to 2025-01-31, kinds=[1, 9735]
+2025-12-13 17:36:16,332 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:36:16,332 - NostrLocalCollector - INFO - Collecting 2025-01-31 to 2025-02-01, kinds=[1, 9735]
+2025-12-13 17:36:21,318 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:36:21,318 - NostrLocalCollector - INFO - Collecting 2025-02-01 to 2025-02-02, kinds=[1, 9735]
+2025-12-13 17:36:26,098 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:36:26,098 - NostrLocalCollector - INFO - Collecting 2025-02-02 to 2025-02-03, kinds=[1, 9735]
+2025-12-13 17:36:31,331 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:36:31,331 - NostrLocalCollector - INFO - Collecting 2025-02-03 to 2025-02-04, kinds=[1, 9735]
+2025-12-13 17:36:35,524 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:36:35,524 - NostrLocalCollector - INFO - Collecting 2025-02-04 to 2025-02-05, kinds=[1, 9735]
+2025-12-13 17:36:40,410 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:36:40,410 - NostrLocalCollector - INFO - Collecting 2025-02-05 to 2025-02-06, kinds=[1, 9735]
+2025-12-13 17:36:45,500 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:36:45,500 - NostrLocalCollector - INFO - Collecting 2025-02-06 to 2025-02-07, kinds=[1, 9735]
+2025-12-13 17:36:49,669 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:36:49,669 - NostrLocalCollector - INFO - Collecting 2025-02-07 to 2025-02-08, kinds=[1, 9735]
+2025-12-13 17:36:54,216 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:36:54,216 - NostrLocalCollector - INFO - Collecting 2025-02-08 to 2025-02-09, kinds=[1, 9735]
+2025-12-13 17:36:58,427 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:36:58,428 - NostrLocalCollector - INFO - Collecting 2025-02-09 to 2025-02-10, kinds=[1, 9735]
+2025-12-13 17:37:03,068 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:37:03,069 - NostrLocalCollector - INFO - Collecting 2025-02-10 to 2025-02-11, kinds=[1, 9735]
+2025-12-13 17:37:07,895 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:37:07,895 - NostrLocalCollector - INFO - Collecting 2025-02-11 to 2025-02-12, kinds=[1, 9735]
+2025-12-13 17:37:12,210 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:37:12,210 - NostrLocalCollector - INFO - Collecting 2025-02-12 to 2025-02-13, kinds=[1, 9735]
+2025-12-13 17:37:16,482 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:37:16,482 - NostrLocalCollector - INFO - Collecting 2025-02-13 to 2025-02-14, kinds=[1, 9735]
+2025-12-13 17:37:20,924 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:37:20,925 - NostrLocalCollector - INFO - Collecting 2025-02-14 to 2025-02-15, kinds=[1, 9735]
+2025-12-13 17:37:25,178 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:37:25,178 - NostrLocalCollector - INFO - Collecting 2025-02-15 to 2025-02-16, kinds=[1, 9735]
+2025-12-13 17:37:29,849 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:37:29,850 - NostrLocalCollector - INFO - Collecting 2025-02-16 to 2025-02-17, kinds=[1, 9735]
+2025-12-13 17:37:34,335 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:37:34,335 - NostrLocalCollector - INFO - Collecting 2025-02-17 to 2025-02-18, kinds=[1, 9735]
+2025-12-13 17:37:38,670 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:37:38,670 - NostrLocalCollector - INFO - Collecting 2025-02-18 to 2025-02-19, kinds=[1, 9735]
+2025-12-13 17:37:43,202 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:37:43,202 - NostrLocalCollector - INFO - Collecting 2025-02-19 to 2025-02-20, kinds=[1, 9735]
+2025-12-13 17:37:48,043 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:37:48,044 - NostrLocalCollector - INFO - Collecting 2025-02-20 to 2025-02-21, kinds=[1, 9735]
+2025-12-13 17:37:52,151 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:37:52,151 - NostrLocalCollector - INFO - Collecting 2025-02-21 to 2025-02-22, kinds=[1, 9735]
+2025-12-13 17:37:56,218 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:37:56,218 - NostrLocalCollector - INFO - Collecting 2025-02-22 to 2025-02-23, kinds=[1, 9735]
+2025-12-13 17:38:01,710 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:38:01,710 - NostrLocalCollector - INFO - Collecting 2025-02-23 to 2025-02-24, kinds=[1, 9735]
+2025-12-13 17:38:05,979 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:38:05,980 - NostrLocalCollector - INFO - Collecting 2025-02-24 to 2025-02-25, kinds=[1, 9735]
+2025-12-13 17:38:10,996 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:38:10,996 - NostrLocalCollector - INFO - Collecting 2025-02-25 to 2025-02-26, kinds=[1, 9735]
+2025-12-13 17:38:15,108 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:38:15,109 - NostrLocalCollector - INFO - Collecting 2025-02-26 to 2025-02-27, kinds=[1, 9735]
+2025-12-13 17:38:19,266 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:38:19,266 - NostrLocalCollector - INFO - Collecting 2025-02-27 to 2025-02-28, kinds=[1, 9735]
+2025-12-13 17:38:23,545 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:38:23,546 - NostrLocalCollector - INFO - Collecting 2025-02-28 to 2025-03-01, kinds=[1, 9735]
+2025-12-13 17:38:27,789 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:38:27,789 - NostrLocalCollector - INFO - Collecting 2025-03-01 to 2025-03-02, kinds=[1, 9735]
+2025-12-13 17:38:31,996 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:38:31,996 - NostrLocalCollector - INFO - Collecting 2025-03-02 to 2025-03-03, kinds=[1, 9735]
+2025-12-13 17:38:37,405 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:38:37,405 - NostrLocalCollector - INFO - Collecting 2025-03-03 to 2025-03-04, kinds=[1, 9735]
+2025-12-13 17:38:41,728 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:38:41,728 - NostrLocalCollector - INFO - Collecting 2025-03-04 to 2025-03-05, kinds=[1, 9735]
+2025-12-13 17:38:46,020 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:38:46,021 - NostrLocalCollector - INFO - Collecting 2025-03-05 to 2025-03-06, kinds=[1, 9735]
+2025-12-13 17:38:50,356 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:38:50,356 - NostrLocalCollector - INFO - Collecting 2025-03-06 to 2025-03-07, kinds=[1, 9735]
+2025-12-13 17:38:54,722 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:38:54,722 - NostrLocalCollector - INFO - Collecting 2025-03-07 to 2025-03-08, kinds=[1, 9735]
+2025-12-13 17:38:58,979 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:38:58,979 - NostrLocalCollector - INFO - Collecting 2025-03-08 to 2025-03-09, kinds=[1, 9735]
+2025-12-13 17:39:04,115 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:39:04,116 - NostrLocalCollector - INFO - Collecting 2025-03-09 to 2025-03-10, kinds=[1, 9735]
+2025-12-13 17:39:08,451 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:39:08,452 - NostrLocalCollector - INFO - Collecting 2025-03-10 to 2025-03-11, kinds=[1, 9735]
+2025-12-13 17:39:13,106 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:39:13,106 - NostrLocalCollector - INFO - Collecting 2025-03-11 to 2025-03-12, kinds=[1, 9735]
+2025-12-13 17:39:17,372 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:39:17,372 - NostrLocalCollector - INFO - Collecting 2025-03-12 to 2025-03-13, kinds=[1, 9735]
+2025-12-13 17:39:21,552 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:39:21,552 - NostrLocalCollector - INFO - Collecting 2025-03-13 to 2025-03-14, kinds=[1, 9735]
+2025-12-13 17:39:25,883 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:39:25,883 - NostrLocalCollector - INFO - Collecting 2025-03-14 to 2025-03-15, kinds=[1, 9735]
+2025-12-13 17:39:30,017 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:39:30,017 - NostrLocalCollector - INFO - Collecting 2025-03-15 to 2025-03-16, kinds=[1, 9735]
+2025-12-13 17:39:34,237 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:39:34,237 - NostrLocalCollector - INFO - Collecting 2025-03-16 to 2025-03-17, kinds=[1, 9735]
+2025-12-13 17:39:38,539 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:39:38,539 - NostrLocalCollector - INFO - Collecting 2025-03-17 to 2025-03-18, kinds=[1, 9735]
+2025-12-13 17:39:42,676 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:39:42,676 - NostrLocalCollector - INFO - Collecting 2025-03-18 to 2025-03-19, kinds=[1, 9735]
+2025-12-13 17:39:46,945 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:39:46,945 - NostrLocalCollector - INFO - Collecting 2025-03-19 to 2025-03-20, kinds=[1, 9735]
+2025-12-13 17:39:51,131 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:39:51,131 - NostrLocalCollector - INFO - Collecting 2025-03-20 to 2025-03-21, kinds=[1, 9735]
+2025-12-13 17:39:55,996 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:39:55,996 - NostrLocalCollector - INFO - Collecting 2025-03-21 to 2025-03-22, kinds=[1, 9735]
+2025-12-13 17:40:00,119 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:40:00,119 - NostrLocalCollector - INFO - Collecting 2025-03-22 to 2025-03-23, kinds=[1, 9735]
+2025-12-13 17:40:04,343 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:40:04,343 - NostrLocalCollector - INFO - Collecting 2025-03-23 to 2025-03-24, kinds=[1, 9735]
+2025-12-13 17:40:08,464 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:40:08,464 - NostrLocalCollector - INFO - Collecting 2025-03-24 to 2025-03-25, kinds=[1, 9735]
+2025-12-13 17:40:12,592 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:40:12,592 - NostrLocalCollector - INFO - Collecting 2025-03-25 to 2025-03-26, kinds=[1, 9735]
+2025-12-13 17:40:16,920 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:40:16,920 - NostrLocalCollector - INFO - Collecting 2025-03-26 to 2025-03-27, kinds=[1, 9735]
+2025-12-13 17:40:21,187 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:40:21,187 - NostrLocalCollector - INFO - Collecting 2025-03-27 to 2025-03-28, kinds=[1, 9735]
+2025-12-13 17:40:25,289 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:40:25,289 - NostrLocalCollector - INFO - Collecting 2025-03-28 to 2025-03-29, kinds=[1, 9735]
+2025-12-13 17:40:29,502 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:40:29,502 - NostrLocalCollector - INFO - Collecting 2025-03-29 to 2025-03-30, kinds=[1, 9735]
+2025-12-13 17:40:33,614 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:40:33,614 - NostrLocalCollector - INFO - Collecting 2025-03-30 to 2025-03-31, kinds=[1, 9735]
+2025-12-13 17:40:37,924 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:40:37,925 - NostrLocalCollector - INFO - Collecting 2025-03-31 to 2025-04-01, kinds=[1, 9735]
+2025-12-13 17:40:42,458 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:40:42,458 - NostrLocalCollector - INFO - Collecting 2025-04-01 to 2025-04-02, kinds=[1, 9735]
+2025-12-13 17:40:46,841 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:40:46,841 - NostrLocalCollector - INFO - Collecting 2025-04-02 to 2025-04-03, kinds=[1, 9735]
+2025-12-13 17:40:51,152 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:40:51,152 - NostrLocalCollector - INFO - Collecting 2025-04-03 to 2025-04-04, kinds=[1, 9735]
+2025-12-13 17:40:55,374 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:40:55,375 - NostrLocalCollector - INFO - Collecting 2025-04-04 to 2025-04-05, kinds=[1, 9735]
+2025-12-13 17:40:59,818 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:40:59,818 - NostrLocalCollector - INFO - Collecting 2025-04-05 to 2025-04-06, kinds=[1, 9735]
+2025-12-13 17:41:04,102 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:41:04,102 - NostrLocalCollector - INFO - Collecting 2025-04-06 to 2025-04-07, kinds=[1, 9735]
+2025-12-13 17:41:08,742 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:41:08,742 - NostrLocalCollector - INFO - Collecting 2025-04-07 to 2025-04-08, kinds=[1, 9735]
+2025-12-13 17:41:12,859 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:41:12,859 - NostrLocalCollector - INFO - Collecting 2025-04-08 to 2025-04-09, kinds=[1, 9735]
+2025-12-13 17:41:17,064 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:41:17,064 - NostrLocalCollector - INFO - Collecting 2025-04-09 to 2025-04-10, kinds=[1, 9735]
+2025-12-13 17:41:21,270 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:41:21,270 - NostrLocalCollector - INFO - Collecting 2025-04-10 to 2025-04-11, kinds=[1, 9735]
+2025-12-13 17:41:25,438 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:41:25,438 - NostrLocalCollector - INFO - Collecting 2025-04-11 to 2025-04-12, kinds=[1, 9735]
+2025-12-13 17:41:29,723 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:41:29,723 - NostrLocalCollector - INFO - Collecting 2025-04-12 to 2025-04-13, kinds=[1, 9735]
+2025-12-13 17:41:33,829 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:41:33,829 - NostrLocalCollector - INFO - Collecting 2025-04-13 to 2025-04-14, kinds=[1, 9735]
+2025-12-13 17:41:37,943 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:41:37,943 - NostrLocalCollector - INFO - Collecting 2025-04-14 to 2025-04-15, kinds=[1, 9735]
+2025-12-13 17:41:42,062 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:41:42,062 - NostrLocalCollector - INFO - Collecting 2025-04-15 to 2025-04-16, kinds=[1, 9735]
+2025-12-13 17:41:46,201 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:41:46,201 - NostrLocalCollector - INFO - Collecting 2025-04-16 to 2025-04-17, kinds=[1, 9735]
+2025-12-13 17:41:50,329 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:41:50,329 - NostrLocalCollector - INFO - Collecting 2025-04-17 to 2025-04-18, kinds=[1, 9735]
+2025-12-13 17:41:54,671 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:41:54,671 - NostrLocalCollector - INFO - Collecting 2025-04-18 to 2025-04-19, kinds=[1, 9735]
+2025-12-13 17:41:58,828 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:41:58,828 - NostrLocalCollector - INFO - Collecting 2025-04-19 to 2025-04-20, kinds=[1, 9735]
+2025-12-13 17:42:02,963 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:42:02,964 - NostrLocalCollector - INFO - Collecting 2025-04-20 to 2025-04-21, kinds=[1, 9735]
+2025-12-13 17:42:07,286 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:42:07,286 - NostrLocalCollector - INFO - Collecting 2025-04-21 to 2025-04-22, kinds=[1, 9735]
+2025-12-13 17:42:11,491 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:42:11,492 - NostrLocalCollector - INFO - Collecting 2025-04-22 to 2025-04-23, kinds=[1, 9735]
+2025-12-13 17:42:15,682 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:42:15,682 - NostrLocalCollector - INFO - Collecting 2025-04-23 to 2025-04-24, kinds=[1, 9735]
+2025-12-13 17:42:19,882 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:42:19,882 - NostrLocalCollector - INFO - Collecting 2025-04-24 to 2025-04-25, kinds=[1, 9735]
+2025-12-13 17:42:24,771 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:42:24,771 - NostrLocalCollector - INFO - Collecting 2025-04-25 to 2025-04-26, kinds=[1, 9735]
+2025-12-13 17:42:29,011 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:42:29,012 - NostrLocalCollector - INFO - Collecting 2025-04-26 to 2025-04-27, kinds=[1, 9735]
+2025-12-13 17:42:33,469 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:42:33,469 - NostrLocalCollector - INFO - Collecting 2025-04-27 to 2025-04-28, kinds=[1, 9735]
+2025-12-13 17:42:37,687 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:42:37,687 - NostrLocalCollector - INFO - Collecting 2025-04-28 to 2025-04-29, kinds=[1, 9735]
+2025-12-13 17:42:41,821 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:42:41,821 - NostrLocalCollector - INFO - Collecting 2025-04-29 to 2025-04-30, kinds=[1, 9735]
+2025-12-13 17:42:46,001 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:42:46,001 - NostrLocalCollector - INFO - Collecting 2025-04-30 to 2025-05-01, kinds=[1, 9735]
+2025-12-13 17:42:50,200 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:42:50,201 - NostrLocalCollector - INFO - Collecting 2025-05-01 to 2025-05-02, kinds=[1, 9735]
+2025-12-13 17:42:54,295 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:42:54,296 - NostrLocalCollector - INFO - Collecting 2025-05-02 to 2025-05-03, kinds=[1, 9735]
+2025-12-13 17:42:58,766 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:42:58,766 - NostrLocalCollector - INFO - Collecting 2025-05-03 to 2025-05-04, kinds=[1, 9735]
+2025-12-13 17:43:02,937 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:43:02,937 - NostrLocalCollector - INFO - Collecting 2025-05-04 to 2025-05-05, kinds=[1, 9735]
+2025-12-13 17:43:07,066 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:43:07,067 - NostrLocalCollector - INFO - Collecting 2025-05-05 to 2025-05-06, kinds=[1, 9735]
+2025-12-13 17:43:11,276 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:43:11,276 - NostrLocalCollector - INFO - Collecting 2025-05-06 to 2025-05-07, kinds=[1, 9735]
+2025-12-13 17:43:15,492 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:43:15,492 - NostrLocalCollector - INFO - Collecting 2025-05-07 to 2025-05-08, kinds=[1, 9735]
+2025-12-13 17:43:19,667 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:43:19,667 - NostrLocalCollector - INFO - Collecting 2025-05-08 to 2025-05-09, kinds=[1, 9735]
+2025-12-13 17:43:23,789 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:43:23,789 - NostrLocalCollector - INFO - Collecting 2025-05-09 to 2025-05-10, kinds=[1, 9735]
+2025-12-13 17:43:27,972 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:43:27,972 - NostrLocalCollector - INFO - Collecting 2025-05-10 to 2025-05-11, kinds=[1, 9735]
+2025-12-13 17:43:32,274 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:43:32,274 - NostrLocalCollector - INFO - Collecting 2025-05-11 to 2025-05-12, kinds=[1, 9735]
+2025-12-13 17:43:36,414 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:43:36,414 - NostrLocalCollector - INFO - Collecting 2025-05-12 to 2025-05-13, kinds=[1, 9735]
+2025-12-13 17:43:40,556 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:43:40,556 - NostrLocalCollector - INFO - Collecting 2025-05-13 to 2025-05-14, kinds=[1, 9735]
+2025-12-13 17:43:44,748 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:43:44,748 - NostrLocalCollector - INFO - Collecting 2025-05-14 to 2025-05-15, kinds=[1, 9735]
+2025-12-13 17:43:49,061 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:43:49,062 - NostrLocalCollector - INFO - Collecting 2025-05-15 to 2025-05-16, kinds=[1, 9735]
+2025-12-13 17:43:53,359 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:43:53,359 - NostrLocalCollector - INFO - Collecting 2025-05-16 to 2025-05-17, kinds=[1, 9735]
+2025-12-13 17:43:57,701 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:43:57,701 - NostrLocalCollector - INFO - Collecting 2025-05-17 to 2025-05-18, kinds=[1, 9735]
+2025-12-13 17:44:02,993 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:44:02,993 - NostrLocalCollector - INFO - Collecting 2025-05-18 to 2025-05-19, kinds=[1, 9735]
+2025-12-13 17:44:07,155 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:44:07,156 - NostrLocalCollector - INFO - Collecting 2025-05-19 to 2025-05-20, kinds=[1, 9735]
+2025-12-13 17:44:12,671 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:44:12,671 - NostrLocalCollector - INFO - Collecting 2025-05-20 to 2025-05-21, kinds=[1, 9735]
+2025-12-13 17:44:16,922 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:44:16,922 - NostrLocalCollector - INFO - Collecting 2025-05-21 to 2025-05-22, kinds=[1, 9735]
+2025-12-13 17:44:21,154 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:44:21,154 - NostrLocalCollector - INFO - Collecting 2025-05-22 to 2025-05-23, kinds=[1, 9735]
+2025-12-13 17:44:25,410 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:44:25,410 - NostrLocalCollector - INFO - Collecting 2025-05-23 to 2025-05-24, kinds=[1, 9735]
+2025-12-13 17:44:29,644 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:44:29,644 - NostrLocalCollector - INFO - Collecting 2025-05-24 to 2025-05-25, kinds=[1, 9735]
+2025-12-13 17:44:33,873 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:44:33,873 - NostrLocalCollector - INFO - Collecting 2025-05-25 to 2025-05-26, kinds=[1, 9735]
+2025-12-13 17:44:38,103 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:44:38,103 - NostrLocalCollector - INFO - Collecting 2025-05-26 to 2025-05-27, kinds=[1, 9735]
+2025-12-13 17:44:42,263 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:44:42,263 - NostrLocalCollector - INFO - Collecting 2025-05-27 to 2025-05-28, kinds=[1, 9735]
+2025-12-13 17:44:46,417 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:44:46,417 - NostrLocalCollector - INFO - Collecting 2025-05-28 to 2025-05-29, kinds=[1, 9735]
+2025-12-13 17:44:50,510 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:44:50,510 - NostrLocalCollector - INFO - Collecting 2025-05-29 to 2025-05-30, kinds=[1, 9735]
+2025-12-13 17:44:54,692 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:44:54,692 - NostrLocalCollector - INFO - Collecting 2025-05-30 to 2025-05-31, kinds=[1, 9735]
+2025-12-13 17:44:58,824 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:44:58,824 - NostrLocalCollector - INFO - Collecting 2025-05-31 to 2025-06-01, kinds=[1, 9735]
+2025-12-13 17:45:03,093 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:45:03,093 - NostrLocalCollector - INFO - Collecting 2025-06-01 to 2025-06-02, kinds=[1, 9735]
+2025-12-13 17:45:07,276 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:45:07,276 - NostrLocalCollector - INFO - Collecting 2025-06-02 to 2025-06-03, kinds=[1, 9735]
+2025-12-13 17:45:11,610 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:45:11,610 - NostrLocalCollector - INFO - Collecting 2025-06-03 to 2025-06-04, kinds=[1, 9735]
+2025-12-13 17:45:15,754 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:45:15,754 - NostrLocalCollector - INFO - Collecting 2025-06-04 to 2025-06-05, kinds=[1, 9735]
+2025-12-13 17:45:19,988 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:45:19,988 - NostrLocalCollector - INFO - Collecting 2025-06-05 to 2025-06-06, kinds=[1, 9735]
+2025-12-13 17:45:24,453 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:45:24,454 - NostrLocalCollector - INFO - Collecting 2025-06-06 to 2025-06-07, kinds=[1, 9735]
+2025-12-13 17:45:28,710 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:45:28,710 - NostrLocalCollector - INFO - Collecting 2025-06-07 to 2025-06-08, kinds=[1, 9735]
+2025-12-13 17:45:32,801 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:45:32,801 - NostrLocalCollector - INFO - Collecting 2025-06-08 to 2025-06-09, kinds=[1, 9735]
+2025-12-13 17:45:36,985 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:45:36,985 - NostrLocalCollector - INFO - Collecting 2025-06-09 to 2025-06-10, kinds=[1, 9735]
+2025-12-13 17:45:41,160 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:45:41,160 - NostrLocalCollector - INFO - Collecting 2025-06-10 to 2025-06-11, kinds=[1, 9735]
+2025-12-13 17:45:45,469 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:45:45,469 - NostrLocalCollector - INFO - Collecting 2025-06-11 to 2025-06-12, kinds=[1, 9735]
+2025-12-13 17:45:49,727 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:45:49,727 - NostrLocalCollector - INFO - Collecting 2025-06-12 to 2025-06-13, kinds=[1, 9735]
+2025-12-13 17:45:54,000 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:45:54,000 - NostrLocalCollector - INFO - Collecting 2025-06-13 to 2025-06-14, kinds=[1, 9735]
+2025-12-13 17:45:58,146 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:45:58,146 - NostrLocalCollector - INFO - Collecting 2025-06-14 to 2025-06-15, kinds=[1, 9735]
+2025-12-13 17:46:02,357 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:46:02,358 - NostrLocalCollector - INFO - Collecting 2025-06-15 to 2025-06-16, kinds=[1, 9735]
+2025-12-13 17:46:06,488 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:46:06,488 - NostrLocalCollector - INFO - Collecting 2025-06-16 to 2025-06-17, kinds=[1, 9735]
+2025-12-13 17:46:10,696 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:46:10,696 - NostrLocalCollector - INFO - Collecting 2025-06-17 to 2025-06-18, kinds=[1, 9735]
+2025-12-13 17:46:16,254 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:46:16,255 - NostrLocalCollector - INFO - Collecting 2025-06-18 to 2025-06-19, kinds=[1, 9735]
+2025-12-13 17:46:20,472 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:46:20,472 - NostrLocalCollector - INFO - Collecting 2025-06-19 to 2025-06-20, kinds=[1, 9735]
+2025-12-13 17:46:24,659 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:46:24,659 - NostrLocalCollector - INFO - Collecting 2025-06-20 to 2025-06-21, kinds=[1, 9735]
+2025-12-13 17:46:28,814 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:46:28,814 - NostrLocalCollector - INFO - Collecting 2025-06-21 to 2025-06-22, kinds=[1, 9735]
+2025-12-13 17:46:32,896 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:46:32,897 - NostrLocalCollector - INFO - Collecting 2025-06-22 to 2025-06-23, kinds=[1, 9735]
+2025-12-13 17:46:37,137 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:46:37,138 - NostrLocalCollector - INFO - Collecting 2025-06-23 to 2025-06-24, kinds=[1, 9735]
+2025-12-13 17:46:41,266 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:46:41,267 - NostrLocalCollector - INFO - Collecting 2025-06-24 to 2025-06-25, kinds=[1, 9735]
+2025-12-13 17:46:45,461 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:46:45,461 - NostrLocalCollector - INFO - Collecting 2025-06-25 to 2025-06-26, kinds=[1, 9735]
+2025-12-13 17:46:49,587 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:46:49,587 - NostrLocalCollector - INFO - Collecting 2025-06-26 to 2025-06-27, kinds=[1, 9735]
+2025-12-13 17:46:53,783 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:46:53,783 - NostrLocalCollector - INFO - Collecting 2025-06-27 to 2025-06-28, kinds=[1, 9735]
+2025-12-13 17:46:58,086 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:46:58,087 - NostrLocalCollector - INFO - Collecting 2025-06-28 to 2025-06-29, kinds=[1, 9735]
+2025-12-13 17:47:02,391 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:47:02,391 - NostrLocalCollector - INFO - Collecting 2025-06-29 to 2025-06-30, kinds=[1, 9735]
+2025-12-13 17:47:06,677 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:47:06,677 - NostrLocalCollector - INFO - Collecting 2025-06-30 to 2025-07-01, kinds=[1, 9735]
+2025-12-13 17:47:10,823 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:47:10,823 - NostrLocalCollector - INFO - Collecting 2025-07-01 to 2025-07-02, kinds=[1, 9735]
+2025-12-13 17:47:15,018 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:47:15,018 - NostrLocalCollector - INFO - Collecting 2025-07-02 to 2025-07-03, kinds=[1, 9735]
+2025-12-13 17:47:19,605 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:47:19,605 - NostrLocalCollector - INFO - Collecting 2025-07-03 to 2025-07-04, kinds=[1, 9735]
+2025-12-13 17:47:23,776 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:47:23,777 - NostrLocalCollector - INFO - Collecting 2025-07-04 to 2025-07-05, kinds=[1, 9735]
+2025-12-13 17:47:27,988 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:47:27,988 - NostrLocalCollector - INFO - Collecting 2025-07-05 to 2025-07-06, kinds=[1, 9735]
+2025-12-13 17:47:32,177 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:47:32,178 - NostrLocalCollector - INFO - Collecting 2025-07-06 to 2025-07-07, kinds=[1, 9735]
+2025-12-13 17:47:36,481 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:47:36,481 - NostrLocalCollector - INFO - Collecting 2025-07-07 to 2025-07-08, kinds=[1, 9735]
+2025-12-13 17:47:40,640 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:47:40,640 - NostrLocalCollector - INFO - Collecting 2025-07-08 to 2025-07-09, kinds=[1, 9735]
+2025-12-13 17:47:44,773 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:47:44,773 - NostrLocalCollector - INFO - Collecting 2025-07-09 to 2025-07-10, kinds=[1, 9735]
+2025-12-13 17:47:48,882 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:47:48,882 - NostrLocalCollector - INFO - Collecting 2025-07-10 to 2025-07-11, kinds=[1, 9735]
+2025-12-13 17:47:53,035 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:47:53,035 - NostrLocalCollector - INFO - Collecting 2025-07-11 to 2025-07-12, kinds=[1, 9735]
+2025-12-13 17:47:57,327 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:47:57,327 - NostrLocalCollector - INFO - Collecting 2025-07-12 to 2025-07-13, kinds=[1, 9735]
+2025-12-13 17:48:01,608 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:48:01,608 - NostrLocalCollector - INFO - Collecting 2025-07-13 to 2025-07-14, kinds=[1, 9735]
+2025-12-13 17:48:05,886 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:48:05,886 - NostrLocalCollector - INFO - Collecting 2025-07-14 to 2025-07-15, kinds=[1, 9735]
+2025-12-13 17:48:10,090 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:48:10,091 - NostrLocalCollector - INFO - Collecting 2025-07-15 to 2025-07-16, kinds=[1, 9735]
+2025-12-13 17:48:14,416 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:48:14,416 - NostrLocalCollector - INFO - Collecting 2025-07-16 to 2025-07-17, kinds=[1, 9735]
+2025-12-13 17:48:18,580 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:48:18,580 - NostrLocalCollector - INFO - Collecting 2025-07-17 to 2025-07-18, kinds=[1, 9735]
+2025-12-13 17:48:22,740 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:48:22,740 - NostrLocalCollector - INFO - Collecting 2025-07-18 to 2025-07-19, kinds=[1, 9735]
+2025-12-13 17:48:26,874 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:48:26,874 - NostrLocalCollector - INFO - Collecting 2025-07-19 to 2025-07-20, kinds=[1, 9735]
+2025-12-13 17:48:31,190 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:48:31,191 - NostrLocalCollector - INFO - Collecting 2025-07-20 to 2025-07-21, kinds=[1, 9735]
+2025-12-13 17:48:35,451 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:48:35,451 - NostrLocalCollector - INFO - Collecting 2025-07-21 to 2025-07-22, kinds=[1, 9735]
+2025-12-13 17:48:39,596 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:48:39,596 - NostrLocalCollector - INFO - Collecting 2025-07-22 to 2025-07-23, kinds=[1, 9735]
+2025-12-13 17:48:43,714 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:48:43,714 - NostrLocalCollector - INFO - Collecting 2025-07-23 to 2025-07-24, kinds=[1, 9735]
+2025-12-13 17:48:47,902 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:48:47,902 - NostrLocalCollector - INFO - Collecting 2025-07-24 to 2025-07-25, kinds=[1, 9735]
+2025-12-13 17:48:52,150 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:48:52,150 - NostrLocalCollector - INFO - Collecting 2025-07-25 to 2025-07-26, kinds=[1, 9735]
+2025-12-13 17:48:56,435 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:48:56,435 - NostrLocalCollector - INFO - Collecting 2025-07-26 to 2025-07-27, kinds=[1, 9735]
+2025-12-13 17:49:00,586 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:49:00,586 - NostrLocalCollector - INFO - Collecting 2025-07-27 to 2025-07-28, kinds=[1, 9735]
+2025-12-13 17:49:04,821 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:49:04,821 - NostrLocalCollector - INFO - Collecting 2025-07-28 to 2025-07-29, kinds=[1, 9735]
+2025-12-13 17:49:08,925 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:49:08,925 - NostrLocalCollector - INFO - Collecting 2025-07-29 to 2025-07-30, kinds=[1, 9735]
+2025-12-13 17:49:13,094 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:49:13,095 - NostrLocalCollector - INFO - Collecting 2025-07-30 to 2025-07-31, kinds=[1, 9735]
+2025-12-13 17:49:17,370 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:49:17,370 - NostrLocalCollector - INFO - Collecting 2025-07-31 to 2025-08-01, kinds=[1, 9735]
+2025-12-13 17:49:21,626 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:49:21,626 - NostrLocalCollector - INFO - Collecting 2025-08-01 to 2025-08-02, kinds=[1, 9735]
+2025-12-13 17:49:25,893 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:49:25,893 - NostrLocalCollector - INFO - Collecting 2025-08-02 to 2025-08-03, kinds=[1, 9735]
+2025-12-13 17:49:30,122 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:49:30,122 - NostrLocalCollector - INFO - Collecting 2025-08-03 to 2025-08-04, kinds=[1, 9735]
+2025-12-13 17:49:34,349 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:49:34,349 - NostrLocalCollector - INFO - Collecting 2025-08-04 to 2025-08-05, kinds=[1, 9735]
+2025-12-13 17:49:38,446 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:49:38,447 - NostrLocalCollector - INFO - Collecting 2025-08-05 to 2025-08-06, kinds=[1, 9735]
+2025-12-13 17:49:43,478 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:49:43,478 - NostrLocalCollector - INFO - Collecting 2025-08-06 to 2025-08-07, kinds=[1, 9735]
+2025-12-13 17:49:47,591 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:49:47,591 - NostrLocalCollector - INFO - Collecting 2025-08-07 to 2025-08-08, kinds=[1, 9735]
+2025-12-13 17:49:51,845 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:49:51,845 - NostrLocalCollector - INFO - Collecting 2025-08-08 to 2025-08-09, kinds=[1, 9735]
+2025-12-13 17:49:56,060 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:49:56,060 - NostrLocalCollector - INFO - Collecting 2025-08-09 to 2025-08-10, kinds=[1, 9735]
+2025-12-13 17:50:00,204 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:50:00,204 - NostrLocalCollector - INFO - Collecting 2025-08-10 to 2025-08-11, kinds=[1, 9735]
+2025-12-13 17:50:04,379 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:50:04,379 - NostrLocalCollector - INFO - Collecting 2025-08-11 to 2025-08-12, kinds=[1, 9735]
+2025-12-13 17:50:08,525 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:50:08,525 - NostrLocalCollector - INFO - Collecting 2025-08-12 to 2025-08-13, kinds=[1, 9735]
+2025-12-13 17:50:12,732 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:50:12,732 - NostrLocalCollector - INFO - Collecting 2025-08-13 to 2025-08-14, kinds=[1, 9735]
+2025-12-13 17:50:16,826 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:50:16,826 - NostrLocalCollector - INFO - Collecting 2025-08-14 to 2025-08-15, kinds=[1, 9735]
+2025-12-13 17:50:21,119 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:50:21,119 - NostrLocalCollector - INFO - Collecting 2025-08-15 to 2025-08-16, kinds=[1, 9735]
+2025-12-13 17:50:25,296 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:50:25,296 - NostrLocalCollector - INFO - Collecting 2025-08-16 to 2025-08-17, kinds=[1, 9735]
+2025-12-13 17:50:29,399 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:50:29,399 - NostrLocalCollector - INFO - Collecting 2025-08-17 to 2025-08-18, kinds=[1, 9735]
+2025-12-13 17:50:33,744 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:50:33,744 - NostrLocalCollector - INFO - Collecting 2025-08-18 to 2025-08-19, kinds=[1, 9735]
+2025-12-13 17:50:37,906 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:50:37,907 - NostrLocalCollector - INFO - Collecting 2025-08-19 to 2025-08-20, kinds=[1, 9735]
+2025-12-13 17:50:42,242 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:50:42,242 - NostrLocalCollector - INFO - Collecting 2025-08-20 to 2025-08-21, kinds=[1, 9735]
+2025-12-13 17:50:46,517 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:50:46,517 - NostrLocalCollector - INFO - Collecting 2025-08-21 to 2025-08-22, kinds=[1, 9735]
+2025-12-13 17:50:50,928 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:50:50,928 - NostrLocalCollector - INFO - Collecting 2025-08-22 to 2025-08-23, kinds=[1, 9735]
+2025-12-13 17:50:55,151 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:50:55,151 - NostrLocalCollector - INFO - Collecting 2025-08-23 to 2025-08-24, kinds=[1, 9735]
+2025-12-13 17:50:59,452 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:50:59,453 - NostrLocalCollector - INFO - Collecting 2025-08-24 to 2025-08-25, kinds=[1, 9735]
+2025-12-13 17:51:03,587 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:51:03,587 - NostrLocalCollector - INFO - Collecting 2025-08-25 to 2025-08-26, kinds=[1, 9735]
+2025-12-13 17:51:07,887 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:51:07,887 - NostrLocalCollector - INFO - Collecting 2025-08-26 to 2025-08-27, kinds=[1, 9735]
+2025-12-13 17:51:12,389 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:51:12,389 - NostrLocalCollector - INFO - Collecting 2025-08-27 to 2025-08-28, kinds=[1, 9735]
+2025-12-13 17:51:16,672 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:51:16,672 - NostrLocalCollector - INFO - Collecting 2025-08-28 to 2025-08-29, kinds=[1, 9735]
+2025-12-13 17:51:20,972 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:51:20,972 - NostrLocalCollector - INFO - Collecting 2025-08-29 to 2025-08-30, kinds=[1, 9735]
+2025-12-13 17:51:25,159 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:51:25,159 - NostrLocalCollector - INFO - Collecting 2025-08-30 to 2025-08-31, kinds=[1, 9735]
+2025-12-13 17:51:29,298 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:51:29,298 - NostrLocalCollector - INFO - Collecting 2025-08-31 to 2025-09-01, kinds=[1, 9735]
+2025-12-13 17:51:33,464 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:51:33,464 - NostrLocalCollector - INFO - Collecting 2025-09-01 to 2025-09-02, kinds=[1, 9735]
+2025-12-13 17:51:37,634 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:51:37,634 - NostrLocalCollector - INFO - Collecting 2025-09-02 to 2025-09-03, kinds=[1, 9735]
+2025-12-13 17:51:41,874 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:51:41,874 - NostrLocalCollector - INFO - Collecting 2025-09-03 to 2025-09-04, kinds=[1, 9735]
+2025-12-13 17:51:46,018 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:51:46,018 - NostrLocalCollector - INFO - Collecting 2025-09-04 to 2025-09-05, kinds=[1, 9735]
+2025-12-13 17:51:50,206 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:51:50,206 - NostrLocalCollector - INFO - Collecting 2025-09-05 to 2025-09-06, kinds=[1, 9735]
+2025-12-13 17:51:54,437 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:51:54,437 - NostrLocalCollector - INFO - Collecting 2025-09-06 to 2025-09-07, kinds=[1, 9735]
+2025-12-13 17:52:00,717 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:52:00,717 - NostrLocalCollector - INFO - Collecting 2025-09-07 to 2025-09-08, kinds=[1, 9735]
+2025-12-13 17:52:05,017 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:52:05,018 - NostrLocalCollector - INFO - Collecting 2025-09-08 to 2025-09-09, kinds=[1, 9735]
+2025-12-13 17:52:09,267 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:52:09,267 - NostrLocalCollector - INFO - Collecting 2025-09-09 to 2025-09-10, kinds=[1, 9735]
+2025-12-13 17:52:13,581 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:52:13,581 - NostrLocalCollector - INFO - Collecting 2025-09-10 to 2025-09-11, kinds=[1, 9735]
+2025-12-13 17:52:17,815 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:52:17,816 - NostrLocalCollector - INFO - Collecting 2025-09-11 to 2025-09-12, kinds=[1, 9735]
+2025-12-13 17:52:22,082 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:52:22,082 - NostrLocalCollector - INFO - Collecting 2025-09-12 to 2025-09-13, kinds=[1, 9735]
+2025-12-13 17:52:26,318 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:52:26,318 - NostrLocalCollector - INFO - Collecting 2025-09-13 to 2025-09-14, kinds=[1, 9735]
+2025-12-13 17:52:30,524 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:52:30,524 - NostrLocalCollector - INFO - Collecting 2025-09-14 to 2025-09-15, kinds=[1, 9735]
+2025-12-13 17:52:34,906 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:52:34,907 - NostrLocalCollector - INFO - Collecting 2025-09-15 to 2025-09-16, kinds=[1, 9735]
+2025-12-13 17:52:39,120 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:52:39,120 - NostrLocalCollector - INFO - Collecting 2025-09-16 to 2025-09-17, kinds=[1, 9735]
+2025-12-13 17:52:43,236 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:52:43,237 - NostrLocalCollector - INFO - Collecting 2025-09-17 to 2025-09-18, kinds=[1, 9735]
+2025-12-13 17:52:47,799 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:52:47,799 - NostrLocalCollector - INFO - Collecting 2025-09-18 to 2025-09-19, kinds=[1, 9735]
+2025-12-13 17:52:52,001 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:52:52,001 - NostrLocalCollector - INFO - Collecting 2025-09-19 to 2025-09-20, kinds=[1, 9735]
+2025-12-13 17:52:56,221 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:52:56,222 - NostrLocalCollector - INFO - Collecting 2025-09-20 to 2025-09-21, kinds=[1, 9735]
+2025-12-13 17:53:00,676 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:53:00,676 - NostrLocalCollector - INFO - Collecting 2025-09-21 to 2025-09-22, kinds=[1, 9735]
+2025-12-13 17:53:05,936 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:53:05,936 - NostrLocalCollector - INFO - Collecting 2025-09-22 to 2025-09-23, kinds=[1, 9735]
+2025-12-13 17:53:10,040 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:53:10,040 - NostrLocalCollector - INFO - Collecting 2025-09-23 to 2025-09-24, kinds=[1, 9735]
+2025-12-13 17:53:14,550 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:53:14,550 - NostrLocalCollector - INFO - Collecting 2025-09-24 to 2025-09-25, kinds=[1, 9735]
+2025-12-13 17:53:18,710 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:53:18,710 - NostrLocalCollector - INFO - Collecting 2025-09-25 to 2025-09-26, kinds=[1, 9735]
+2025-12-13 17:53:23,001 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:53:23,001 - NostrLocalCollector - INFO - Collecting 2025-09-26 to 2025-09-27, kinds=[1, 9735]
+2025-12-13 17:53:27,418 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:53:27,419 - NostrLocalCollector - INFO - Collecting 2025-09-27 to 2025-09-28, kinds=[1, 9735]
+2025-12-13 17:53:31,723 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:53:31,723 - NostrLocalCollector - INFO - Collecting 2025-09-28 to 2025-09-29, kinds=[1, 9735]
+2025-12-13 17:53:36,023 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:53:36,023 - NostrLocalCollector - INFO - Collecting 2025-09-29 to 2025-09-30, kinds=[1, 9735]
+2025-12-13 17:53:40,292 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:53:40,292 - NostrLocalCollector - INFO - Collecting 2025-09-30 to 2025-10-01, kinds=[1, 9735]
+2025-12-13 17:53:44,552 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:53:44,552 - NostrLocalCollector - INFO - Collecting 2025-10-01 to 2025-10-02, kinds=[1, 9735]
+2025-12-13 17:53:48,641 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:53:48,641 - NostrLocalCollector - INFO - Collecting 2025-10-02 to 2025-10-03, kinds=[1, 9735]
+2025-12-13 17:53:52,765 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:53:52,766 - NostrLocalCollector - INFO - Collecting 2025-10-03 to 2025-10-04, kinds=[1, 9735]
+2025-12-13 17:53:56,988 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:53:56,989 - NostrLocalCollector - INFO - Collecting 2025-10-04 to 2025-10-05, kinds=[1, 9735]
+2025-12-13 17:54:01,122 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:54:01,122 - NostrLocalCollector - INFO - Collecting 2025-10-05 to 2025-10-06, kinds=[1, 9735]
+2025-12-13 17:54:05,296 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:54:05,296 - NostrLocalCollector - INFO - Collecting 2025-10-06 to 2025-10-07, kinds=[1, 9735]
+2025-12-13 17:54:09,469 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:54:09,469 - NostrLocalCollector - INFO - Collecting 2025-10-07 to 2025-10-08, kinds=[1, 9735]
+2025-12-13 17:54:13,558 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:54:13,558 - NostrLocalCollector - INFO - Collecting 2025-10-08 to 2025-10-09, kinds=[1, 9735]
+2025-12-13 17:54:17,867 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:54:17,867 - NostrLocalCollector - INFO - Collecting 2025-10-09 to 2025-10-10, kinds=[1, 9735]
+2025-12-13 17:54:22,292 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:54:22,292 - NostrLocalCollector - INFO - Collecting 2025-10-10 to 2025-10-11, kinds=[1, 9735]
+2025-12-13 17:54:26,513 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:54:26,513 - NostrLocalCollector - INFO - Collecting 2025-10-11 to 2025-10-12, kinds=[1, 9735]
+2025-12-13 17:54:30,627 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:54:30,627 - NostrLocalCollector - INFO - Collecting 2025-10-12 to 2025-10-13, kinds=[1, 9735]
+2025-12-13 17:54:34,888 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:54:34,888 - NostrLocalCollector - INFO - Collecting 2025-10-13 to 2025-10-14, kinds=[1, 9735]
+2025-12-13 17:54:39,055 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:54:39,055 - NostrLocalCollector - INFO - Collecting 2025-10-14 to 2025-10-15, kinds=[1, 9735]
+2025-12-13 17:54:43,197 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:54:43,197 - NostrLocalCollector - INFO - Collecting 2025-10-15 to 2025-10-16, kinds=[1, 9735]
+2025-12-13 17:54:47,485 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:54:47,485 - NostrLocalCollector - INFO - Collecting 2025-10-16 to 2025-10-17, kinds=[1, 9735]
+2025-12-13 17:54:51,588 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:54:51,588 - NostrLocalCollector - INFO - Collecting 2025-10-17 to 2025-10-18, kinds=[1, 9735]
+2025-12-13 17:54:55,884 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:54:55,884 - NostrLocalCollector - INFO - Collecting 2025-10-18 to 2025-10-19, kinds=[1, 9735]
+2025-12-13 17:55:00,121 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:55:00,121 - NostrLocalCollector - INFO - Collecting 2025-10-19 to 2025-10-20, kinds=[1, 9735]
+2025-12-13 17:55:04,221 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:55:04,221 - NostrLocalCollector - INFO - Collecting 2025-10-20 to 2025-10-21, kinds=[1, 9735]
+2025-12-13 17:55:08,516 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:55:08,516 - NostrLocalCollector - INFO - Collecting 2025-10-21 to 2025-10-22, kinds=[1, 9735]
+2025-12-13 17:55:12,594 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:55:12,594 - NostrLocalCollector - INFO - Collecting 2025-10-22 to 2025-10-23, kinds=[1, 9735]
+2025-12-13 17:55:16,702 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:55:16,702 - NostrLocalCollector - INFO - Collecting 2025-10-23 to 2025-10-24, kinds=[1, 9735]
+2025-12-13 17:55:20,964 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:55:20,964 - NostrLocalCollector - INFO - Collecting 2025-10-24 to 2025-10-25, kinds=[1, 9735]
+2025-12-13 17:55:25,032 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:55:25,032 - NostrLocalCollector - INFO - Collecting 2025-10-25 to 2025-10-26, kinds=[1, 9735]
+2025-12-13 17:55:29,190 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:55:29,190 - NostrLocalCollector - INFO - Collecting 2025-10-26 to 2025-10-27, kinds=[1, 9735]
+2025-12-13 17:55:33,416 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:55:33,416 - NostrLocalCollector - INFO - Collecting 2025-10-27 to 2025-10-28, kinds=[1, 9735]
+2025-12-13 17:55:37,686 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:55:37,686 - NostrLocalCollector - INFO - Collecting 2025-10-28 to 2025-10-29, kinds=[1, 9735]
+2025-12-13 17:55:41,777 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:55:41,777 - NostrLocalCollector - INFO - Collecting 2025-10-29 to 2025-10-30, kinds=[1, 9735]
+2025-12-13 17:55:46,042 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:55:46,042 - NostrLocalCollector - INFO - Collecting 2025-10-30 to 2025-10-31, kinds=[1, 9735]
+2025-12-13 17:55:50,348 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:55:50,348 - NostrLocalCollector - INFO - Collecting 2025-10-31 to 2025-11-01, kinds=[1, 9735]
+2025-12-13 17:55:57,901 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:55:57,901 - NostrLocalCollector - INFO - Collecting 2025-11-01 to 2025-11-02, kinds=[1, 9735]
+2025-12-13 17:56:02,040 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:56:02,040 - NostrLocalCollector - INFO - Collecting 2025-11-02 to 2025-11-03, kinds=[1, 9735]
+2025-12-13 17:56:06,343 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:56:06,343 - NostrLocalCollector - INFO - Collecting 2025-11-03 to 2025-11-04, kinds=[1, 9735]
+2025-12-13 17:56:10,445 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:56:10,445 - NostrLocalCollector - INFO - Collecting 2025-11-04 to 2025-11-05, kinds=[1, 9735]
+2025-12-13 17:56:14,648 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:56:14,648 - NostrLocalCollector - INFO - Collecting 2025-11-05 to 2025-11-06, kinds=[1, 9735]
+2025-12-13 17:56:18,878 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:56:18,878 - NostrLocalCollector - INFO - Collecting 2025-11-06 to 2025-11-07, kinds=[1, 9735]
+2025-12-13 17:56:23,090 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:56:23,090 - NostrLocalCollector - INFO - Collecting 2025-11-07 to 2025-11-08, kinds=[1, 9735]
+2025-12-13 17:56:27,284 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:56:27,284 - NostrLocalCollector - INFO - Collecting 2025-11-08 to 2025-11-09, kinds=[1, 9735]
+2025-12-13 17:56:31,430 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:56:31,431 - NostrLocalCollector - INFO - Collecting 2025-11-09 to 2025-11-10, kinds=[1, 9735]
+2025-12-13 17:56:35,629 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:56:35,629 - NostrLocalCollector - INFO - Collecting 2025-11-10 to 2025-11-11, kinds=[1, 9735]
+2025-12-13 17:56:39,756 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:56:39,756 - NostrLocalCollector - INFO - Collecting 2025-11-11 to 2025-11-12, kinds=[1, 9735]
+2025-12-13 17:56:43,896 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:56:43,897 - NostrLocalCollector - INFO - Collecting 2025-11-12 to 2025-11-13, kinds=[1, 9735]
+2025-12-13 17:56:48,090 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:56:48,090 - NostrLocalCollector - INFO - Collecting 2025-11-13 to 2025-11-14, kinds=[1, 9735]
+2025-12-13 17:56:52,281 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:56:52,281 - NostrLocalCollector - INFO - Collecting 2025-11-14 to 2025-11-15, kinds=[1, 9735]
+2025-12-13 17:56:56,417 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:56:56,418 - NostrLocalCollector - INFO - Collecting 2025-11-15 to 2025-11-16, kinds=[1, 9735]
+2025-12-13 17:57:00,660 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:57:00,660 - NostrLocalCollector - INFO - Collecting 2025-11-16 to 2025-11-17, kinds=[1, 9735]
+2025-12-13 17:57:04,908 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:57:04,908 - NostrLocalCollector - INFO - Collecting 2025-11-17 to 2025-11-18, kinds=[1, 9735]
+2025-12-13 17:57:09,079 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:57:09,079 - NostrLocalCollector - INFO - Collecting 2025-11-18 to 2025-11-19, kinds=[1, 9735]
+2025-12-13 17:57:13,329 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:57:13,329 - NostrLocalCollector - INFO - Collecting 2025-11-19 to 2025-11-20, kinds=[1, 9735]
+2025-12-13 17:57:17,507 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:57:17,507 - NostrLocalCollector - INFO - Collecting 2025-11-20 to 2025-11-21, kinds=[1, 9735]
+2025-12-13 17:57:21,720 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:57:21,720 - NostrLocalCollector - INFO - Collecting 2025-11-21 to 2025-11-22, kinds=[1, 9735]
+2025-12-13 17:57:25,951 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:57:25,951 - NostrLocalCollector - INFO - Collecting 2025-11-22 to 2025-11-23, kinds=[1, 9735]
+2025-12-13 17:57:30,126 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:57:30,126 - NostrLocalCollector - INFO - Collecting 2025-11-23 to 2025-11-24, kinds=[1, 9735]
+2025-12-13 17:57:34,394 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:57:34,394 - NostrLocalCollector - INFO - Collecting 2025-11-24 to 2025-11-25, kinds=[1, 9735]
+2025-12-13 17:57:38,697 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:57:38,697 - NostrLocalCollector - INFO - Collecting 2025-11-25 to 2025-11-26, kinds=[1, 9735]
+2025-12-13 17:57:42,981 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:57:42,981 - NostrLocalCollector - INFO - Collecting 2025-11-26 to 2025-11-27, kinds=[1, 9735]
+2025-12-13 17:57:47,121 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:57:47,121 - NostrLocalCollector - INFO - Collecting 2025-11-27 to 2025-11-28, kinds=[1, 9735]
+2025-12-13 17:57:51,307 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:57:51,307 - NostrLocalCollector - INFO - Collecting 2025-11-28 to 2025-11-29, kinds=[1, 9735]
+2025-12-13 17:57:55,513 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:57:55,513 - NostrLocalCollector - INFO - Collecting 2025-11-29 to 2025-11-30, kinds=[1, 9735]
+2025-12-13 17:57:59,747 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:57:59,747 - NostrLocalCollector - INFO - Collecting 2025-11-30 to 2025-12-01, kinds=[1, 9735]
+2025-12-13 17:58:03,944 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:58:03,944 - NostrLocalCollector - INFO - Collecting 2025-12-01 to 2025-12-02, kinds=[1, 9735]
+2025-12-13 17:58:08,100 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:58:08,100 - NostrLocalCollector - INFO - Collecting 2025-12-02 to 2025-12-03, kinds=[1, 9735]
+2025-12-13 17:58:12,397 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:58:12,397 - NostrLocalCollector - INFO - Collecting 2025-12-03 to 2025-12-04, kinds=[1, 9735]
+2025-12-13 17:58:16,548 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:58:16,548 - NostrLocalCollector - INFO - Collecting 2025-12-04 to 2025-12-05, kinds=[1, 9735]
+2025-12-13 17:58:20,698 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:58:20,698 - NostrLocalCollector - INFO - Collecting 2025-12-05 to 2025-12-06, kinds=[1, 9735]
+2025-12-13 17:58:24,983 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:58:24,983 - NostrLocalCollector - INFO - Collecting 2025-12-06 to 2025-12-07, kinds=[1, 9735]
+2025-12-13 17:58:29,118 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:58:29,118 - NostrLocalCollector - INFO - Collecting 2025-12-07 to 2025-12-08, kinds=[1, 9735]
+2025-12-13 17:58:33,293 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:58:33,293 - NostrLocalCollector - INFO - Collecting 2025-12-08 to 2025-12-09, kinds=[1, 9735]
+2025-12-13 17:58:37,466 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:58:37,466 - NostrLocalCollector - INFO - Collecting 2025-12-09 to 2025-12-10, kinds=[1, 9735]
+2025-12-13 17:58:41,600 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:58:41,600 - NostrLocalCollector - INFO - Collecting 2025-12-10 to 2025-12-11, kinds=[1, 9735]
+2025-12-13 17:58:45,764 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:58:45,764 - NostrLocalCollector - INFO - Collecting 2025-12-11 to 2025-12-12, kinds=[1, 9735]
+2025-12-13 17:58:50,075 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 17:58:50,075 - NostrLocalCollector - INFO - Collecting 2025-12-12 to 2025-12-13, kinds=[1, 9735]
+2025-12-13 17:58:54,279 - NostrLocalCollector - INFO - Collected 5000 events for batch
+2025-12-13 18:00:40,266 - NostrLocalCollector - INFO - Processed 698094 events: 582766 texts, 115328 zaps
+2025-12-13 18:00:42,964 - NostrLocalCollector - INFO - Appended 10753 records to /home/work/data/stair-local/nostr/nostr_2025W01.parquet
+2025-12-13 18:00:43,050 - NostrLocalCollector - INFO - Wrote 14591 records to /home/work/data/stair-local/nostr/nostr_2025W02.parquet
+2025-12-13 18:00:43,134 - NostrLocalCollector - INFO - Wrote 14436 records to /home/work/data/stair-local/nostr/nostr_2025W03.parquet
+2025-12-13 18:00:43,231 - NostrLocalCollector - INFO - Wrote 15895 records to /home/work/data/stair-local/nostr/nostr_2025W04.parquet
+2025-12-13 18:00:43,334 - NostrLocalCollector - INFO - Wrote 17246 records to /home/work/data/stair-local/nostr/nostr_2025W05.parquet
+2025-12-13 18:00:43,437 - NostrLocalCollector - INFO - Wrote 16134 records to /home/work/data/stair-local/nostr/nostr_2025W06.parquet
+2025-12-13 18:00:43,523 - NostrLocalCollector - INFO - Wrote 14765 records to /home/work/data/stair-local/nostr/nostr_2025W07.parquet
+2025-12-13 18:00:43,611 - NostrLocalCollector - INFO - Wrote 14777 records to /home/work/data/stair-local/nostr/nostr_2025W08.parquet
+2025-12-13 18:00:43,697 - NostrLocalCollector - INFO - Wrote 14894 records to /home/work/data/stair-local/nostr/nostr_2025W09.parquet
+2025-12-13 18:00:43,797 - NostrLocalCollector - INFO - Wrote 15079 records to /home/work/data/stair-local/nostr/nostr_2025W10.parquet
+2025-12-13 18:00:43,895 - NostrLocalCollector - INFO - Wrote 15935 records to /home/work/data/stair-local/nostr/nostr_2025W11.parquet
+2025-12-13 18:00:43,994 - NostrLocalCollector - INFO - Wrote 15758 records to /home/work/data/stair-local/nostr/nostr_2025W12.parquet
+2025-12-13 18:00:44,088 - NostrLocalCollector - INFO - Wrote 15629 records to /home/work/data/stair-local/nostr/nostr_2025W13.parquet
+2025-12-13 18:00:44,180 - NostrLocalCollector - INFO - Wrote 16589 records to /home/work/data/stair-local/nostr/nostr_2025W14.parquet
+2025-12-13 18:00:44,287 - NostrLocalCollector - INFO - Wrote 14630 records to /home/work/data/stair-local/nostr/nostr_2025W15.parquet
+2025-12-13 18:00:44,391 - NostrLocalCollector - INFO - Wrote 15150 records to /home/work/data/stair-local/nostr/nostr_2025W16.parquet
+2025-12-13 18:00:44,475 - NostrLocalCollector - INFO - Wrote 13404 records to /home/work/data/stair-local/nostr/nostr_2025W17.parquet
+2025-12-13 18:00:44,558 - NostrLocalCollector - INFO - Wrote 13182 records to /home/work/data/stair-local/nostr/nostr_2025W18.parquet
+2025-12-13 18:00:44,631 - NostrLocalCollector - INFO - Wrote 11793 records to /home/work/data/stair-local/nostr/nostr_2025W19.parquet
+2025-12-13 18:00:44,735 - NostrLocalCollector - INFO - Wrote 13917 records to /home/work/data/stair-local/nostr/nostr_2025W20.parquet
+2025-12-13 18:00:44,843 - NostrLocalCollector - INFO - Wrote 14324 records to /home/work/data/stair-local/nostr/nostr_2025W21.parquet
+2025-12-13 18:00:44,951 - NostrLocalCollector - INFO - Wrote 13385 records to /home/work/data/stair-local/nostr/nostr_2025W22.parquet
+2025-12-13 18:00:45,060 - NostrLocalCollector - INFO - Wrote 14491 records to /home/work/data/stair-local/nostr/nostr_2025W23.parquet
+2025-12-13 18:00:45,146 - NostrLocalCollector - INFO - Wrote 13612 records to /home/work/data/stair-local/nostr/nostr_2025W24.parquet
+2025-12-13 18:00:45,239 - NostrLocalCollector - INFO - Wrote 12519 records to /home/work/data/stair-local/nostr/nostr_2025W25.parquet
+2025-12-13 18:00:45,316 - NostrLocalCollector - INFO - Wrote 12382 records to /home/work/data/stair-local/nostr/nostr_2025W26.parquet
+2025-12-13 18:00:45,401 - NostrLocalCollector - INFO - Wrote 12213 records to /home/work/data/stair-local/nostr/nostr_2025W27.parquet
+2025-12-13 18:00:45,487 - NostrLocalCollector - INFO - Wrote 13635 records to /home/work/data/stair-local/nostr/nostr_2025W28.parquet
+2025-12-13 18:00:45,577 - NostrLocalCollector - INFO - Wrote 12405 records to /home/work/data/stair-local/nostr/nostr_2025W29.parquet
+2025-12-13 18:00:45,661 - NostrLocalCollector - INFO - Wrote 12141 records to /home/work/data/stair-local/nostr/nostr_2025W30.parquet
+2025-12-13 18:00:45,759 - NostrLocalCollector - INFO - Wrote 14308 records to /home/work/data/stair-local/nostr/nostr_2025W31.parquet
+2025-12-13 18:00:45,852 - NostrLocalCollector - INFO - Wrote 13119 records to /home/work/data/stair-local/nostr/nostr_2025W32.parquet
+2025-12-13 18:00:45,946 - NostrLocalCollector - INFO - Wrote 12889 records to /home/work/data/stair-local/nostr/nostr_2025W33.parquet
+2025-12-13 18:00:46,046 - NostrLocalCollector - INFO - Wrote 14823 records to /home/work/data/stair-local/nostr/nostr_2025W34.parquet
+2025-12-13 18:00:46,145 - NostrLocalCollector - INFO - Wrote 13931 records to /home/work/data/stair-local/nostr/nostr_2025W35.parquet
+2025-12-13 18:00:46,252 - NostrLocalCollector - INFO - Wrote 14863 records to /home/work/data/stair-local/nostr/nostr_2025W36.parquet
+2025-12-13 18:00:46,356 - NostrLocalCollector - INFO - Wrote 15890 records to /home/work/data/stair-local/nostr/nostr_2025W37.parquet
+2025-12-13 18:00:46,483 - NostrLocalCollector - INFO - Wrote 17905 records to /home/work/data/stair-local/nostr/nostr_2025W38.parquet
+2025-12-13 18:00:46,615 - NostrLocalCollector - INFO - Wrote 17752 records to /home/work/data/stair-local/nostr/nostr_2025W39.parquet
+2025-12-13 18:00:46,695 - NostrLocalCollector - INFO - Wrote 12613 records to /home/work/data/stair-local/nostr/nostr_2025W40.parquet
+2025-12-13 18:00:46,780 - NostrLocalCollector - INFO - Wrote 12519 records to /home/work/data/stair-local/nostr/nostr_2025W41.parquet
+2025-12-13 18:00:47,274 - NostrLocalCollector - INFO - Wrote 13159 records to /home/work/data/stair-local/nostr/nostr_2025W42.parquet
+2025-12-13 18:00:47,357 - NostrLocalCollector - INFO - Wrote 12064 records to /home/work/data/stair-local/nostr/nostr_2025W43.parquet
+2025-12-13 18:00:47,442 - NostrLocalCollector - INFO - Wrote 11974 records to /home/work/data/stair-local/nostr/nostr_2025W44.parquet
+2025-12-13 18:00:47,531 - NostrLocalCollector - INFO - Wrote 13636 records to /home/work/data/stair-local/nostr/nostr_2025W45.parquet
+2025-12-13 18:00:47,646 - NostrLocalCollector - INFO - Wrote 15232 records to /home/work/data/stair-local/nostr/nostr_2025W46.parquet
+2025-12-13 18:00:47,745 - NostrLocalCollector - INFO - Wrote 14194 records to /home/work/data/stair-local/nostr/nostr_2025W47.parquet
+2025-12-13 18:00:47,832 - NostrLocalCollector - INFO - Wrote 12372 records to /home/work/data/stair-local/nostr/nostr_2025W48.parquet
+2025-12-13 18:00:47,910 - NostrLocalCollector - INFO - Wrote 11282 records to /home/work/data/stair-local/nostr/nostr_2025W49.parquet
+2025-12-13 18:00:47,972 - NostrLocalCollector - INFO - Wrote 7905 records to /home/work/data/stair-local/nostr/nostr_2025W50.parquet
+2025-12-13 18:00:47,977 - NostrLocalCollector - INFO - Collection complete: 698094 records
+Collected 698094 events for 2025

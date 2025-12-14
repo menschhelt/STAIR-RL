@@ -1,0 +1,209 @@
+Starting FRESH Binance Futures collection: 2020-01-01 00:00:00+00:00 to 2025-11-30 23:59:59+00:00
+Data will be saved to: /home/work/data/stair-local/binance/
+
+2025-12-13 05:40:37,159 - BinanceFuturesLocalCollector - INFO - Initialized BinanceFuturesLocalCollector with interval=5m
+2025-12-13 05:40:37,268 - BinanceFuturesLocalCollector - INFO - Found 530 active USDT-M perpetual symbols
+2025-12-13 05:40:37,270 - BinanceFuturesLocalCollector - INFO - Starting collection for 530 symbols from 2020-01-01 00:00:00+00:00 to 2025-11-30 23:59:59+00:00
+2025-12-13 05:40:37,270 - BinanceFuturesLocalCollector - INFO - [1/530] Collecting 0GUSDT...
+2025-12-13 05:40:41,814 - BinanceFuturesLocalCollector - INFO - Collected 21411 candles for 0GUSDT
+2025-12-13 05:40:41,960 - BinanceFuturesLocalCollector - INFO - Wrote 3843 records to /home/work/data/stair-local/binance/binance_futures_5m_202509.parquet
+2025-12-13 05:40:41,983 - BinanceFuturesLocalCollector - INFO - Wrote 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202510.parquet
+2025-12-13 05:40:42,003 - BinanceFuturesLocalCollector - INFO - Wrote 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202511.parquet
+2025-12-13 05:40:42,003 - BinanceFuturesLocalCollector - INFO - [1/530] 0GUSDT: 21,411 records saved to 3 partitions. Total: 21,411 records
+2025-12-13 05:40:42,007 - BinanceFuturesLocalCollector - INFO - [2/530] Collecting 1000000BOBUSDT...
+2025-12-13 05:40:50,426 - BinanceFuturesLocalCollector - INFO - Collected 51450 candles for 1000000BOBUSDT
+2025-12-13 05:40:50,718 - BinanceFuturesLocalCollector - INFO - Wrote 7386 records to /home/work/data/stair-local/binance/binance_futures_5m_202506.parquet
+2025-12-13 05:40:50,738 - BinanceFuturesLocalCollector - INFO - Wrote 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202507.parquet
+2025-12-13 05:40:50,757 - BinanceFuturesLocalCollector - INFO - Wrote 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202508.parquet
+2025-12-13 05:40:50,815 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202509.parquet
+2025-12-13 05:40:50,857 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202510.parquet
+2025-12-13 05:40:50,896 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202511.parquet
+2025-12-13 05:40:50,896 - BinanceFuturesLocalCollector - INFO - [2/530] 1000000BOBUSDT: 51,450 records saved to 6 partitions. Total: 72,861 records
+2025-12-13 05:40:50,898 - BinanceFuturesLocalCollector - INFO - [3/530] Collecting 1000000MOGUSDT...
+2025-12-13 05:41:44,214 - BinanceFuturesLocalCollector - INFO - Collected 111882 candles for 1000000MOGUSDT
+2025-12-13 05:41:44,835 - BinanceFuturesLocalCollector - INFO - Wrote 6762 records to /home/work/data/stair-local/binance/binance_futures_5m_202411.parquet
+2025-12-13 05:41:44,855 - BinanceFuturesLocalCollector - INFO - Wrote 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202412.parquet
+2025-12-13 05:41:44,875 - BinanceFuturesLocalCollector - INFO - Wrote 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202501.parquet
+2025-12-13 05:41:44,892 - BinanceFuturesLocalCollector - INFO - Wrote 8064 records to /home/work/data/stair-local/binance/binance_futures_5m_202502.parquet
+2025-12-13 05:41:44,913 - BinanceFuturesLocalCollector - INFO - Wrote 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202503.parquet
+2025-12-13 05:41:44,931 - BinanceFuturesLocalCollector - INFO - Wrote 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202504.parquet
+2025-12-13 05:41:44,950 - BinanceFuturesLocalCollector - INFO - Wrote 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202505.parquet
+2025-12-13 05:41:44,991 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202506.parquet
+2025-12-13 05:41:45,031 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202507.parquet
+2025-12-13 05:41:45,071 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202508.parquet
+2025-12-13 05:41:45,125 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202509.parquet
+2025-12-13 05:41:45,181 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202510.parquet
+2025-12-13 05:41:45,236 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202511.parquet
+2025-12-13 05:41:45,237 - BinanceFuturesLocalCollector - INFO - [3/530] 1000000MOGUSDT: 111,882 records saved to 13 partitions. Total: 184,743 records
+2025-12-13 05:41:45,239 - BinanceFuturesLocalCollector - INFO - [4/530] Collecting 1000BONKUSDT...
+2025-12-13 05:43:05,063 - BinanceFuturesLocalCollector - INFO - Collected 212952 candles for 1000BONKUSDT
+2025-12-13 05:43:06,250 - BinanceFuturesLocalCollector - INFO - Wrote 2424 records to /home/work/data/stair-local/binance/binance_futures_5m_202311.parquet
+2025-12-13 05:43:06,273 - BinanceFuturesLocalCollector - INFO - Wrote 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202312.parquet
+2025-12-13 05:43:06,293 - BinanceFuturesLocalCollector - INFO - Wrote 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202401.parquet
+2025-12-13 05:43:06,312 - BinanceFuturesLocalCollector - INFO - Wrote 8352 records to /home/work/data/stair-local/binance/binance_futures_5m_202402.parquet
+2025-12-13 05:43:06,333 - BinanceFuturesLocalCollector - INFO - Wrote 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202403.parquet
+2025-12-13 05:43:06,353 - BinanceFuturesLocalCollector - INFO - Wrote 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202404.parquet
+2025-12-13 05:43:06,373 - BinanceFuturesLocalCollector - INFO - Wrote 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202405.parquet
+2025-12-13 05:43:06,394 - BinanceFuturesLocalCollector - INFO - Wrote 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202406.parquet
+2025-12-13 05:43:06,414 - BinanceFuturesLocalCollector - INFO - Wrote 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202407.parquet
+2025-12-13 05:43:06,434 - BinanceFuturesLocalCollector - INFO - Wrote 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202408.parquet
+2025-12-13 05:43:06,454 - BinanceFuturesLocalCollector - INFO - Wrote 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202409.parquet
+2025-12-13 05:43:06,474 - BinanceFuturesLocalCollector - INFO - Wrote 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202410.parquet
+2025-12-13 05:43:06,548 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202411.parquet
+2025-12-13 05:43:06,590 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202412.parquet
+2025-12-13 05:43:06,632 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202501.parquet
+2025-12-13 05:43:06,684 - BinanceFuturesLocalCollector - INFO - Appended 8064 records to /home/work/data/stair-local/binance/binance_futures_5m_202502.parquet
+2025-12-13 05:43:06,733 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202503.parquet
+2025-12-13 05:43:06,774 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202504.parquet
+2025-12-13 05:43:06,817 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202505.parquet
+2025-12-13 05:43:06,876 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202506.parquet
+2025-12-13 05:43:06,947 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202507.parquet
+2025-12-13 05:43:07,009 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202508.parquet
+2025-12-13 05:43:07,081 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202509.parquet
+2025-12-13 05:43:07,171 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202510.parquet
+2025-12-13 05:43:07,259 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202511.parquet
+2025-12-13 05:43:07,260 - BinanceFuturesLocalCollector - INFO - [4/530] 1000BONKUSDT: 212,952 records saved to 25 partitions. Total: 397,695 records
+2025-12-13 05:43:07,262 - BinanceFuturesLocalCollector - INFO - [5/530] Collecting 1000CATUSDT...
+2025-12-13 05:43:25,155 - BinanceFuturesLocalCollector - INFO - Collected 116778 candles for 1000CATUSDT
+2025-12-13 05:43:25,795 - BinanceFuturesLocalCollector - INFO - Appended 3018 records to /home/work/data/stair-local/binance/binance_futures_5m_202410.parquet
+2025-12-13 05:43:25,855 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202411.parquet
+2025-12-13 05:43:25,920 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202412.parquet
+2025-12-13 05:43:25,980 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202501.parquet
+2025-12-13 05:43:26,052 - BinanceFuturesLocalCollector - INFO - Appended 8064 records to /home/work/data/stair-local/binance/binance_futures_5m_202502.parquet
+2025-12-13 05:43:26,107 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202503.parquet
+2025-12-13 05:43:26,168 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202504.parquet
+2025-12-13 05:43:26,227 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202505.parquet
+2025-12-13 05:43:26,303 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202506.parquet
+2025-12-13 05:43:26,390 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202507.parquet
+2025-12-13 05:43:26,482 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202508.parquet
+2025-12-13 05:43:26,561 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202509.parquet
+2025-12-13 05:43:26,660 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202510.parquet
+2025-12-13 05:43:26,751 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202511.parquet
+2025-12-13 05:43:26,752 - BinanceFuturesLocalCollector - INFO - [5/530] 1000CATUSDT: 116,778 records saved to 14 partitions. Total: 514,473 records
+2025-12-13 05:43:26,754 - BinanceFuturesLocalCollector - INFO - [6/530] Collecting 1000CHEEMSUSDT...
+2025-12-13 05:44:21,553 - BinanceFuturesLocalCollector - INFO - Collected 106707 candles for 1000CHEEMSUSDT
+2025-12-13 05:44:22,248 - BinanceFuturesLocalCollector - INFO - Appended 1587 records to /home/work/data/stair-local/binance/binance_futures_5m_202411.parquet
+2025-12-13 05:44:22,336 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202412.parquet
+2025-12-13 05:44:22,428 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202501.parquet
+2025-12-13 05:44:22,493 - BinanceFuturesLocalCollector - INFO - Appended 8064 records to /home/work/data/stair-local/binance/binance_futures_5m_202502.parquet
+2025-12-13 05:44:22,571 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202503.parquet
+2025-12-13 05:44:22,661 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202504.parquet
+2025-12-13 05:44:22,742 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202505.parquet
+2025-12-13 05:44:22,831 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202506.parquet
+2025-12-13 05:44:22,948 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202507.parquet
+2025-12-13 05:44:23,066 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202508.parquet
+2025-12-13 05:44:23,165 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202509.parquet
+2025-12-13 05:44:23,298 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202510.parquet
+2025-12-13 05:44:23,406 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202511.parquet
+2025-12-13 05:44:23,407 - BinanceFuturesLocalCollector - INFO - [6/530] 1000CHEEMSUSDT: 106,707 records saved to 13 partitions. Total: 621,180 records
+2025-12-13 05:44:23,408 - BinanceFuturesLocalCollector - INFO - [7/530] Collecting 1000FLOKIUSDT...
+2025-12-13 05:45:57,549 - BinanceFuturesLocalCollector - INFO - Collected 270522 candles for 1000FLOKIUSDT
+2025-12-13 05:45:58,993 - BinanceFuturesLocalCollector - INFO - Wrote 7290 records to /home/work/data/stair-local/binance/binance_futures_5m_202305.parquet
+2025-12-13 05:45:59,015 - BinanceFuturesLocalCollector - INFO - Wrote 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202306.parquet
+2025-12-13 05:45:59,035 - BinanceFuturesLocalCollector - INFO - Wrote 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202307.parquet
+2025-12-13 05:45:59,055 - BinanceFuturesLocalCollector - INFO - Wrote 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202308.parquet
+2025-12-13 05:45:59,073 - BinanceFuturesLocalCollector - INFO - Wrote 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202309.parquet
+2025-12-13 05:45:59,096 - BinanceFuturesLocalCollector - INFO - Wrote 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202310.parquet
+2025-12-13 05:45:59,136 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202311.parquet
+2025-12-13 05:45:59,184 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202312.parquet
+2025-12-13 05:45:59,228 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202401.parquet
+2025-12-13 05:45:59,270 - BinanceFuturesLocalCollector - INFO - Appended 8352 records to /home/work/data/stair-local/binance/binance_futures_5m_202402.parquet
+2025-12-13 05:45:59,321 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202403.parquet
+2025-12-13 05:45:59,372 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202404.parquet
+2025-12-13 05:45:59,417 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202405.parquet
+2025-12-13 05:45:59,461 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202406.parquet
+2025-12-13 05:45:59,511 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202407.parquet
+2025-12-13 05:45:59,560 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202408.parquet
+2025-12-13 05:45:59,608 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202409.parquet
+2025-12-13 05:45:59,670 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202410.parquet
+2025-12-13 05:45:59,772 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202411.parquet
+2025-12-13 05:45:59,885 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202412.parquet
+2025-12-13 05:45:59,997 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202501.parquet
+2025-12-13 05:46:00,083 - BinanceFuturesLocalCollector - INFO - Appended 8064 records to /home/work/data/stair-local/binance/binance_futures_5m_202502.parquet
+2025-12-13 05:46:00,184 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202503.parquet
+2025-12-13 05:46:00,292 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202504.parquet
+2025-12-13 05:46:00,395 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202505.parquet
+2025-12-13 05:46:00,506 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202506.parquet
+2025-12-13 05:46:00,615 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202507.parquet
+2025-12-13 05:46:00,739 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202508.parquet
+2025-12-13 05:46:00,841 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202509.parquet
+2025-12-13 05:46:00,965 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202510.parquet
+2025-12-13 05:46:01,077 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202511.parquet
+2025-12-13 05:46:01,077 - BinanceFuturesLocalCollector - INFO - [7/530] 1000FLOKIUSDT: 270,522 records saved to 31 partitions. Total: 891,702 records
+2025-12-13 05:46:01,079 - BinanceFuturesLocalCollector - INFO - [8/530] Collecting 1000LUNCUSDT...
+2025-12-13 05:47:56,794 - BinanceFuturesLocalCollector - INFO - Collected 339396 candles for 1000LUNCUSDT
+2025-12-13 05:47:58,617 - BinanceFuturesLocalCollector - INFO - Wrote 6180 records to /home/work/data/stair-local/binance/binance_futures_5m_202209.parquet
+2025-12-13 05:47:58,639 - BinanceFuturesLocalCollector - INFO - Wrote 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202210.parquet
+2025-12-13 05:47:58,660 - BinanceFuturesLocalCollector - INFO - Wrote 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202211.parquet
+2025-12-13 05:47:58,678 - BinanceFuturesLocalCollector - INFO - Wrote 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202212.parquet
+2025-12-13 05:47:58,699 - BinanceFuturesLocalCollector - INFO - Wrote 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202301.parquet
+2025-12-13 05:47:58,718 - BinanceFuturesLocalCollector - INFO - Wrote 8064 records to /home/work/data/stair-local/binance/binance_futures_5m_202302.parquet
+2025-12-13 05:47:58,739 - BinanceFuturesLocalCollector - INFO - Wrote 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202303.parquet
+2025-12-13 05:47:58,759 - BinanceFuturesLocalCollector - INFO - Wrote 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202304.parquet
+2025-12-13 05:47:58,802 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202305.parquet
+2025-12-13 05:47:58,845 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202306.parquet
+2025-12-13 05:47:58,885 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202307.parquet
+2025-12-13 05:47:58,923 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202308.parquet
+2025-12-13 05:47:58,962 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202309.parquet
+2025-12-13 05:47:59,003 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202310.parquet
+2025-12-13 05:47:59,048 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202311.parquet
+2025-12-13 05:47:59,117 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202312.parquet
+2025-12-13 05:47:59,181 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202401.parquet
+2025-12-13 05:47:59,238 - BinanceFuturesLocalCollector - INFO - Appended 8352 records to /home/work/data/stair-local/binance/binance_futures_5m_202402.parquet
+2025-12-13 05:47:59,312 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202403.parquet
+2025-12-13 05:47:59,373 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202404.parquet
+2025-12-13 05:47:59,435 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202405.parquet
+2025-12-13 05:47:59,493 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202406.parquet
+2025-12-13 05:47:59,551 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202407.parquet
+2025-12-13 05:47:59,612 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202408.parquet
+2025-12-13 05:47:59,673 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202409.parquet
+2025-12-13 05:47:59,738 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202410.parquet
+2025-12-13 05:47:59,846 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202411.parquet
+2025-12-13 05:47:59,985 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202412.parquet
+2025-12-13 05:48:00,100 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202501.parquet
+2025-12-13 05:48:00,197 - BinanceFuturesLocalCollector - INFO - Appended 8064 records to /home/work/data/stair-local/binance/binance_futures_5m_202502.parquet
+2025-12-13 05:48:00,302 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202503.parquet
+2025-12-13 05:48:00,405 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202504.parquet
+2025-12-13 05:48:00,507 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202505.parquet
+2025-12-13 05:48:00,618 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202506.parquet
+2025-12-13 05:48:00,733 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202507.parquet
+2025-12-13 05:48:00,847 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202508.parquet
+2025-12-13 05:48:00,960 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202509.parquet
+2025-12-13 05:48:01,115 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202510.parquet
+2025-12-13 05:48:01,239 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202511.parquet
+2025-12-13 05:48:01,240 - BinanceFuturesLocalCollector - INFO - [8/530] 1000LUNCUSDT: 339,396 records saved to 39 partitions. Total: 1,231,098 records
+2025-12-13 05:48:01,242 - BinanceFuturesLocalCollector - INFO - [9/530] Collecting 1000PEPEUSDT...
+2025-12-13 05:49:33,602 - BinanceFuturesLocalCollector - INFO - Collected 270810 candles for 1000PEPEUSDT
+2025-12-13 05:49:35,178 - BinanceFuturesLocalCollector - INFO - Appended 7578 records to /home/work/data/stair-local/binance/binance_futures_5m_202305.parquet
+2025-12-13 05:49:35,235 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202306.parquet
+2025-12-13 05:49:35,288 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202307.parquet
+2025-12-13 05:49:35,340 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202308.parquet
+2025-12-13 05:49:35,391 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202309.parquet
+2025-12-13 05:49:35,452 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202310.parquet
+2025-12-13 05:49:35,519 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202311.parquet
+2025-12-13 05:49:35,606 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202312.parquet
+2025-12-13 05:49:35,693 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202401.parquet
+2025-12-13 05:49:35,773 - BinanceFuturesLocalCollector - INFO - Appended 8352 records to /home/work/data/stair-local/binance/binance_futures_5m_202402.parquet
+2025-12-13 05:49:35,855 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202403.parquet
+2025-12-13 05:49:35,935 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202404.parquet
+2025-12-13 05:49:36,016 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202405.parquet
+2025-12-13 05:49:36,094 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202406.parquet
+2025-12-13 05:49:36,184 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202407.parquet
+2025-12-13 05:49:36,263 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202408.parquet
+2025-12-13 05:49:36,338 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202409.parquet
+2025-12-13 05:49:36,421 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202410.parquet
+2025-12-13 05:49:36,528 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202411.parquet
+2025-12-13 05:49:36,655 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202412.parquet
+2025-12-13 05:49:36,785 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202501.parquet
+2025-12-13 05:49:36,885 - BinanceFuturesLocalCollector - INFO - Appended 8064 records to /home/work/data/stair-local/binance/binance_futures_5m_202502.parquet
+2025-12-13 05:49:37,000 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202503.parquet
+2025-12-13 05:49:37,120 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202504.parquet
+2025-12-13 05:49:37,251 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202505.parquet
+2025-12-13 05:49:37,396 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202506.parquet
+2025-12-13 05:49:37,519 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202507.parquet
+2025-12-13 05:49:37,659 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202508.parquet
+2025-12-13 05:49:37,795 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202509.parquet
+2025-12-13 05:49:37,971 - BinanceFuturesLocalCollector - INFO - Appended 8928 records to /home/work/data/stair-local/binance/binance_futures_5m_202510.parquet
+2025-12-13 05:49:38,115 - BinanceFuturesLocalCollector - INFO - Appended 8640 records to /home/work/data/stair-local/binance/binance_futures_5m_202511.parquet
+2025-12-13 05:49:38,116 - BinanceFuturesLocalCollector - INFO - [9/530] 1000PEPEUSDT: 270,810 records saved to 31 partitions. Total: 1,501,908 records
+2025-12-13 05:49:38,118 - BinanceFuturesLocalCollector - INFO - [10/530] Collecting 1000RATSUSDT...

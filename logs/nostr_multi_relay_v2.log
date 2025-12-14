@@ -1,0 +1,68 @@
+============================================================
+Nostr Multi-Relay Collection
+============================================================
+Relays: 4
+Periods: 5
+  - wss://relay.nostr.band
+  - wss://relay.damus.io
+  - wss://nos.lol
+  - wss://nostr.wine
+============================================================
+Workers: 5
+[07:30:40] [126854] [2021] ERROR: expected an indented block after 'with' statement on line 365 (nostr_local.py, line 372)
+Traceback (most recent call last):
+  File "/home/work/RL/stair-local/scripts/nostr_multi_relay.py", line 64, in run_period
+    from collectors.nostr_local import NostrLocalCollector
+  File "/home/work/RL/stair-local/collectors/nostr_local.py", line 372
+    req_message = json.dumps(["REQ", subscription_id] + filters)
+    ^^^^^^^^^^^
+IndentationError: expected an indented block after 'with' statement on line 365
+[07:30:40] [126850] [2022] ERROR: expected an indented block after 'with' statement on line 365 (nostr_local.py, line 372)
+Traceback (most recent call last):
+  File "/home/work/RL/stair-local/scripts/nostr_multi_relay.py", line 64, in run_period
+    from collectors.nostr_local import NostrLocalCollector
+  File "/home/work/RL/stair-local/collectors/nostr_local.py", line 372
+    req_message = json.dumps(["REQ", subscription_id] + filters)
+    ^^^^^^^^^^^
+IndentationError: expected an indented block after 'with' statement on line 365
+[07:30:40] [126854] [2025] ERROR: expected an indented block after 'with' statement on line 365 (nostr_local.py, line 372)
+Traceback (most recent call last):
+  File "/home/work/RL/stair-local/scripts/nostr_multi_relay.py", line 64, in run_period
+    from collectors.nostr_local import NostrLocalCollector
+  File "/home/work/RL/stair-local/collectors/nostr_local.py", line 372
+    req_message = json.dumps(["REQ", subscription_id] + filters)
+    ^^^^^^^^^^^
+IndentationError: expected an indented block after 'with' statement on line 365
+[07:30:40] [126852] [2024] ERROR: expected an indented block after 'with' statement on line 365 (nostr_local.py, line 372)
+Traceback (most recent call last):
+  File "/home/work/RL/stair-local/scripts/nostr_multi_relay.py", line 64, in run_period
+    from collectors.nostr_local import NostrLocalCollector
+  File "/home/work/RL/stair-local/collectors/nostr_local.py", line 372
+    req_message = json.dumps(["REQ", subscription_id] + filters)
+    ^^^^^^^^^^^
+IndentationError: expected an indented block after 'with' statement on line 365
+[07:30:40] [126851] [2023] ERROR: expected an indented block after 'with' statement on line 365 (nostr_local.py, line 372)
+Traceback (most recent call last):
+  File "/home/work/RL/stair-local/scripts/nostr_multi_relay.py", line 64, in run_period
+    from collectors.nostr_local import NostrLocalCollector
+  File "/home/work/RL/stair-local/collectors/nostr_local.py", line 372
+    req_message = json.dumps(["REQ", subscription_id] + filters)
+    ^^^^^^^^^^^
+IndentationError: expected an indented block after 'with' statement on line 365
+
+============================================================
+SUMMARY
+============================================================
+  2021:        0 records [relay.nostr.band] [SPARSE/FAIL]
+  2022:        0 records [relay.damus.io] [SPARSE/FAIL]
+  2023:        0 records [nos.lol] [SPARSE/FAIL]
+  2024:        0 records [nostr.wine] [SPARSE/FAIL]
+  2025:        0 records [relay.nostr.band] [SPARSE/FAIL]
+------------------------------------------------------------
+  TOTAL: 0 records
+  TIME: 0.0 min (0.00 hours)
+============================================================
+
+⚠️  WARNING: Low record count.
+    Nostr data before 2022-12 is sparse.
+    This is expected behavior.

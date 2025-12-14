@@ -1,0 +1,138 @@
+# STAIR-RL Local Data Collection & Backtesting System
+# Configuration File
+
+universe:
+  top_n: 20
+  min_volume_usd: 10000000  # $10M minimum
+  rebalance_hour_utc: 0  # 00:00 UTC daily
+
+# ========== Data Collectors ==========
+
+binance:
+  interval: "5m"
+  partition: "monthly"  # File partitioning: monthly for OHLCV
+  rate_limit:
+    max_requests: 240  # Binance allows 1200/min for /klines, conservative
+    window_seconds: 60
+
+nostr:
+  relay: "wss://relay.nostr.band"
+  backup_relays:
+    - "wss://relay.damus.io"
+    - "wss://nos.lol"
+    - "wss://nostr.wine"
+  kinds: [1, 9735]  # 1=Text, 9735=Zap
+  partition: "weekly"  # File partitioning: weekly for SNS
+  rate_limit:
+    max_requests: 120  # Aggressive for faster collection
+    window_seconds: 60
+
+gdelt:
+  partition: "weekly"  # File partitioning: weekly for news
+  scrape_batch_size: 50
+  finbert_batch_size: 32
+  rate_limit:
+    max_requests: 20  # GDELT API / scraping limit
+    window_seconds: 1  # per second
+
+fred:
+  partition: "monthly"
+  rate_limit:
+    max_requests: 120  # FRED allows 120/min
+    window_seconds: 60
+
+yfinance:
+  partition: "monthly"
+  rate_limit:
+    max_requests: 60  # yfinance unofficial API
+    window_seconds: 60
+
+# ========== Alpha Factors ==========
+
+alpha:
+  alpha_101_dir: "/home/work/RL/customized-freqtrade/user_data/strategies/alphas/alpha_101"
+  alpha_191_dir: "/home/work/RL/customized-freqtrade/user_data/strategies/alphas/alpha_191"
+  pca:
+    n_components: 20  # Compress 300+ alphas to 20 PCs
+    lookback_days: 252  # 1 year rolling window
+    min_observations: 60
+
+# ========== Text Processing ==========
+
+text_processing:
+  aggregation_window: "5min"
+  cryptobert_model: "ElKulako/cryptobert"  # Nostr: Bearish/Neutral/Bullish
+  finbert_model: "ProsusAI/finbert"  # GDELT: Positive/Negative/Neutral
+  batch_size: 256  # A100 optimized
+
+# ========== Data Collection Period ==========
+
+collection:
+  # Macro data (FRED, yfinance): 장기 트렌드용
+  macro_start: "2009-01-01"
+  macro_end: "2025-11-30"
+
+  # Crypto data (Binance Futures): 2019.10 런칭, 2020부터 안정
+  crypto_start: "2020-01-01"
+  crypto_end: "2025-11-30"
+
+  # Nostr: 2022년 말부터 활성화, 이전은 GDELT fallback
+  nostr_active_from: "2022-12-01"
+
+# ========== Backtesting ==========
+
+backtest:
+  granularity: "5m"
+
+  # Buffer: 지표 계산용 웜업 (rolling window) - 1년
+  buffer_start: "2020-01-01"
+  buffer_end: "2020-12-31"
+
+  # Train: 3년 (상승장/하락장/횡보장 모두 포함)
+  train_start: "2021-01-01"
+  train_end: "2023-12-31"
+
+  # Validation: 1년
+  val_start: "2024-01-01"
+  val_end: "2024-12-31"
+
+  # Test: 11개월 (12월은 미완성이므로 제외)
+  test_start: "2025-01-01"
+  test_end: "2025-11-30"
+
+# ========== RL Training ==========
+
+rl:
+  # Position sizing
+  target_leverage: 2.0  # 200% gross exposure
+
+  # Phase 1: CQL-SAC Offline
+  cql_sac:
+    learning_rate_actor: 3.0e-4
+    learning_rate_critic: 1.0e-3
+    batch_size: 256
+    replay_buffer_size: 1000000
+    lambda_cql: 1.0
+    lambda_gp: 10.0
+    alpha: 0.2  # SAC temperature
+    tau: 0.005  # Target network update
+    gamma: 0.99
+    training_steps: 500000
+
+  # Phase 2: PPO-CVaR Online
+  ppo_cvar:
+    learning_rate: 1.0e-4
+    clip_epsilon: 0.2
+    ppo_epochs: 10
+    horizon: 2048
+    batch_size: 64
+    gae_lambda: 0.95
+    gamma: 0.99
+    alpha_cvar: 0.95  # Confidence level
+    kappa: 0.05  # Risk tolerance (5%)
+    training_steps: 100000
+
+  # Phase 3: Event-Driven Retraining
+  retraining:
+    lambda_anchor: 5.0  # Anchor regularization
+    rollback_threshold: 0.05  # 5% performance drop
