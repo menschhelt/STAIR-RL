@@ -195,7 +195,7 @@ class BenchmarkRunner:
                 )
 
             except Exception as e:
-                logger.error(f"Failed to run {strategy_name}: {e}")
+                logger.exception(f"Failed to run {strategy_name}: {e}")
                 continue
 
         return results

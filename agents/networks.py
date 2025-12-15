@@ -498,7 +498,7 @@ class CrossAlphaAttention(nn.Module):
 
     def __init__(
         self,
-        n_alphas: int = 292,
+        n_alphas: int = 101,
         d_model: int = 64,
         n_heads: int = 8,
         dropout: float = 0.1,
@@ -670,11 +670,11 @@ class TextProjection(nn.Module):
         Project BERT embeddings.
 
         Args:
-            x: (B, T, N, 768) BERT embeddings
-            has_signal: (B, T, N, 1) binary mask indicating data availability
+            x: (B, T, 768) OR (B, T, N, 768) BERT embeddings (market-wide or per-asset)
+            has_signal: (B, T, 1) OR (B, T, N, 1) binary mask indicating data availability
 
         Returns:
-            (B, T, N, 64) projected embeddings (masked if has_signal provided)
+            (B, T, 64) OR (B, T, N, 64) projected embeddings (masked if has_signal provided)
         """
         out = self.proj(x)
 
@@ -683,6 +683,138 @@ class TextProjection(nn.Module):
             out = out * has_signal
 
         return out
+
+
+class PositionalEncoding(nn.Module):
+    """
+    Positional encoding for Transformer.
+
+    Adds sinusoidal position embeddings to the input sequence.
+    Standard implementation from "Attention is All You Need".
+    """
+
+    def __init__(self, d_model: int, max_len: int = 5000):
+        super().__init__()
+
+        # Create position encodings
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-np.log(10000.0) / d_model))
+
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0)  # (1, max_len, d_model)
+
+        self.register_buffer('pe', pe)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x: (B, T, d_model) or (B*N, T, d_model)
+
+        Returns:
+            (B, T, d_model) or (B*N, T, d_model) with positional encoding added
+        """
+        x = x + self.pe[:, :x.size(1), :]
+        return x
+
+
+class PriceTransformerEncoder(nn.Module):
+    """
+    Transformer-based encoder for 5-minute OHLCV sequences.
+
+    Processes raw price sequences into compact embeddings using self-attention.
+    This captures temporal patterns in price movements and volume dynamics.
+
+    Architecture:
+    1. Linear embedding: (5) -> (64)  [OHLCV -> hidden dim]
+    2. Positional encoding: Add position information
+    3. Transformer encoder: 2 layers, 4 heads, 128 feedforward dim
+    4. Temporal pooling: Mean over sequence -> (64)
+
+    Args:
+        d_model: Hidden dimension (default: 64)
+        nhead: Number of attention heads (default: 4)
+        num_layers: Number of transformer layers (default: 2)
+        dim_feedforward: Feedforward dimension (default: 128)
+        dropout: Dropout rate (default: 0.1)
+
+    Input:
+        ohlcv_seq: (B, T, N, seq_len, 5) where seq_len=288 (1 day of 5-min candles)
+            T: temporal window (e.g., 20 timesteps)
+            N: number of assets (e.g., 20)
+            seq_len: sequence length (e.g., 288 = 24h * 12/h)
+            5: [open, high, low, close, volume] (normalized)
+
+    Output:
+        (B, T, N, 64) price embeddings
+    """
+
+    def __init__(
+        self,
+        d_model: int = 64,
+        nhead: int = 4,
+        num_layers: int = 2,
+        dim_feedforward: int = 128,
+        dropout: float = 0.1,
+    ):
+        super().__init__()
+
+        self.d_model = d_model
+
+        # Embedding layer: 5 (OHLCV) -> d_model
+        self.embedding = nn.Linear(5, d_model)
+
+        # Positional encoding
+        self.positional = PositionalEncoding(d_model, max_len=512)
+
+        # Transformer encoder
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=d_model,
+            nhead=nhead,
+            dim_feedforward=dim_feedforward,
+            dropout=dropout,
+            batch_first=True,
+        )
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+
+    def forward(self, ohlcv_seq: torch.Tensor) -> torch.Tensor:
+        """
+        Encode OHLCV sequences.
+
+        Args:
+            ohlcv_seq: (B, T, N, seq_len, 5)
+                B: batch size
+                T: temporal window (e.g., 20)
+                N: number of assets (e.g., 20)
+                seq_len: sequence length (e.g., 288)
+                5: [open, high, low, close, volume]
+
+        Returns:
+            (B, T, N, 64) price embeddings
+        """
+        B, T, N, seq_len, _ = ohlcv_seq.shape
+
+        # Reshape: (B*T*N, seq_len, 5)
+        x = ohlcv_seq.reshape(B * T * N, seq_len, 5)
+
+        # Embedding: (B*T*N, seq_len, 5) -> (B*T*N, seq_len, d_model)
+        x = self.embedding(x)
+
+        # Positional encoding: (B*T*N, seq_len, d_model)
+        x = self.positional(x)
+
+        # Transformer: (B*T*N, seq_len, d_model)
+        x = self.transformer(x)
+
+        # Temporal pooling: mean over sequence
+        # (B*T*N, seq_len, d_model) -> (B*T*N, d_model)
+        x = x.mean(dim=1)
+
+        # Reshape back: (B, T, N, d_model)
+        x = x.reshape(B, T, N, self.d_model)
+
+        return x
 
 
 class HierarchicalFeatureEncoder(nn.Module):
@@ -699,21 +831,23 @@ class HierarchicalFeatureEncoder(nn.Module):
     Pipeline:
     1. Alpha attention: (B, T, N, 292) -> (B, T, N, 64)
     2. Text projection: (B, T, N, 768) -> (B, T, N, 64) for news & social
-    3. Concat: (B, T, N, 192) = 64 + 64 + 64
-    4. Cross-asset attention: (B, T, N, 192)
-    5. GRU per asset: (B, N, 128) temporal encoding
-    6. Global/Portfolio MLPs: (B, 32), (B, 16)
-    7. Split outputs:
+    3. Price encoding: (B, T, N, 288, 5) -> (B, T, N, 64) via Transformer
+    4. Concat: (B, T, N, 256) = 64 + 64 + 64 + 64
+    5. Cross-asset attention: (B, T, N, 256)
+    6. GRU per asset: (B, N, 128) temporal encoding
+    7. Global/Portfolio MLPs: (B, 32), (B, 16)
+    8. Split outputs:
        - z_pooled = [pool(h_assets), h_global, h_port] = (B, 176)
        - z_unpooled = [h_assets, broadcast(h_global), broadcast(h_port)] = (B, N, 176)
     """
 
     def __init__(
         self,
-        n_alphas: int = 292,
+        n_alphas: int = 101,
         n_assets: int = 20,
         d_alpha: int = 64,
         d_text: int = 64,
+        d_price: int = 64,
         d_temporal: int = 128,
         d_global: int = 32,
         d_portfolio: int = 16,
@@ -740,8 +874,17 @@ class HierarchicalFeatureEncoder(nn.Module):
         self.news_proj = TextProjection(768, d_text, dropout)
         self.social_proj = TextProjection(768, d_text, dropout)
 
+        # Price processing (Transformer encoder for OHLCV sequences)
+        self.price_encoder = PriceTransformerEncoder(
+            d_model=d_price,
+            nhead=4,
+            num_layers=2,
+            dim_feedforward=128,
+            dropout=dropout,
+        )
+
         # Cross-asset attention
-        d_concat = d_alpha + d_text + d_text  # 64 + 64 + 64 = 192
+        d_concat = d_alpha + d_text + d_text + d_price  # 64 + 64 + 64 + 64 = 256
         self.cross_asset_attn = CrossAssetAttention(
             d_model=d_concat,
             n_heads=n_asset_heads,
@@ -756,9 +899,9 @@ class HierarchicalFeatureEncoder(nn.Module):
             batch_first=True,
         )
 
-        # Global features MLP (VIX, funding rate, market returns, etc.)
+        # Global features MLP (23 macro indicators + 5 Fama-French factors = 28)
         self.global_mlp = nn.Sequential(
-            nn.Linear(6, 64),
+            nn.Linear(28, 64),
             nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(64, d_global),
@@ -784,41 +927,57 @@ class HierarchicalFeatureEncoder(nn.Module):
 
         Args:
             state_dict: Dictionary containing:
-                - 'alphas': (B, T, N, 292) raw alpha factors
-                - 'news_embedding': (B, T, N, 768) FinBERT embeddings
-                - 'social_embedding': (B, T, N, 768) CryptoBERT embeddings
-                - 'has_social_signal': (B, T, N, 1) social data availability
-                - 'global_features': (B, T, 6) market-wide features
+                # Local Features (per-asset, with N dimension):
+                - 'alphas': (B, T, N, 101) raw alpha factors (Alpha101 only)
+                - 'ohlcv_seq': (B, T, N, 288, 5) 5-minute OHLCV sequences
                 - 'portfolio_state': (B, 22) current portfolio state
+
+                # Global Features (market-wide, NO N dimension):
+                - 'news_embedding': (B, T, 768) GDELT market-wide embeddings
+                - 'social_embedding': (B, T, 768) Nostr market-wide embeddings
+                - 'has_social_signal': (B, T, 1) social data availability
+                - 'global_features': (B, T, 28) 23 macro + 5 Fama-French factors
 
         Returns:
             z_pooled: (B, 176) for Meta Head and Critic
             z_unpooled: (B, N, 176) for Portfolio Head
         """
         alphas = state_dict['alphas']
-        news_emb = state_dict['news_embedding']
-        social_emb = state_dict['social_embedding']
-        has_social = state_dict.get('has_social_signal', None)
+        news_emb = state_dict['news_embedding']         # (B, T, 768) - market-wide
+        social_emb = state_dict['social_embedding']     # (B, T, 768) - market-wide
+        has_social = state_dict.get('has_social_signal', None)  # (B, T, 1) - market-wide
+        ohlcv_seq = state_dict.get('ohlcv_seq', None)
         global_feat = state_dict['global_features']
         portfolio = state_dict['portfolio_state']
 
         B, T, N, _ = alphas.shape
 
-        # 1. Alpha attention: (B, T, N, 292) -> (B, T, N, 64)
+        # 1. Alpha attention: (B, T, N, 101) -> (B, T, N, 64)
         h_alpha = self.alpha_attention(alphas)
 
-        # 2. Text projection: (B, T, N, 768) -> (B, T, N, 64)
-        h_news = self.news_proj(news_emb)
-        h_social = self.social_proj(social_emb, has_social)
+        # 2. Text projection - Market-Wide: (B, T, 768) -> (B, T, 64)
+        h_news_global = self.news_proj(news_emb)        # (B, T, 64)
+        h_social_global = self.social_proj(social_emb, has_social)  # (B, T, 64)
 
-        # 3. Concat per asset: (B, T, N, 192)
-        h_concat = torch.cat([h_alpha, h_news, h_social], dim=-1)
+        # Broadcast market-wide text features to per-asset: (B, T, 64) -> (B, T, N, 64)
+        h_news = h_news_global.unsqueeze(2).expand(B, T, N, -1)
+        h_social = h_social_global.unsqueeze(2).expand(B, T, N, -1)
 
-        # 4. Cross-asset attention: (B, T, N, 192)
+        # 3. Price encoding: (B, T, N, 288, 5) -> (B, T, N, 64)
+        if ohlcv_seq is not None:
+            h_price = self.price_encoder(ohlcv_seq)
+        else:
+            # Fallback to zeros if OHLCV not provided (backward compatibility)
+            h_price = torch.zeros(B, T, N, 64, device=alphas.device)
+
+        # 4. Concat per asset: (B, T, N, 256)
+        h_concat = torch.cat([h_alpha, h_news, h_social, h_price], dim=-1)
+
+        # 5. Cross-asset attention: (B, T, N, 256)
         h_cross = self.cross_asset_attn(h_concat)
 
-        # 5. Temporal GRU per asset
-        # Reshape: (B*N, T, 192)
+        # 6. Temporal GRU per asset
+        # Reshape: (B*N, T, 256)
         h_temporal_in = h_cross.permute(0, 2, 1, 3).reshape(B * N, T, -1)
         h_temporal, _ = self.gru(h_temporal_in)
         # Take last timestep: (B*N, 128) -> (B, N, 128)
@@ -847,43 +1006,28 @@ class HierarchicalFeatureEncoder(nn.Module):
 
 class HierarchicalActor(nn.Module):
     """
-    Hierarchical Actor with Meta Head and Portfolio Head.
+    Simplified Hierarchical Actor - Lazy Agent Architecture.
 
-    Key architectural insight:
-    - Meta Head uses pooled features (B, 176) for global trade/hold decision
-    - Portfolio Head uses unpooled features (B, N, 176) for per-asset weights
+    Key design principles:
+    - NO Meta Head (no explicit trade/hold decisions)
+    - Portfolio Head directly outputs target weights
+    - Lazy behavior emerges from:
+      1. Current portfolio weights in state (agent sees current positions)
+      2. Transaction cost penalties in reward (agent learns to avoid churning)
+      3. Deadband filter in PositionSizer (automatic 2% threshold)
 
-    This preserves individual asset information for weight allocation,
-    solving the "pooling bottleneck" problem.
+    This avoids 2^N complexity of explicit trade/hold decisions while
+    achieving the same lazy trading behavior through cost-aware learning.
     """
 
     def __init__(
         self,
         d_model: int = 176,
         n_assets: int = 20,
-        meta_hidden_dims: Tuple[int, ...] = (128, 64),
         portfolio_hidden_dims: Tuple[int, ...] = (128, 64),
     ):
         super().__init__()
         self.n_assets = n_assets
-
-        # Meta Head: Global trade/hold decision
-        # Input: z_pooled (B, 176)
-        # Output: trade_prob (B, 1) in [0, 1]
-        meta_layers = []
-        prev_dim = d_model
-        for hidden_dim in meta_hidden_dims:
-            meta_layers.extend([
-                nn.Linear(prev_dim, hidden_dim),
-                nn.ReLU(),
-                nn.LayerNorm(hidden_dim),
-            ])
-            prev_dim = hidden_dim
-        meta_layers.extend([
-            nn.Linear(prev_dim, 1),
-            nn.Sigmoid(),
-        ])
-        self.meta_head = nn.Sequential(*meta_layers)
 
         # Portfolio Head: Per-asset weight decision
         # Input: z_unpooled (B, N, 176) - processes each asset independently
@@ -903,58 +1047,58 @@ class HierarchicalActor(nn.Module):
         ])
         self.portfolio_head = nn.Sequential(*portfolio_layers)
 
-        # Initialize final layers with small weights
-        for module in [self.meta_head[-2], self.portfolio_head[-2]]:
-            if isinstance(module, nn.Linear):
-                nn.init.uniform_(module.weight, -0.003, 0.003)
-                nn.init.zeros_(module.bias)
+        # Initialize final layer with small weights for stable early training
+        final_linear = self.portfolio_head[-2]
+        if isinstance(final_linear, nn.Linear):
+            nn.init.uniform_(final_linear.weight, -0.003, 0.003)
+            nn.init.zeros_(final_linear.bias)
 
     def forward(
         self,
         z_pooled: torch.Tensor,
         z_unpooled: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> torch.Tensor:
         """
-        Compute hierarchical policy output.
+        Compute portfolio weights (Lazy Agent - no explicit trade/hold decision).
 
         Args:
-            z_pooled: (B, 176) pooled features for Meta Head
-            z_unpooled: (B, N, 176) per-asset features for Portfolio Head
+            z_pooled: (B, 176) pooled features (unused, kept for interface compatibility)
+            z_unpooled: (B, N, 176) per-asset features
 
         Returns:
-            trade_prob: (B, 1) probability of executing trade [0, 1]
-            weights: (B, N) portfolio weights [-1, 1]
+            weights: (B, N) portfolio weights in [-1, 1]
         """
-        # Meta decision (global context)
-        trade_prob = self.meta_head(z_pooled)  # (B, 1)
-
         # Portfolio weights (per-asset)
         # (B, N, 176) -> (B, N, 1) -> (B, N)
         weights = self.portfolio_head(z_unpooled).squeeze(-1)  # (B, N)
 
-        return trade_prob, weights
+        return weights
 
     def get_action(
         self,
         z_pooled: torch.Tensor,
         z_unpooled: torch.Tensor,
         deterministic: bool = False,
-        meta_noise_scale: float = 0.1,
         portfolio_noise_scale: float = 0.1,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Get action with optional exploration noise.
+        Get action with optional exploration noise (Lazy Agent).
+
+        Args:
+            z_pooled: (B, 176) pooled features
+            z_unpooled: (B, N, 176) per-asset features
+            deterministic: If True, return deterministic action without noise
+            portfolio_noise_scale: Scale of exploration noise
 
         Returns:
-            trade_prob: (B, 1)
-            weights: (B, N)
-            log_prob: (B,) combined log probability
+            weights: (B, N) portfolio weights
+            log_prob: (B,) log probability for PPO
         """
-        trade_prob, weights = self.forward(z_pooled, z_unpooled)
+        weights = self.forward(z_pooled, z_unpooled)
 
         if deterministic:
             log_prob = torch.zeros(z_pooled.shape[0], device=z_pooled.device)
-            return trade_prob, weights, log_prob
+            return weights, log_prob
 
         # Add exploration noise to portfolio weights
         noise = torch.randn_like(weights) * portfolio_noise_scale
@@ -962,10 +1106,10 @@ class HierarchicalActor(nn.Module):
             torch.atanh(weights.clamp(-0.999, 0.999)) + noise
         )
 
-        # Simple log probability approximation
+        # Simple log probability approximation (Gaussian in logit space)
         log_prob = -0.5 * (noise ** 2).sum(dim=-1)
 
-        return trade_prob, noisy_weights, log_prob
+        return noisy_weights, log_prob
 
 
 class HierarchicalCritic(nn.Module):
@@ -1036,7 +1180,7 @@ class HierarchicalActorCritic(nn.Module):
 
     def __init__(
         self,
-        n_alphas: int = 292,
+        n_alphas: int = 101,
         n_assets: int = 20,
         d_alpha: int = 64,
         d_text: int = 64,
@@ -1066,11 +1210,10 @@ class HierarchicalActorCritic(nn.Module):
 
         d_model = self.encoder.output_dim  # 176
 
-        # Hierarchical actor
+        # Hierarchical actor (Lazy Agent - no Meta Head)
         self.actor = HierarchicalActor(
             d_model=d_model,
             n_assets=n_assets,
-            meta_hidden_dims=actor_hidden_dims,
             portfolio_hidden_dims=actor_hidden_dims,
         )
 
@@ -1084,44 +1227,42 @@ class HierarchicalActorCritic(nn.Module):
     def forward(
         self,
         state_dict: dict,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
-        Full forward pass.
+        Full forward pass (Lazy Agent).
 
         Args:
             state_dict: State dictionary (see HierarchicalFeatureEncoder)
 
         Returns:
-            trade_prob: (B, 1)
-            weights: (B, N)
-            value: (B, 1)
-            quantiles: (B, n_quantiles)
+            weights: (B, N) per-asset portfolio weights
+            value: (B, 1) state value
+            quantiles: (B, n_quantiles) CVaR quantiles
         """
         z_pooled, z_unpooled = self.encoder(state_dict)
-        trade_prob, weights = self.actor(z_pooled, z_unpooled)
+        weights = self.actor(z_pooled, z_unpooled)
         value, quantiles = self.critic(z_pooled)
-        return trade_prob, weights, value, quantiles
+        return weights, value, quantiles
 
     def get_action_and_value(
         self,
         state_dict: dict,
         deterministic: bool = False,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
-        Get action, log probability, and value.
+        Get action, log probability, and value (Lazy Agent).
 
         Returns:
-            trade_prob: (B, 1)
-            weights: (B, N)
-            log_prob: (B,)
-            value: (B, 1)
+            weights: (B, N) per-asset portfolio weights
+            log_prob: (B,) log probability
+            value: (B, 1) state value
         """
         z_pooled, z_unpooled = self.encoder(state_dict)
-        trade_prob, weights, log_prob = self.actor.get_action(
+        weights, log_prob = self.actor.get_action(
             z_pooled, z_unpooled, deterministic=deterministic
         )
         value, _ = self.critic(z_pooled)
-        return trade_prob, weights, log_prob, value
+        return weights, log_prob, value
 
     def get_value(self, state_dict: dict) -> torch.Tensor:
         """Get value estimate only."""
@@ -1183,3 +1324,120 @@ if __name__ == '__main__':
     print(f"  Q1 shape: {q1.shape}")
     print(f"  Q2 shape: {q2.shape}")
     print(f"  Parameters: {count_parameters(twin_q):,}")
+
+    # ========== Test Hierarchical Architecture (v2) ==========
+    print("\n" + "=" * 60)
+    print("Testing Hierarchical Architecture (v2)")
+    print("=" * 60)
+
+    # Test parameters
+    B = 4  # batch size
+    T = 24  # lookback (2 hours @ 5-min)
+    N = 20  # assets
+    n_alphas = 101  # Alpha101 only
+
+    # Create dummy state dictionary
+    state_dict = {
+        'alphas': torch.randn(B, T, N, n_alphas),
+        'news_embedding': torch.randn(B, T, 768),  # Market-wide (NO N)
+        'social_embedding': torch.randn(B, T, 768),  # Market-wide (NO N)
+        'has_social_signal': torch.ones(B, T, 1),  # Market-wide (NO N)
+        'global_features': torch.randn(B, T, 6),
+        'portfolio_state': torch.randn(B, 22),
+    }
+
+    # Test CrossAlphaAttention
+    print("\n1. CrossAlphaAttention:")
+    alpha_attn = CrossAlphaAttention(n_alphas=n_alphas, d_model=64)
+    h_alpha = alpha_attn(state_dict['alphas'])
+    print(f"   Input: {state_dict['alphas'].shape}")
+    print(f"   Output: {h_alpha.shape}")
+    print(f"   Parameters: {count_parameters(alpha_attn):,}")
+    assert h_alpha.shape == (B, T, N, 64), "CrossAlphaAttention output shape mismatch!"
+
+    # Test CrossAssetAttention
+    print("\n2. CrossAssetAttention:")
+    asset_attn = CrossAssetAttention(d_model=192)
+    h_concat = torch.randn(B, T, N, 192)
+    h_cross = asset_attn(h_concat)
+    print(f"   Input: {h_concat.shape}")
+    print(f"   Output: {h_cross.shape}")
+    print(f"   Parameters: {count_parameters(asset_attn):,}")
+    assert h_cross.shape == (B, T, N, 192), "CrossAssetAttention output shape mismatch!"
+
+    # Test TextProjection
+    print("\n3. TextProjection:")
+    text_proj = TextProjection(bert_dim=768, output_dim=64)
+    h_text = text_proj(state_dict['news_embedding'])
+    print(f"   Input: {state_dict['news_embedding'].shape}")
+    print(f"   Output: {h_text.shape}")
+    print(f"   Parameters: {count_parameters(text_proj):,}")
+    assert h_text.shape == (B, T, N, 64), "TextProjection output shape mismatch!"
+
+    # Test HierarchicalFeatureEncoder
+    print("\n4. HierarchicalFeatureEncoder:")
+    h_encoder = HierarchicalFeatureEncoder(n_alphas=n_alphas)
+    z_pooled, z_unpooled = h_encoder(state_dict)
+    print(f"   z_pooled shape: {z_pooled.shape} (for Meta Head, Critic)")
+    print(f"   z_unpooled shape: {z_unpooled.shape} (for Portfolio Head)")
+    print(f"   Parameters: {count_parameters(h_encoder):,}")
+    assert z_pooled.shape == (B, 176), "z_pooled shape mismatch!"
+    assert z_unpooled.shape == (B, N, 176), "z_unpooled shape mismatch!"
+
+    # Test HierarchicalActor (Lazy Agent)
+    print("\n5. HierarchicalActor (Lazy Agent):")
+    h_actor = HierarchicalActor(d_model=176, n_assets=N)
+    weights = h_actor(z_pooled, z_unpooled)
+    print(f"   weights shape: {weights.shape}, range: [{weights.min():.3f}, {weights.max():.3f}]")
+    print(f"   Parameters: {count_parameters(h_actor):,}")
+    assert weights.shape == (B, N), "weights shape mismatch!"
+    assert (weights >= -1).all() and (weights <= 1).all(), "weights out of range!"
+
+    # Test HierarchicalCritic
+    print("\n6. HierarchicalCritic:")
+    h_critic = HierarchicalCritic(d_model=176)
+    value, quantiles = h_critic(z_pooled)
+    print(f"   value shape: {value.shape}")
+    print(f"   quantiles shape: {quantiles.shape}")
+    print(f"   Parameters: {count_parameters(h_critic):,}")
+    assert value.shape == (B, 1), "value shape mismatch!"
+    assert quantiles.shape == (B, 32), "quantiles shape mismatch!"
+
+    # Test HierarchicalActorCritic (full model - Lazy Agent)
+    print("\n7. HierarchicalActorCritic (Full Model - Lazy Agent):")
+    hac = HierarchicalActorCritic(n_alphas=n_alphas, n_assets=N)
+    weights, value, quantiles = hac(state_dict)
+    print(f"   weights: {weights.shape}")
+    print(f"   value: {value.shape}")
+    print(f"   quantiles: {quantiles.shape}")
+    print(f"   Total parameters: {count_parameters(hac):,}")
+    assert weights.shape == (B, N), "weights shape mismatch!"
+
+    # Verify per-asset differentiation (key test!)
+    print("\n8. Portfolio Head Per-Asset Differentiation Test:")
+    # Create state where assets have different features
+    state_diff = {
+        'alphas': torch.zeros(B, T, N, n_alphas),
+        'news_embedding': torch.zeros(B, T, 768),  # Market-wide (NO N)
+        'social_embedding': torch.zeros(B, T, 768),  # Market-wide (NO N)
+        'has_social_signal': torch.ones(B, T, 1),  # Market-wide (NO N)
+        'global_features': torch.zeros(B, T, 6),
+        'portfolio_state': torch.zeros(B, 22),
+    }
+    # Make one asset distinctive
+    state_diff['alphas'][:, :, 5, :] = 10.0  # Asset 5 has high alpha values
+    state_diff['alphas'][:, :, 15, :] = -10.0  # Asset 15 has low alpha values
+
+    weights_diff = hac.actor(*hac.encoder(state_diff))
+    weight_std = weights_diff.std(dim=1).mean()  # Std across assets
+    print(f"   Weight std across assets: {weight_std:.4f}")
+    print(f"   Asset 5 weight: {weights_diff[0, 5]:.4f}")
+    print(f"   Asset 15 weight: {weights_diff[0, 15]:.4f}")
+    if weight_std > 0.01:
+        print("   ✓ Portfolio Head differentiates between assets!")
+    else:
+        print("   ✗ Warning: Portfolio Head may not be differentiating assets properly")
+
+    print("\n" + "=" * 60)
+    print("All Hierarchical Architecture tests passed!")
+    print("=" * 60)

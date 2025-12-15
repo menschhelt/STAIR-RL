@@ -2,29 +2,37 @@
 Features Module - Feature engineering and state construction.
 
 Components:
-- StateBuilder: 2D State Matrix (N assets, D features) for RL
+- HierarchicalStateBuilder: Hierarchical state dict for multi-modal RL (DEPRECATED: old StateBuilder removed)
 - TensorBuilder: 3D Tensor (T, Slots, Features) for batch training
 - AlphaCalculator: Pre-calculate alpha factors
 - RankNormalizer: Cross-sectional rank normalization
-- AlphaPCACompressor: Rolling PCA for alpha compression
 """
 
 # Lazy imports to avoid import errors when dependencies are missing
 __all__ = [
-    'StateBuilder',
+    'HierarchicalStateBuilder',
     'TensorBuilder',
     'RankNormalizer',
     'AlphaCalculator',
     'AlphaAdapter',
-    'AlphaPCACompressor',
 ]
 
 
 def __getattr__(name):
     """Lazy import to handle missing dependencies."""
     if name == 'StateBuilder':
-        from .state_builder import StateBuilder
-        return StateBuilder
+        # Redirect to HierarchicalStateBuilder for backward compatibility
+        from agents.hierarchical_state_builder import HierarchicalStateBuilder
+        import warnings
+        warnings.warn(
+            "StateBuilder is deprecated. Use HierarchicalStateBuilder from agents module.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return HierarchicalStateBuilder
+    elif name == 'HierarchicalStateBuilder':
+        from agents.hierarchical_state_builder import HierarchicalStateBuilder
+        return HierarchicalStateBuilder
     elif name == 'TensorBuilder':
         from .tensor_builder import TensorBuilder
         return TensorBuilder
@@ -37,7 +45,4 @@ def __getattr__(name):
     elif name == 'AlphaAdapter':
         from .alpha_adapter import AlphaAdapter
         return AlphaAdapter
-    elif name == 'AlphaPCACompressor':
-        from .pca_compressor import AlphaPCACompressor
-        return AlphaPCACompressor
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

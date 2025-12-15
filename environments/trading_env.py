@@ -25,6 +25,7 @@ except ImportError:
     from gym import spaces
 
 from environments.position_sizer import PositionSizer, PositionInfo
+from backtesting.pnl_calculator import PnLCalculator
 
 
 @dataclass
@@ -41,15 +42,18 @@ class EnvConfig:
     # Funding rate (applied every 8 hours for futures)
     funding_rate_interval: int = 8 * 12  # 8 hours in 5-min bars
 
-    # Reward parameters
+    # Reward parameters (aligned with paper specifications)
     reward_scale: float = 1.0
     lambda_vol: float = 0.5       # Volatility penalty weight
-    lambda_dd: float = 1.0        # Drawdown penalty weight
-    lambda_tc: float = 2.0        # Transaction cost penalty weight
+    lambda_dd: float = 2.0        # Drawdown penalty weight (paper: 2.0)
+    lambda_tc: float = 1.0        # Transaction cost penalty weight (paper: 1.0)
+    lambda_to: float = 0.1        # Turnover penalty weight (paper: 0.1)
 
     # Risk parameters
     max_drawdown_threshold: float = 0.2  # 20% max drawdown before penalty
-    volatility_lookback: int = 100       # Rolling window for volatility
+    volatility_lookback: int = 100       # Rolling window for volatility (legacy)
+    volatility_decay_rho: float = 0.94   # Exponential decay factor (paper: ρ=0.94)
+    volatility_window_K: int = 20        # Exponential volatility window (paper: K=20)
 
     # Episode parameters
     initial_nav: float = 100_000.0
@@ -115,6 +119,12 @@ class TradingEnv(gym.Env):
             target_leverage=self.config.target_leverage
         )
 
+        # Initialize PnL calculator (unified with BacktestEngine)
+        self.pnl_calculator = PnLCalculator(
+            transaction_cost_rate=self.config.transaction_cost_rate,
+            slippage_rate=self.config.slippage_rate,
+        )
+
         # Define spaces
         self._define_spaces()
 
@@ -122,6 +132,7 @@ class TradingEnv(gym.Env):
         self._portfolio: Optional[PortfolioState] = None
         self._step_idx: int = 0
         self._episode_returns: List[float] = []
+        self._previous_drawdown: float = 0.0  # For incremental drawdown penalty
 
         # Logger
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -218,6 +229,7 @@ class TradingEnv(gym.Env):
 
         # Reset episode tracking
         self._episode_returns = []
+        self._previous_drawdown = 0.0  # Reset for incremental DD penalty
 
         obs = self._get_observation()
         info = self._get_info()
@@ -264,23 +276,30 @@ class TradingEnv(gym.Env):
         self._portfolio.leverage_ratio = position_info.leverage_ratio
         self._portfolio.cash_ratio = position_info.cash_ratio
 
-        # Compute transaction cost (including slippage)
-        turnover = np.abs(position_info.final_weights - prev_weights).sum()
-        transaction_cost = turnover * self.config.transaction_cost_rate
+        # Compute portfolio return using PnLCalculator (unified with BacktestEngine)
+        pnl_result = self.pnl_calculator.calculate_portfolio_return(
+            weights=position_info.final_weights,
+            asset_returns=next_returns,
+            prev_weights=prev_weights,
+            funding_rates=funding_rates,
+            include_costs=True,
+        )
+
+        # Extract results
+        port_return = pnl_result['net_return']
+        turnover = pnl_result['turnover']
+        transaction_cost = pnl_result['transaction_cost']
+
+        # Calculate slippage separately (PnLCalculator uses transaction_cost only)
         slippage_cost = turnover * self.config.slippage_rate
         total_cost = transaction_cost + slippage_cost
 
-        # Compute portfolio return (using total cost = transaction + slippage)
-        port_return = self._compute_portfolio_return(
-            weights=position_info.final_weights,
-            returns=next_returns,
-            funding_rates=funding_rates,
-            transaction_cost=total_cost,
-        )
-
-        # Update NAV
+        # Update NAV using PnLCalculator
         old_nav = self._portfolio.nav
-        self._portfolio.nav *= (1 + port_return)
+        self._portfolio.nav = self.pnl_calculator.update_nav(
+            prev_nav=old_nav,
+            portfolio_return=port_return,
+        )
 
         # Update peak and drawdown
         if self._portfolio.nav > self._portfolio.peak_nav:
@@ -348,7 +367,7 @@ class TradingEnv(gym.Env):
 
     def _get_info(self) -> Dict[str, Any]:
         """Get current info dict."""
-        return {
+        info = {
             'step': self._step_idx,
             'nav': self._portfolio.nav,
             'peak_nav': self._portfolio.peak_nav,
@@ -358,6 +377,17 @@ class TradingEnv(gym.Env):
             'gross_exposure': np.abs(self._portfolio.weights).sum(),
             'net_exposure': self._portfolio.weights.sum(),
         }
+
+        # Add timestamp if available in data
+        if self.data is not None and 'timestamps' in self.data:
+            timestamp = self.data['timestamps'][self._step_idx]
+            # Convert to string if not already
+            if isinstance(timestamp, str):
+                info['timestamp'] = timestamp
+            else:
+                info['timestamp'] = timestamp.isoformat() if hasattr(timestamp, 'isoformat') else str(timestamp)
+
+        return info
 
     def _get_next_returns(self) -> np.ndarray:
         """Get returns for next timestep."""
@@ -374,36 +404,8 @@ class TradingEnv(gym.Env):
             return self.data['funding_rates'][self._step_idx]
         return np.zeros(self.config.n_assets)
 
-    def _compute_portfolio_return(
-        self,
-        weights: np.ndarray,
-        returns: np.ndarray,
-        funding_rates: np.ndarray,
-        transaction_cost: float,
-    ) -> float:
-        """
-        Compute portfolio return for this step.
-
-        Args:
-            weights: Portfolio weights
-            returns: Asset returns
-            funding_rates: Funding rates (for futures)
-            transaction_cost: Transaction cost ratio
-
-        Returns:
-            Portfolio return (decimal)
-        """
-        # Asset returns weighted by position
-        gross_return = (weights * returns).sum()
-
-        # Funding cost (paid on short positions, received on long)
-        # Positive funding rate = longs pay shorts
-        funding_cost = (weights * funding_rates).sum()
-
-        # Net return
-        net_return = gross_return - funding_cost - transaction_cost
-
-        return net_return
+    # NOTE: _compute_portfolio_return method removed - now using PnLCalculator
+    # This eliminates code duplication with BacktestEngine
 
     def _compute_reward(
         self,
@@ -412,9 +414,14 @@ class TradingEnv(gym.Env):
         turnover: float,
     ) -> float:
         """
-        Compute risk-adjusted reward.
+        Compute risk-adjusted reward (aligned with paper specifications).
 
-        r_t = log(1 + R^port) - λ_vol × σ - λ_dd × DD - λ_tc × TC
+        r_t = log(1 + R^port) - λ_vol × σ̂_t - λ_dd × ΔDD_t - λ_tc × TC_t - λ_to × TO_t
+
+        Where:
+        - σ̂_t = sqrt(Σ_{k=0}^{K-1} ρ^k (R^port_{t-k})^2)  (ρ=0.94, K=20)
+        - ΔDD_t = DD_t - DD_{t-1}  (incremental drawdown)
+        - TO_t = turnover
 
         Args:
             port_return: Portfolio return
@@ -427,23 +434,37 @@ class TradingEnv(gym.Env):
         # Log return (more numerically stable)
         log_return = np.log1p(port_return)
 
-        # Rolling volatility penalty
-        if len(self._episode_returns) >= self.config.volatility_lookback:
-            recent_returns = self._episode_returns[-self.config.volatility_lookback:]
-            volatility = np.std(recent_returns)
+        # Exponential decay volatility (paper: ρ=0.94, K=20)
+        K = self.config.volatility_window_K
+        rho = self.config.volatility_decay_rho
+
+        if len(self._episode_returns) >= K:
+            # Compute σ̂_t = sqrt(Σ_{k=0}^{K-1} ρ^k (R^port_{t-k})^2)
+            recent_returns = np.array(self._episode_returns[-K:])
+            weights = np.array([rho ** k for k in range(K)])
+            weighted_sq_returns = weights * (recent_returns ** 2)
+            volatility = np.sqrt(weighted_sq_returns.sum())
         else:
-            volatility = 0.0
+            # Not enough history, use simple std
+            volatility = np.std(self._episode_returns) if len(self._episode_returns) > 1 else 0.0
 
-        # Drawdown penalty
-        drawdown = self._portfolio.current_drawdown
-        dd_penalty = drawdown if drawdown > self.config.max_drawdown_threshold else 0.0
+        # Incremental drawdown penalty (paper: ΔDD_t = DD_t - DD_{t-1})
+        current_dd = self._portfolio.current_drawdown
+        delta_dd = max(0.0, current_dd - self._previous_drawdown)  # Only penalize increases
 
-        # Compute reward
+        # Update previous drawdown for next step
+        self._previous_drawdown = current_dd
+
+        # Turnover penalty (paper: λ_to = 0.1)
+        turnover_penalty = turnover
+
+        # Compute reward (aligned with paper)
         reward = (
             log_return
             - self.config.lambda_vol * volatility
-            - self.config.lambda_dd * dd_penalty
+            - self.config.lambda_dd * delta_dd
             - self.config.lambda_tc * transaction_cost
+            - self.config.lambda_to * turnover_penalty
         )
 
         return reward * self.config.reward_scale
@@ -595,6 +616,386 @@ class VectorizedTradingEnv:
             np.array(truncateds),
             infos,
         )
+
+
+# ==============================================================================
+# Hierarchical Trading Environment - Supports Meta-Controller + Portfolio Head
+# ==============================================================================
+
+@dataclass
+class HierarchicalEnvConfig(EnvConfig):
+    """Configuration for hierarchical trading environment."""
+    # Frequency penalty for trading
+    lambda_freq: float = 0.001   # Penalty for each trade decision
+
+    # Conditional execution threshold
+    trade_threshold: float = 0.5  # trade_prob > threshold triggers trade
+
+    # Trading statistics
+    track_trade_frequency: bool = True
+
+
+class HierarchicalTradingEnv(TradingEnv):
+    """
+    Hierarchical Trading Environment with Meta-Controller.
+
+    Extends TradingEnv to support hierarchical actions:
+    - trade_prob: Probability of executing trade [0, 1]
+    - weights: Target portfolio weights [-1, 1]^N
+
+    When trade_prob > threshold:
+        Execute rebalancing with transaction costs
+    Otherwise:
+        Hold current position (no costs)
+
+    This enables the agent to learn WHEN to trade (timing)
+    in addition to WHAT to trade (weights).
+    """
+
+    def __init__(
+        self,
+        config: Optional[HierarchicalEnvConfig] = None,
+        data: Optional[Dict[str, np.ndarray]] = None,
+        state_builder=None,  # HierarchicalStateBuilder instance
+    ):
+        """
+        Initialize hierarchical trading environment.
+
+        Args:
+            config: Hierarchical environment config
+            data: Pre-loaded data (for legacy mode)
+            state_builder: HierarchicalStateBuilder for new architecture
+        """
+        self.hierarchical_config = config or HierarchicalEnvConfig()
+        super().__init__(config=self.hierarchical_config, data=data)
+
+        self.state_builder = state_builder
+
+        # Track trading statistics
+        self._trade_count: int = 0
+        self._hold_count: int = 0
+        self._total_steps: int = 0
+
+        # Redefine action space for hierarchical actions
+        self._define_hierarchical_spaces()
+
+    def _define_hierarchical_spaces(self):
+        """Define hierarchical action space."""
+        n_assets = self.config.n_assets
+
+        # Action space: Dict with trade_prob and weights
+        self.action_space = spaces.Dict({
+            'trade_prob': spaces.Box(
+                low=0.0, high=1.0,
+                shape=(1,),
+                dtype=np.float32
+            ),
+            'weights': spaces.Box(
+                low=-1.0, high=1.0,
+                shape=(n_assets,),
+                dtype=np.float32
+            )
+        })
+
+    def reset(
+        self,
+        *,
+        seed: Optional[int] = None,
+        options: Optional[Dict] = None,
+    ) -> Tuple[Dict[str, np.ndarray], Dict]:
+        """Reset with hierarchical state."""
+        obs, info = super().reset(seed=seed, options=options)
+
+        # Reset trading counters
+        self._trade_count = 0
+        self._hold_count = 0
+        self._total_steps = 0
+
+        return obs, info
+
+    def step(
+        self,
+        action: Dict[str, np.ndarray],
+    ) -> Tuple[Dict[str, np.ndarray], float, bool, bool, Dict]:
+        """
+        Execute hierarchical step with conditional trading.
+
+        Args:
+            action: Dict with:
+                - 'trade_prob': (1,) or scalar - probability of trading
+                - 'weights': (N,) - target portfolio weights
+
+        Returns:
+            Tuple of (observation, reward, terminated, truncated, info)
+        """
+        if self._portfolio is None:
+            raise RuntimeError("Environment not reset. Call reset() first.")
+
+        # Parse hierarchical action
+        if isinstance(action, dict):
+            trade_prob = np.atleast_1d(action['trade_prob'])[0]
+            target_weights = np.clip(action['weights'], -1.0, 1.0)
+        elif isinstance(action, tuple):
+            trade_prob = float(action[0])
+            target_weights = np.clip(action[1], -1.0, 1.0)
+        else:
+            # Fallback: treat as just weights (legacy mode)
+            trade_prob = 1.0
+            target_weights = np.clip(action, -1.0, 1.0)
+
+        # Decide whether to trade
+        trade_decision = trade_prob > self.hierarchical_config.trade_threshold
+
+        # Update counters
+        self._total_steps += 1
+        if trade_decision:
+            self._trade_count += 1
+        else:
+            self._hold_count += 1
+
+        # Get market data
+        current_prices = self.data['prices'][self._step_idx]
+        next_returns = self._get_next_returns()
+        funding_rates = self._get_funding_rates()
+        prev_weights = self._portfolio.weights.copy()
+
+        if trade_decision:
+            # Execute trade with transaction costs
+            position_info = self.position_sizer.compute_positions(
+                nav=self._portfolio.nav,
+                weights_raw=target_weights,
+                prices=current_prices,
+                margin_used=self._portfolio.margin_used,
+                current_weights=prev_weights,
+            )
+
+            new_weights = position_info.final_weights
+            turnover = np.abs(new_weights - prev_weights).sum()
+            transaction_cost = turnover * self.config.transaction_cost_rate
+            slippage_cost = turnover * self.config.slippage_rate
+            total_cost = transaction_cost + slippage_cost
+
+            # Update portfolio
+            self._portfolio.weights = new_weights
+            self._portfolio.leverage_ratio = position_info.leverage_ratio
+            self._portfolio.cash_ratio = position_info.cash_ratio
+
+        else:
+            # Hold - no trading, no costs
+            new_weights = prev_weights
+            turnover = 0.0
+            transaction_cost = 0.0
+            slippage_cost = 0.0
+            total_cost = 0.0
+
+        # Compute portfolio return
+        port_return = self._compute_portfolio_return(
+            weights=new_weights,
+            returns=next_returns,
+            funding_rates=funding_rates,
+            transaction_cost=total_cost,
+        )
+
+        # Update NAV
+        old_nav = self._portfolio.nav
+        self._portfolio.nav *= (1 + port_return)
+
+        # Update peak and drawdown
+        if self._portfolio.nav > self._portfolio.peak_nav:
+            self._portfolio.peak_nav = self._portfolio.nav
+        self._portfolio.current_drawdown = (
+            (self._portfolio.peak_nav - self._portfolio.nav) / self._portfolio.peak_nav
+        )
+
+        # Track returns
+        self._episode_returns.append(port_return)
+
+        # Compute hierarchical reward (includes frequency penalty)
+        reward = self._compute_hierarchical_reward(
+            port_return=port_return,
+            transaction_cost=total_cost,
+            turnover=turnover,
+            trade_prob=trade_prob,
+            trade_decision=trade_decision,
+        )
+
+        # Advance step
+        self._step_idx += 1
+
+        # Check termination
+        terminated = False
+        truncated = False
+
+        if self._portfolio.nav < self.config.initial_nav * 0.5:
+            terminated = True
+
+        max_idx = len(self.data['returns']) - 1
+        if self._step_idx >= max_idx:
+            truncated = True
+
+        if self.config.episode_length and len(self._episode_returns) >= self.config.episode_length:
+            truncated = True
+
+        obs = self._get_observation()
+        info = self._get_info()
+        info.update({
+            'port_return': port_return,
+            'transaction_cost': transaction_cost,
+            'slippage_cost': slippage_cost,
+            'total_cost': total_cost,
+            'turnover': turnover,
+            'trade_decision': trade_decision,
+            'trade_prob': trade_prob,
+            'trade_count': self._trade_count,
+            'hold_count': self._hold_count,
+            'trade_frequency': self._trade_count / max(1, self._total_steps),
+        })
+
+        return obs, reward, terminated, truncated, info
+
+    def _compute_hierarchical_reward(
+        self,
+        port_return: float,
+        transaction_cost: float,
+        turnover: float,
+        trade_prob: float,
+        trade_decision: bool,
+    ) -> float:
+        """
+        Compute hierarchical reward with frequency penalty.
+
+        r_t = log(1 + R^port) - λ_vol × σ - λ_dd × DD - λ_tc × TC - λ_freq × trade_prob
+
+        The frequency penalty discourages unnecessary trading,
+        encouraging the agent to learn optimal trade timing.
+        """
+        # Base reward from parent
+        base_reward = self._compute_reward(
+            port_return=port_return,
+            transaction_cost=transaction_cost,
+            turnover=turnover,
+        )
+
+        # Frequency penalty: penalize high trade probability
+        # This encourages the agent to be selective about when to trade
+        freq_penalty = self.hierarchical_config.lambda_freq * trade_prob
+
+        return base_reward - freq_penalty
+
+    def get_episode_stats(self) -> Dict[str, float]:
+        """Get episode stats including trading frequency."""
+        stats = super().get_episode_stats()
+
+        # Add hierarchical-specific stats
+        if self._total_steps > 0:
+            stats['trade_count'] = self._trade_count
+            stats['hold_count'] = self._hold_count
+            stats['trade_frequency'] = self._trade_count / self._total_steps
+            stats['avg_trades_per_day'] = (
+                self._trade_count / max(1, self._total_steps) * 288  # 288 5-min bars per day
+            )
+
+        return stats
+
+
+class VectorizedHierarchicalEnv:
+    """
+    Vectorized version of HierarchicalTradingEnv.
+
+    For parallel sample collection during training.
+    """
+
+    def __init__(
+        self,
+        n_envs: int,
+        config: Optional[HierarchicalEnvConfig] = None,
+        data: Optional[Dict[str, np.ndarray]] = None,
+    ):
+        self.n_envs = n_envs
+        self.envs = [
+            HierarchicalTradingEnv(config=config, data=data)
+            for _ in range(n_envs)
+        ]
+
+    def reset(self) -> Tuple[Dict[str, np.ndarray], List[Dict]]:
+        """Reset all environments."""
+        obs_list = []
+        info_list = []
+
+        for env in self.envs:
+            obs, info = env.reset()
+            obs_list.append(obs)
+            info_list.append(info)
+
+        stacked_obs = {
+            'market': np.stack([o['market'] for o in obs_list]),
+            'portfolio': np.stack([o['portfolio'] for o in obs_list]),
+        }
+
+        return stacked_obs, info_list
+
+    def step(
+        self,
+        actions: Dict[str, np.ndarray],
+    ) -> Tuple[Dict[str, np.ndarray], np.ndarray, np.ndarray, np.ndarray, List[Dict]]:
+        """
+        Step all environments with hierarchical actions.
+
+        Args:
+            actions: Dict with:
+                - 'trade_prob': (n_envs, 1)
+                - 'weights': (n_envs, n_assets)
+        """
+        obs_list = []
+        rewards = []
+        terminateds = []
+        truncateds = []
+        infos = []
+
+        for i, env in enumerate(self.envs):
+            action = {
+                'trade_prob': actions['trade_prob'][i],
+                'weights': actions['weights'][i],
+            }
+            obs, reward, terminated, truncated, info = env.step(action)
+            obs_list.append(obs)
+            rewards.append(reward)
+            terminateds.append(terminated)
+            truncateds.append(truncated)
+            infos.append(info)
+
+            if terminated or truncated:
+                obs, _ = env.reset()
+                obs_list[-1] = obs
+
+        stacked_obs = {
+            'market': np.stack([o['market'] for o in obs_list]),
+            'portfolio': np.stack([o['portfolio'] for o in obs_list]),
+        }
+
+        return (
+            stacked_obs,
+            np.array(rewards),
+            np.array(terminateds),
+            np.array(truncateds),
+            infos,
+        )
+
+    def get_aggregate_stats(self) -> Dict[str, float]:
+        """Get aggregate stats across all environments."""
+        all_stats = [env.get_episode_stats() for env in self.envs]
+        if not all_stats or not all_stats[0]:
+            return {}
+
+        # Average stats
+        keys = all_stats[0].keys()
+        avg_stats = {}
+        for key in keys:
+            values = [s.get(key, 0) for s in all_stats if key in s]
+            if values:
+                avg_stats[f'avg_{key}'] = np.mean(values)
+
+        return avg_stats
 
 
 # ========== Standalone Testing ==========

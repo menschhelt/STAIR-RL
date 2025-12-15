@@ -13,6 +13,9 @@ import numpy as np
 import pandas as pd
 import logging
 
+from backtesting.metrics import PerformanceMetrics
+from backtesting.pnl_calculator import PnLCalculator
+
 logger = logging.getLogger(__name__)
 
 
@@ -101,6 +104,12 @@ class BaseBenchmark(ABC):
         """
         self.config = config or BenchmarkConfig()
         self.name = self.__class__.__name__
+
+        # Initialize PnL calculator (unified with TradingEnv and BacktestEngine)
+        self.pnl_calculator = PnLCalculator(
+            transaction_cost_rate=self.config.transaction_cost,
+            slippage_rate=self.config.slippage,
+        )
 
     @abstractmethod
     def compute_weights(
@@ -193,21 +202,26 @@ class BaseBenchmark(ABC):
             # Apply constraints
             target_weights = self._apply_constraints(target_weights)
 
-            # Compute turnover and costs
-            turnover = np.abs(target_weights - current_weights).sum()
-            cost = turnover * (self.config.transaction_cost + self.config.slippage)
-
             # Get returns for this period
             if 'returns' in features:
                 period_returns = features['returns'][-1] if len(features['returns']) > 0 else np.zeros(self.config.n_assets)
             else:
                 period_returns = np.zeros(self.config.n_assets)
 
-            # Compute portfolio return
-            port_return = (target_weights * period_returns).sum() - cost
+            # Calculate portfolio return using PnLCalculator (unified with TradingEnv)
+            pnl_result = self.pnl_calculator.calculate_portfolio_return(
+                weights=target_weights,
+                asset_returns=period_returns,
+                prev_weights=current_weights,
+                funding_rates=None,  # No funding for spot trading
+                include_costs=True,
+            )
+
+            port_return = pnl_result['net_return']
+            turnover = pnl_result['turnover']
 
             # Update NAV
-            nav *= (1 + port_return)
+            nav = self.pnl_calculator.update_nav(nav, port_return)
 
             # Record history
             nav_history.append({'timestamp': ts, 'nav': nav})
@@ -352,6 +366,9 @@ class BaseBenchmark(ABC):
         """
         Compute performance metrics from backtest results.
 
+        Uses PerformanceMetrics for consistent metric calculation across
+        backtesting and RL training.
+
         Args:
             nav_series: NAV time series
             returns_series: Returns time series
@@ -371,46 +388,39 @@ class BaseBenchmark(ABC):
         if len(returns_series) == 0:
             return result
 
-        # Total and annual return
-        result.total_return = (nav_series.iloc[-1] / initial_nav) - 1
-
-        # Assuming daily data, annualize
-        n_periods = len(returns_series)
-        periods_per_year = 252  # Adjust based on rebalance_freq
+        # Determine periods per year based on rebalance frequency
         if self.config.rebalance_freq == '5min':
             periods_per_year = 252 * 24 * 12  # 5-min bars per year
         elif self.config.rebalance_freq == 'hourly':
             periods_per_year = 252 * 24
+        else:  # daily
+            periods_per_year = 252
 
-        years = n_periods / periods_per_year
-        result.annual_return = (1 + result.total_return) ** (1 / years) - 1 if years > 0 else 0
+        # Use PerformanceMetrics for unified calculation
+        metrics_calc = PerformanceMetrics(risk_free_rate=0.0, annualize=True)
 
-        # Volatility
-        result.volatility = returns_series.std() * np.sqrt(periods_per_year)
+        returns_np = returns_series.values
+        nav_np = nav_series.values
 
-        # Sharpe ratio (assuming 0 risk-free rate)
-        mean_return = returns_series.mean() * periods_per_year
-        result.sharpe_ratio = mean_return / result.volatility if result.volatility > 0 else 0
+        metrics = metrics_calc.calculate_all(
+            returns=returns_np,
+            equity_curve=nav_np,
+            positions=None,  # Not needed for basic metrics
+            periods_per_year=periods_per_year,
+        )
 
-        # Downside volatility and Sortino ratio
-        negative_returns = returns_series[returns_series < 0]
-        result.downside_volatility = negative_returns.std() * np.sqrt(periods_per_year) if len(negative_returns) > 0 else 0
-        result.sortino_ratio = mean_return / result.downside_volatility if result.downside_volatility > 0 else 0
+        # Map to BacktestResult fields
+        result.total_return = metrics['total_return']
+        result.annual_return = metrics['annualized_return']
+        result.volatility = metrics['volatility']
+        result.sharpe_ratio = metrics['sharpe_ratio']
+        result.sortino_ratio = metrics['sortino_ratio']
+        result.downside_volatility = metrics['downside_volatility']
+        result.max_drawdown = metrics['max_drawdown']
+        result.calmar_ratio = metrics['calmar_ratio']
+        result.cvar_95 = metrics['cvar_95']
 
-        # Maximum drawdown
-        cummax = nav_series.cummax()
-        drawdown = (nav_series - cummax) / cummax
-        result.max_drawdown = drawdown.min()
-
-        # Calmar ratio
-        result.calmar_ratio = result.annual_return / abs(result.max_drawdown) if result.max_drawdown != 0 else 0
-
-        # CVaR (95%)
-        sorted_returns = returns_series.sort_values()
-        cutoff = int(len(sorted_returns) * 0.05)
-        result.cvar_95 = sorted_returns.iloc[:cutoff].mean() if cutoff > 0 else sorted_returns.iloc[0]
-
-        # Trading metrics
+        # Trading metrics (not in PerformanceMetrics)
         result.total_turnover = sum(turnover_history)
         result.avg_turnover = result.total_turnover / len(turnover_history) if turnover_history else 0
         result.total_cost = result.total_turnover * (self.config.transaction_cost + self.config.slippage)

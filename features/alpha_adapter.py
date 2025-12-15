@@ -155,10 +155,10 @@ class AlphaAdapter:
         if alpha_101_dir.exists():
             self._load_alpha_directory(alpha_101_dir, 'alpha_101')
 
-        # Load Alpha 191 (skip 158)
-        alpha_191_dir = self.alphas_dir / 'alpha_191'
-        if alpha_191_dir.exists():
-            self._load_alpha_directory(alpha_191_dir, 'alpha_191')
+        # Load Alpha 191 - DISABLED (only using Alpha 101)
+        # alpha_191_dir = self.alphas_dir / 'alpha_191'
+        # if alpha_191_dir.exists():
+        #     self._load_alpha_directory(alpha_191_dir, 'alpha_191')
 
         # Load custom alphas
         for py_file in self.alphas_dir.glob('*.py'):
@@ -403,8 +403,8 @@ class AlphaAdapter:
         return sorted([a for a in self.alpha_classes.keys() if 'alpha_101' in a])
 
     def list_alpha_191(self) -> List[str]:
-        """List Alpha 191 alphas (excluding 158)."""
-        return sorted([a for a in self.alpha_classes.keys() if 'alpha_191' in a])
+        """List Alpha 191 alphas - DISABLED (only using Alpha 101)."""
+        return []  # Alpha 191 disabled, only using Alpha 101
 
     def get_alpha_info(self, alpha_name: str) -> Dict:
         """

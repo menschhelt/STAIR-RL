@@ -9,7 +9,7 @@ Alpha 신호 정규화 단계:
 
 이렇게 하면:
 - 알파 신호 합이 0 (롱숏 중립)
-- 절대값 합이 1 (다른 알파와 비교 가능, PCA 적합)
+- 절대값 합이 1 (다른 알파와 비교 가능, Cross-Attention 준비)
 
 Usage:
     python scripts/normalize_alphas.py
@@ -116,6 +116,9 @@ def normalize_cross_section(
         # Concat: rows=timestamp, columns=symbols
         wide_df = pd.concat(alpha_series_list, axis=1)
 
+        # 원본 NaN 위치 저장 (Historical masking 보존용)
+        original_nan_mask = wide_df.isna()
+
         # 2b. Cross-sectional Mean Neutralization (행별 평균 빼기)
         # axis=1: 같은 timestamp의 모든 심볼에 대해 연산
         row_mean = wide_df.mean(axis=1, skipna=True)
@@ -127,8 +130,11 @@ def normalize_cross_section(
         l1_norm = l1_norm.replace(0, np.nan)
         normalized = demeaned.div(l1_norm, axis=0)
 
-        # NaN을 0으로 채우기 (L1 norm이 0인 경우)
+        # Division-by-zero NaN만 0으로 채우기 (L1 norm=0인 경우)
         normalized = normalized.fillna(0)
+
+        # Historical NaN 복원 (상장 전 심볼은 반드시 NaN 유지)
+        normalized[original_nan_mask] = np.nan
 
         # 2d. 정규화된 값을 다시 각 심볼 DataFrame에 저장
         for symbol in symbols:

@@ -144,7 +144,7 @@ class Phase1Trainer(Trainer):
         # CQL-SAC specific config
         self.cql_config = CQLSACConfig(
             n_assets=20,
-            state_dim=35,
+            state_dim=36,  # BUG FIX: Changed from 35 to match StateBuilder output
             portfolio_dim=22,
             lr_actor=self.rl_config.cql_sac.learning_rate_actor,
             lr_critic=self.rl_config.cql_sac.learning_rate_critic,
@@ -185,9 +185,12 @@ class Phase1Trainer(Trainer):
         actions = data['actions']  # (T, n_assets)
         rewards = data['rewards']  # (T,)
         dones = data['dones']  # (T,)
+        timestamps = data.get('timestamps', None)  # (T,) ISO strings, optional for backward compat
 
         T = len(rewards)
         self.logger.info(f"Loaded {T} transitions")
+        if timestamps is not None:
+            self.logger.info(f"Loaded timestamps: {timestamps[0]} to {timestamps[-1]}")
 
         # Initialize replay buffer
         buffer_size = min(T, self.rl_config.cql_sac.replay_buffer_size)
@@ -201,7 +204,8 @@ class Phase1Trainer(Trainer):
 
         # Load data into buffer
         self.replay_buffer.load_from_data(
-            market_states, portfolio_states, actions, rewards, dones
+            market_states, portfolio_states, actions, rewards, dones,
+            timestamps=timestamps
         )
 
         return len(self.replay_buffer)
@@ -294,7 +298,7 @@ class Phase2Trainer(Trainer):
         # PPO-CVaR specific config
         self.ppo_config = PPOCVaRConfig(
             n_assets=20,
-            state_dim=35,
+            state_dim=36,  # BUG FIX: Changed from 35 to match StateBuilder output
             portfolio_dim=22,
             lr=self.rl_config.ppo_cvar.learning_rate,
             gamma=self.rl_config.ppo_cvar.gamma,
@@ -515,6 +519,484 @@ class Phase2Trainer(Trainer):
         path = self.config.checkpoint_dir / f'{run_name}_{suffix}.pt'
         self.agent.save(str(path))
         self.logger.info(f"Saved checkpoint: {path}")
+
+
+# ==============================================================================
+# Hierarchical Trainer - For Attention-based Architecture
+# ==============================================================================
+
+class HierarchicalTrainer(Trainer):
+    """
+    Trainer for Hierarchical Actor-Critic with Attention.
+
+    Supports the new architecture with:
+    - HierarchicalFeatureEncoder (Cross-Alpha + Cross-Asset Attention)
+    - HierarchicalActor (Meta Head + Portfolio Head)
+    - HierarchicalCritic (CVaR)
+    - HierarchicalTradingEnv (Conditional Execution)
+
+    Key differences from Phase2Trainer:
+    - Handles Dict state from HierarchicalStateBuilder
+    - Hierarchical action (trade_prob, weights)
+    - Separate log_prob computation for meta and portfolio heads
+    """
+
+    def __init__(
+        self,
+        config: Optional[TrainerConfig] = None,
+        rl_config: Optional[RLConfig] = None,
+        model_config: Optional[Dict] = None,
+    ):
+        """
+        Initialize hierarchical trainer.
+
+        Args:
+            config: Trainer configuration
+            rl_config: RL training configuration
+            model_config: Model architecture configuration
+        """
+        super().__init__(config, rl_config)
+
+        # Model configuration (defaults)
+        self.model_config = model_config or {
+            'n_alphas': 292,
+            'n_assets': 20,
+            'd_alpha': 64,
+            'd_text': 64,
+            'd_temporal': 128,
+            'd_global': 32,
+            'd_portfolio': 16,
+            'actor_hidden_dims': (128, 64),
+            'critic_hidden_dims': (256, 128),
+            'n_quantiles': 32,
+            'dropout': 0.1,
+        }
+
+        # Training hyperparameters
+        self.lr = rl_config.ppo_cvar.learning_rate if rl_config else 3e-4
+        self.gamma = rl_config.ppo_cvar.gamma if rl_config else 0.99
+        self.gae_lambda = rl_config.ppo_cvar.gae_lambda if rl_config else 0.95
+        self.clip_epsilon = rl_config.ppo_cvar.clip_epsilon if rl_config else 0.2
+        self.ppo_epochs = rl_config.ppo_cvar.ppo_epochs if rl_config else 10
+        self.batch_size = rl_config.ppo_cvar.batch_size if rl_config else 256
+        self.horizon = rl_config.ppo_cvar.horizon if rl_config else 2048
+        self.alpha_cvar = rl_config.ppo_cvar.alpha_cvar if rl_config else 0.05
+        self.kappa = rl_config.ppo_cvar.kappa if rl_config else 1.0
+        self.vf_coef = 0.5
+        self.ent_coef = 0.01
+        self.max_grad_norm = 0.5
+
+        # Model and optimizer (lazy initialization)
+        self.model = None
+        self.optimizer = None
+
+        # Environment
+        self.env = None
+
+        # Rollout storage
+        self.rollout_storage = None
+
+    def _init_model(self):
+        """Initialize hierarchical model."""
+        from agents.networks import HierarchicalActorCritic
+
+        self.model = HierarchicalActorCritic(**self.model_config).to(self.device)
+
+        self.optimizer = torch.optim.AdamW(
+            self.model.parameters(),
+            lr=self.lr,
+            weight_decay=1e-5,
+        )
+
+        # Learning rate scheduler
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
+            self.optimizer,
+            T_0=10000,
+            T_mult=2,
+        )
+
+        n_params = sum(p.numel() for p in self.model.parameters())
+        self.logger.info(f"Initialized HierarchicalActorCritic: {n_params:,} parameters")
+
+    def set_environment(self, env):
+        """Set the training environment."""
+        self.env = env
+        self.logger.info(f"Environment set: {type(env).__name__}")
+
+    def train(
+        self,
+        total_steps: int,
+        run_name: Optional[str] = None,
+    ) -> Dict[str, List[float]]:
+        """
+        Run hierarchical PPO training.
+
+        Args:
+            total_steps: Total training steps
+            run_name: Name for this training run
+
+        Returns:
+            Dict of training metrics history
+        """
+        if self.env is None:
+            raise RuntimeError("No environment set. Call set_environment() first.")
+
+        if self.model is None:
+            self._init_model()
+
+        run_name = run_name or f"hierarchical_ppo_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        self._init_tensorboard(run_name)
+
+        self.logger.info(f"Starting Hierarchical training: {total_steps} steps")
+        self.logger.info(f"Model config: {self.model_config}")
+
+        # Training history
+        history = {
+            'policy_loss': [],
+            'value_loss': [],
+            'entropy': [],
+            'meta_loss': [],
+            'portfolio_loss': [],
+            'cvar_loss': [],
+            'episode_return': [],
+            'trade_frequency': [],
+        }
+
+        # Reset environment and get initial observation
+        obs, info = self.env.reset()
+
+        # Convert obs to tensor format if needed
+        state_dict = self._obs_to_state_dict(obs)
+
+        episode_return = 0
+        n_episodes = 0
+        total_steps_done = 0
+
+        # Rollout storage (Lazy Agent - no trade_probs)
+        rollout_states = []
+        rollout_weights = []
+        rollout_rewards = []
+        rollout_values = []
+        rollout_log_probs = []
+        rollout_dones = []
+
+        start_time = time.time()
+
+        while total_steps_done < total_steps:
+            # Clear rollout storage
+            rollout_states.clear()
+            rollout_weights.clear()
+            rollout_rewards.clear()
+            rollout_values.clear()
+            rollout_log_probs.clear()
+            rollout_dones.clear()
+
+            # Collect rollout
+            for _ in range(self.horizon):
+                with torch.no_grad():
+                    # Get action from model (Lazy Agent - no trade_prob)
+                    weights, log_prob, value = self.model.get_action_and_value(
+                        state_dict, deterministic=False
+                    )
+
+                # Store in rollout
+                rollout_states.append({k: v.clone() for k, v in state_dict.items()})
+                rollout_weights.append(weights.cpu())
+                rollout_values.append(value.cpu())
+                rollout_log_probs.append(log_prob.cpu())
+
+                # Execute action in environment (weights only)
+                action = weights.cpu().numpy().flatten()
+                next_obs, reward, terminated, truncated, info = self.env.step(action)
+
+                rollout_rewards.append(reward)
+                rollout_dones.append(terminated)
+
+                episode_return += reward
+                total_steps_done += 1
+
+                if terminated or truncated:
+                    # Log episode stats
+                    stats = self.env.get_episode_stats()
+                    history['episode_return'].append(episode_return)
+                    history['trade_frequency'].append(stats.get('trade_frequency', 0))
+
+                    self._log_metrics({
+                        'episode_return': episode_return,
+                        'trade_frequency': stats.get('trade_frequency', 0),
+                        'sharpe_ratio': stats.get('sharpe_ratio', 0),
+                        'max_drawdown': stats.get('max_drawdown', 0),
+                    }, total_steps_done, 'episode')
+
+                    # Reset
+                    obs, info = self.env.reset()
+                    episode_return = 0
+                    n_episodes += 1
+
+                state_dict = self._obs_to_state_dict(next_obs if not (terminated or truncated) else obs)
+
+            # Compute advantages using GAE
+            with torch.no_grad():
+                last_value = self.model.get_value(state_dict)
+
+            advantages, returns = self._compute_gae(
+                rewards=rollout_rewards,
+                values=[v.squeeze() for v in rollout_values],
+                dones=rollout_dones,
+                last_value=last_value.cpu().squeeze(),
+            )
+
+            # PPO update (Lazy Agent - no trade_probs)
+            metrics = self._ppo_update(
+                states=rollout_states,
+                weights=rollout_weights,
+                log_probs=rollout_log_probs,
+                advantages=advantages,
+                returns=returns,
+            )
+
+            # Record metrics
+            for key in ['policy_loss', 'value_loss', 'entropy', 'meta_loss', 'portfolio_loss', 'cvar_loss']:
+                if key in metrics:
+                    history[key].append(metrics[key])
+
+            self._log_metrics(metrics, total_steps_done, 'train')
+
+            # Update learning rate
+            self.scheduler.step()
+
+            # Save checkpoint
+            if total_steps_done % self.config.save_interval == 0:
+                self._save_checkpoint(total_steps_done, run_name)
+
+        # Final save
+        self._save_checkpoint(total_steps_done, run_name, final=True)
+
+        elapsed = time.time() - start_time
+        self.logger.info(f"Hierarchical training completed in {elapsed/3600:.2f} hours")
+        self.logger.info(f"Episodes completed: {n_episodes}")
+
+        if self.writer:
+            self.writer.close()
+
+        return history
+
+    def _obs_to_state_dict(self, obs: Dict) -> Dict[str, torch.Tensor]:
+        """Convert environment observation to model state dict."""
+        # For now, create dummy state dict from legacy obs format
+        # In production, HierarchicalStateBuilder should provide proper format
+
+        B = 1
+        T = 24  # lookback
+        N = self.model_config['n_assets']
+
+        # If obs already has the right format (from HierarchicalStateBuilder)
+        if 'alphas' in obs:
+            state_dict = {}
+            for key, value in obs.items():
+                if isinstance(value, np.ndarray):
+                    tensor = torch.tensor(value, dtype=torch.float32, device=self.device)
+                    if tensor.dim() < 4 and key not in ['portfolio_state']:
+                        tensor = tensor.unsqueeze(0)  # Add batch dim
+                    state_dict[key] = tensor
+                else:
+                    state_dict[key] = value
+            return state_dict
+
+        # Legacy format: convert market/portfolio to hierarchical format
+        market = obs.get('market', np.zeros((N, 36)))
+        portfolio = obs.get('portfolio', np.zeros(22))
+
+        # Create placeholder state dict
+        state_dict = {
+            'alphas': torch.zeros(B, T, N, self.model_config['n_alphas'], device=self.device),
+            'news_embedding': torch.zeros(B, T, N, 768, device=self.device),
+            'social_embedding': torch.zeros(B, T, N, 768, device=self.device),
+            'has_social_signal': torch.ones(B, T, N, 1, device=self.device),
+            'global_features': torch.zeros(B, T, 6, device=self.device),
+            'portfolio_state': torch.tensor(portfolio, dtype=torch.float32, device=self.device).unsqueeze(0),
+        }
+
+        # Fill in from market state (first 20 features as mock alphas)
+        if market.shape[1] >= 20:
+            for t in range(T):
+                state_dict['alphas'][0, t, :, :20] = torch.tensor(
+                    market[:, :20], dtype=torch.float32, device=self.device
+                )
+
+        return state_dict
+
+    def _compute_gae(
+        self,
+        rewards: List[float],
+        values: List[torch.Tensor],
+        dones: List[bool],
+        last_value: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Compute Generalized Advantage Estimation."""
+        T = len(rewards)
+        advantages = torch.zeros(T)
+        returns = torch.zeros(T)
+
+        gae = 0
+        next_value = last_value.item()
+
+        for t in reversed(range(T)):
+            if dones[t]:
+                next_value = 0
+                gae = 0
+
+            delta = rewards[t] + self.gamma * next_value - values[t].item()
+            gae = delta + self.gamma * self.gae_lambda * gae
+            advantages[t] = gae
+            returns[t] = gae + values[t].item()
+
+            next_value = values[t].item()
+
+        # Normalize advantages
+        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+
+        return advantages, returns
+
+    def _ppo_update(
+        self,
+        states: List[Dict],
+        weights: List[torch.Tensor],
+        log_probs: List[torch.Tensor],
+        advantages: torch.Tensor,
+        returns: torch.Tensor,
+    ) -> Dict[str, float]:
+        """Run PPO update epochs (Lazy Agent - no trade_probs)."""
+        T = len(states)
+
+        # Stack tensors
+        old_weights = torch.stack(weights)
+        old_log_probs = torch.stack(log_probs)
+
+        # Convert to device
+        advantages = advantages.to(self.device)
+        returns = returns.to(self.device)
+
+        total_policy_loss = 0
+        total_value_loss = 0
+        total_entropy = 0
+        n_updates = 0
+
+        for epoch in range(self.ppo_epochs):
+            # Generate random indices for mini-batches
+            indices = np.random.permutation(T)
+
+            for start in range(0, T, self.batch_size):
+                end = min(start + self.batch_size, T)
+                batch_indices = indices[start:end]
+
+                # Get batch
+                batch_states = self._stack_state_dicts([states[i] for i in batch_indices])
+                batch_old_log_probs = old_log_probs[batch_indices].to(self.device)
+                batch_advantages = advantages[batch_indices]
+                batch_returns = returns[batch_indices]
+
+                # Forward pass (Lazy Agent - no trade_prob)
+                new_weights, value, quantiles = self.model(batch_states)
+
+                # Compute new log probs (Gaussian approximation for weights only)
+                new_log_probs = self._compute_log_prob(
+                    new_weights,
+                    old_weights[batch_indices].to(self.device),
+                )
+
+                # PPO loss
+                ratio = torch.exp(new_log_probs - batch_old_log_probs)
+                surr1 = ratio * batch_advantages
+                surr2 = torch.clamp(ratio, 1 - self.clip_epsilon, 1 + self.clip_epsilon) * batch_advantages
+                policy_loss = -torch.min(surr1, surr2).mean()
+
+                # Value loss
+                value_loss = 0.5 * ((value.squeeze() - batch_returns) ** 2).mean()
+
+                # Entropy bonus (encourage exploration)
+                entropy = -new_log_probs.mean()
+
+                # Total loss
+                loss = policy_loss + self.vf_coef * value_loss - self.ent_coef * entropy
+
+                # Optimize
+                self.optimizer.zero_grad()
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
+                self.optimizer.step()
+
+                total_policy_loss += policy_loss.item()
+                total_value_loss += value_loss.item()
+                total_entropy += entropy.item()
+                n_updates += 1
+
+        return {
+            'policy_loss': total_policy_loss / max(1, n_updates),
+            'value_loss': total_value_loss / max(1, n_updates),
+            'entropy': total_entropy / max(1, n_updates),
+            'learning_rate': self.optimizer.param_groups[0]['lr'],
+        }
+
+    def _stack_state_dicts(self, state_dicts: List[Dict]) -> Dict[str, torch.Tensor]:
+        """Stack list of state dicts into batched state dict."""
+        result = {}
+        keys = state_dicts[0].keys()
+
+        for key in keys:
+            tensors = [s[key] for s in state_dicts]
+            # Remove existing batch dim and re-stack
+            tensors = [t.squeeze(0) if t.dim() > 0 and t.shape[0] == 1 else t for t in tensors]
+            result[key] = torch.stack(tensors).to(self.device)
+
+        return result
+
+    def _compute_log_prob(
+        self,
+        weights: torch.Tensor,
+        old_weights: torch.Tensor,
+        std: float = 0.1,
+    ) -> torch.Tensor:
+        """
+        Compute log probability for portfolio weights (Lazy Agent).
+
+        Uses Gaussian approximation for continuous action space.
+        """
+        # Gaussian approximation for weights
+        diff = (weights - old_weights) / std
+        log_prob = -0.5 * (diff ** 2).sum(dim=-1)
+
+        return log_prob
+
+    def _save_checkpoint(self, step: int, run_name: str, final: bool = False):
+        """Save training checkpoint."""
+        suffix = 'final' if final else f'step_{step}'
+        path = self.config.checkpoint_dir / f'{run_name}_{suffix}.pt'
+
+        torch.save({
+            'step': step,
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'scheduler_state_dict': self.scheduler.state_dict(),
+            'model_config': self.model_config,
+        }, path)
+
+        self.logger.info(f"Saved checkpoint: {path}")
+
+    def load_checkpoint(self, path: Path):
+        """Load checkpoint."""
+        checkpoint = torch.load(path, map_location=self.device)
+
+        self.model_config = checkpoint['model_config']
+        self._init_model()
+
+        self.model.load_state_dict(checkpoint['model_state_dict'])
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+
+        self.logger.info(f"Loaded checkpoint from {path}")
+
+        return checkpoint['step']
 
 
 # ========== Utility Functions ==========

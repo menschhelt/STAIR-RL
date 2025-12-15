@@ -48,22 +48,53 @@ logger = logging.getLogger(__name__)
 
 def load_data(config: Config, start_date: str, end_date: str) -> pd.DataFrame:
     """Load and prepare data for benchmarking."""
-    from backtesting.data_loader import BacktestDataLoader
+    from backtesting.data_loader import ParquetDataLoader
+    from datetime import datetime, timezone
 
     logger.info("Loading data for benchmarking...")
 
-    data_loader = BacktestDataLoader(
+    # Create data loader
+    data_loader = ParquetDataLoader(
         data_dir=DATA_DIR,
-        feature_dir=DATA_DIR / 'features',
+        config=config.backtest,
     )
 
-    data = data_loader.load_period(
-        start_date=start_date,
-        end_date=end_date,
+    # Parse dates (UTC timezone)
+    start_dt = datetime.strptime(start_date, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+    end_dt = datetime.strptime(end_date, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+
+    # Load universe symbols (filter to top N)
+    universe_symbols = data_loader.get_universe_symbols(
+        start_dt.date(),
+        end_dt.date(),
+        top_n=config.universe.top_n
     )
 
-    logger.info(f"Loaded {len(data)} rows")
-    return data
+    logger.info(f"Universe: {len(universe_symbols)} symbols (top {config.universe.top_n})")
+
+    # Load OHLCV data for all symbols
+    ohlcv_dict = data_loader.load_ohlcv_multi(
+        universe_symbols,
+        start_dt,
+        end_dt,
+        interval='5m'
+    )
+
+    # Concatenate all symbol dataframes
+    ohlcv_list = []
+    for symbol, df in ohlcv_dict.items():
+        df = df.copy()
+        df['symbol'] = symbol
+        ohlcv_list.append(df)
+
+    ohlcv_data = pd.concat(ohlcv_list, ignore_index=True)
+
+    # Set timestamp as index for date filtering in benchmarks
+    ohlcv_data = ohlcv_data.set_index('timestamp')
+    ohlcv_data = ohlcv_data.sort_index()
+
+    logger.info(f"Loaded OHLCV data: {len(ohlcv_data)} rows, {len(universe_symbols)} symbols")
+    return ohlcv_data
 
 
 def run_benchmark_suite(

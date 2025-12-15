@@ -92,6 +92,12 @@ class ParquetDataLoader:
         Returns:
             DataFrame with OHLCV + funding rate + mark price
         """
+        # FIX: Convert naive datetime to UTC-aware for comparison with DataFrame timestamps
+        if start_date.tzinfo is None:
+            start_date = start_date.replace(tzinfo=timezone.utc)
+        if end_date.tzinfo is None:
+            end_date = end_date.replace(tzinfo=timezone.utc)
+
         # Get partition keys (YYYYMM)
         partition_keys = self._get_monthly_partitions(start_date, end_date)
 
@@ -146,6 +152,12 @@ class ParquetDataLoader:
         Returns:
             Dict mapping symbol to DataFrame
         """
+        # FIX: Convert naive datetime to UTC-aware for comparison with DataFrame timestamps
+        if start_date.tzinfo is None:
+            start_date = start_date.replace(tzinfo=timezone.utc)
+        if end_date.tzinfo is None:
+            end_date = end_date.replace(tzinfo=timezone.utc)
+
         result = {}
 
         # Get partition keys
@@ -237,16 +249,29 @@ class ParquetDataLoader:
         self,
         start_date: date,
         end_date: date,
+        top_n: int = 20,
     ) -> List[str]:
-        """Get all unique symbols in universe during period."""
+        """
+        Get top N symbols in universe during period (filtered by slot).
+
+        Args:
+            start_date: Start date
+            end_date: End date
+            top_n: Number of top symbols to include (default: 20)
+
+        Returns:
+            List of unique symbols that were in top N during the period
+        """
         history = self.load_universe_history()
 
         if history.empty:
             return []
 
+        # Filter by date range and slot (already ranked by quote_volume)
         filtered = history[
             (history['date'] >= start_date) &
-            (history['date'] <= end_date)
+            (history['date'] <= end_date) &
+            (history['slot'] <= top_n)
         ]
 
         symbols = filtered['symbol'].dropna().unique().tolist()

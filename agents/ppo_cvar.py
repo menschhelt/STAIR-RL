@@ -32,7 +32,8 @@ import numpy as np
 from dataclasses import dataclass
 from collections import deque
 
-from agents.networks import ActorCritic, FeatureEncoder
+from agents.networks import ActorCritic, FeatureEncoder, HierarchicalActorCritic
+from agents.hierarchical_adapter import HierarchicalActorCriticAdapter
 
 
 @dataclass
@@ -40,7 +41,7 @@ class PPOCVaRConfig:
     """PPO-CVaR hyperparameters."""
     # Network dimensions
     n_assets: int = 20
-    state_dim: int = 35
+    state_dim: int = 36  # BUG FIX: Changed from 35 to match StateBuilder output
     portfolio_dim: int = 22
     hidden_dim: int = 128
 
@@ -62,6 +63,15 @@ class PPOCVaRConfig:
     entropy_coef: float = 0.01    # Entropy bonus coefficient
     value_coef: float = 0.5       # Value loss coefficient
     grad_clip: float = 0.5        # Gradient clipping
+    lambda_gp: float = 10.0       # Gradient penalty for Lipschitz constraint (paper: 10.0)
+
+    # Architecture
+    use_hierarchical: bool = True  # Use HierarchicalActorCritic (full multi-modal architecture)
+    n_quantiles: int = 8            # Number of CVaR quantiles
+
+    # Embedding paths (optional, for HierarchicalActorCritic)
+    gdelt_embeddings_path: Optional[str] = None  # Path to GDELT embeddings HDF5
+    nostr_embeddings_path: Optional[str] = None  # Path to Nostr embeddings HDF5
 
     # LR scheduling
     lr_decay: bool = True
@@ -97,6 +107,9 @@ class RolloutBuffer:
         self.log_probs = np.zeros(horizon, dtype=np.float32)
         self.dones = np.zeros(horizon, dtype=np.float32)
 
+        # Timestamp storage (ISO format strings, max 32 characters)
+        self.timestamps = np.zeros(horizon, dtype='U32')
+
         # Computed advantages
         self.advantages = np.zeros(horizon, dtype=np.float32)
         self.returns = np.zeros(horizon, dtype=np.float32)
@@ -110,6 +123,7 @@ class RolloutBuffer:
         value: float,
         log_prob: float,
         done: bool,
+        timestamp: Optional[str] = None,
     ):
         """Add a transition to the buffer."""
         idx = self.position
@@ -121,6 +135,10 @@ class RolloutBuffer:
         self.values[idx] = value
         self.log_probs[idx] = log_prob
         self.dones[idx] = float(done)
+
+        # Store timestamp if provided
+        if timestamp is not None:
+            self.timestamps[idx] = timestamp
 
         self.position += 1
 
@@ -161,6 +179,7 @@ class RolloutBuffer:
             'log_probs': torch.tensor(self.log_probs[:self.position], device=self.device),
             'advantages': torch.tensor(self.advantages[:self.position], device=self.device),
             'returns': torch.tensor(self.returns[:self.position], device=self.device),
+            'timestamps': self.timestamps[:self.position].tolist(),  # Convert to list of strings
         }
 
     def reset(self):
@@ -231,20 +250,45 @@ class PPOCVaRAgent:
         """Build neural networks."""
         cfg = self.config
 
-        # Combined actor-critic network
-        self.actor_critic = ActorCritic(
-            n_assets=cfg.n_assets,
-            local_feature_dim=cfg.state_dim - 6,
-            global_feature_dim=6,
-            portfolio_state_dim=cfg.portfolio_dim,
-            hidden_dim=cfg.hidden_dim,
-        ).to(self.device)
+        if cfg.use_hierarchical:
+            # Use HierarchicalActorCritic with adapter
+            hierarchical_model = HierarchicalActorCritic(
+                n_alphas=292,  # Will be updated when real alphas available
+                n_assets=cfg.n_assets,
+                d_alpha=64,
+                d_text=64,
+                d_temporal=128,
+                d_global=6,
+                d_portfolio=cfg.portfolio_dim,
+                n_quantiles=cfg.n_quantiles,
+            ).to(self.device)
+
+            self.adapter = HierarchicalActorCriticAdapter(
+                hierarchical_model,
+                gdelt_embeddings_path=cfg.gdelt_embeddings_path,
+                nostr_embeddings_path=cfg.nostr_embeddings_path,
+                device=str(self.device),
+            )
+
+            # Expose actor_critic for compatibility
+            self.actor_critic = self.adapter.model
+        else:
+            # Original ActorCritic network
+            self.actor_critic = ActorCritic(
+                n_assets=cfg.n_assets,
+                local_feature_dim=cfg.state_dim - 6,
+                global_feature_dim=6,
+                portfolio_state_dim=cfg.portfolio_dim,
+                hidden_dim=cfg.hidden_dim,
+            ).to(self.device)
+            self.adapter = None
 
     def select_action(
         self,
         market_state: np.ndarray,
         portfolio_state: np.ndarray,
         deterministic: bool = False,
+        timestamp: Optional[str] = None,
     ) -> Tuple[np.ndarray, float, float]:
         """
         Select action given current state.
@@ -253,17 +297,35 @@ class PPOCVaRAgent:
             market_state: (n_assets, state_dim) array
             portfolio_state: (portfolio_dim,) array
             deterministic: if True, return mean action
+            timestamp: Optional ISO timestamp for embedding lookup
 
         Returns:
             Tuple of (action, log_prob, value)
         """
+        cfg = self.config
+
         with torch.no_grad():
             market = torch.tensor(market_state, dtype=torch.float32, device=self.device).unsqueeze(0)
             portfolio = torch.tensor(portfolio_state, dtype=torch.float32, device=self.device).unsqueeze(0)
 
-            action, log_prob, value = self.actor_critic.get_action_and_value(
-                market, portfolio, deterministic=deterministic
-            )
+            if cfg.use_hierarchical:
+                # Encode with dual outputs (with timestamps for embeddings)
+                timestamps = [timestamp] if timestamp else None
+                z_pooled, z_unpooled = self.adapter.encode_state(market, portfolio, timestamps=timestamps)
+
+                # Get action
+                action, trade_prob = self.adapter.get_action(z_pooled, z_unpooled, deterministic)
+
+                # Get value
+                value = self.adapter.get_value(z_pooled)
+
+                # Placeholder log_prob (will be computed during update)
+                log_prob = torch.zeros(1, device=self.device)
+            else:
+                # Original actor-critic
+                action, log_prob, value = self.actor_critic.get_action_and_value(
+                    market, portfolio, deterministic=deterministic
+                )
 
             return (
                 action.cpu().numpy().squeeze(0),
@@ -277,11 +339,18 @@ class PPOCVaRAgent:
         portfolio_state: np.ndarray,
     ) -> float:
         """Get value estimate for a state."""
+        cfg = self.config
+
         with torch.no_grad():
             market = torch.tensor(market_state, dtype=torch.float32, device=self.device).unsqueeze(0)
             portfolio = torch.tensor(portfolio_state, dtype=torch.float32, device=self.device).unsqueeze(0)
 
-            value = self.actor_critic.get_value(market, portfolio)
+            if cfg.use_hierarchical:
+                z_pooled, _ = self.adapter.encode_state(market, portfolio)
+                value = self.adapter.get_value(z_pooled)
+            else:
+                value = self.actor_critic.get_value(market, portfolio)
+
             return value.cpu().item()
 
     def compute_cvar(self, returns: np.ndarray) -> float:
@@ -364,9 +433,27 @@ class PPOCVaRAgent:
                 mb = {k: v[batch_indices] for k, v in data.items()}
 
                 # Compute current policy outputs
-                z = self.actor_critic.encoder(mb['market_states'], mb['portfolio_states'])
-                actions, log_probs = self.actor_critic.actor.get_action(z)
-                values = self.actor_critic.critic(z).squeeze(-1)
+                if cfg.use_hierarchical:
+                    # Encode with dual outputs
+                    timestamps = mb.get('timestamps', None)
+                    z_pooled, z_unpooled = self.adapter.encode_state(
+                        mb['market_states'], mb['portfolio_states'], timestamps=timestamps
+                    )
+
+                    # Get action
+                    actions, trade_prob = self.adapter.get_action(z_pooled, z_unpooled, deterministic=False)
+
+                    # Get value
+                    values = self.adapter.get_value(z_pooled).squeeze(-1)
+
+                    # Placeholder log_probs (will be computed for entropy)
+                    log_probs = torch.zeros(actions.shape[0], device=self.device)
+                else:
+                    # Original encoding
+                    z = self.actor_critic.encoder(mb['market_states'], mb['portfolio_states'])
+                    actions, log_probs = self.actor_critic.actor.get_action(z)
+                    values = self.actor_critic.critic(z).squeeze(-1)
+                    z_pooled = z  # For gradient penalty
 
                 # Recompute log probs for old actions
                 # Approximate: use current log_prob - old_log_prob ratio
@@ -380,8 +467,35 @@ class PPOCVaRAgent:
                 surr2 = torch.clamp(ratio, 1 - cfg.clip_epsilon, 1 + cfg.clip_epsilon) * mb['advantages']
                 policy_loss = -torch.min(surr1, surr2).mean()
 
-                # Value loss (clipped)
-                value_loss = F.mse_loss(values, mb['returns'])
+                # Value loss (MSE + Lipschitz regularization)
+                value_mse = F.mse_loss(values, mb['returns'])
+
+                # Lipschitz constraint: L_Lip = λ_GP × E[(‖∇_z V‖₂ - 1)²]
+                # Encourages smoothness in value function
+                if cfg.lambda_gp > 0:
+                    z_pooled_detached = z_pooled.detach().requires_grad_(True)
+
+                    if cfg.use_hierarchical:
+                        v_gp = self.adapter.get_value(z_pooled_detached).squeeze(-1)
+                    else:
+                        v_gp = self.actor_critic.critic(z_pooled_detached).squeeze(-1)
+
+                    # Compute gradient of V w.r.t. encoded state
+                    gradients = torch.autograd.grad(
+                        outputs=v_gp,
+                        inputs=z_pooled_detached,
+                        grad_outputs=torch.ones_like(v_gp),
+                        create_graph=True,
+                        retain_graph=True,
+                    )[0]
+
+                    # Gradient penalty: (||grad|| - 1)^2
+                    grad_norm = torch.sqrt((gradients ** 2).sum(dim=-1) + 1e-12)
+                    gp_loss = ((grad_norm - 1) ** 2).mean()
+
+                    value_loss = value_mse + cfg.lambda_gp * gp_loss
+                else:
+                    value_loss = value_mse
 
                 # Entropy bonus (approximate)
                 entropy = -log_probs.mean()
@@ -443,13 +557,34 @@ class PPOCVaRAgent:
         Args:
             cql_agent: Trained CQL-SAC agent
         """
-        # Load encoder weights
-        self.actor_critic.encoder.load_state_dict(cql_agent.encoder.state_dict())
+        cfg = self.config
 
-        # Load actor weights
-        self.actor_critic.actor.load_state_dict(cql_agent.actor.state_dict())
+        if cfg.use_hierarchical:
+            # For hierarchical, load from adapter's model
+            # Both should be using HierarchicalActorCritic
+            if hasattr(cql_agent, 'adapter') and cql_agent.adapter is not None:
+                # Load encoder
+                self.actor_critic.encoder.load_state_dict(
+                    cql_agent.encoder.state_dict()
+                )
 
-        print("Loaded weights from CQL-SAC agent")
+                # Load actor
+                self.actor_critic.actor.load_state_dict(
+                    cql_agent.actor.state_dict()
+                )
+
+                print("Loaded hierarchical weights from CQL-SAC agent")
+            else:
+                print("Warning: CQL-SAC agent is not using hierarchical architecture")
+                print("Skipping weight loading")
+        else:
+            # Load encoder weights
+            self.actor_critic.encoder.load_state_dict(cql_agent.encoder.state_dict())
+
+            # Load actor weights
+            self.actor_critic.actor.load_state_dict(cql_agent.actor.state_dict())
+
+            print("Loaded weights from CQL-SAC agent")
 
     def save(self, path: str):
         """Save agent state."""
@@ -477,7 +612,7 @@ if __name__ == '__main__':
 
     config = PPOCVaRConfig(
         n_assets=20,
-        state_dim=35,
+        state_dim=36,  # BUG FIX: Changed from 35 to match StateBuilder output
         portfolio_dim=22,
         horizon=256,  # Shorter for testing
         batch_size=32,

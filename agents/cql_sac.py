@@ -28,7 +28,8 @@ from typing import Dict, Tuple, Optional, List
 import numpy as np
 from dataclasses import dataclass
 
-from agents.networks import FeatureEncoder, Actor, TwinCritic, soft_update
+from agents.networks import FeatureEncoder, Actor, TwinCritic, soft_update, HierarchicalActorCritic
+from agents.hierarchical_adapter import HierarchicalActorCriticAdapter
 
 
 @dataclass
@@ -36,7 +37,7 @@ class CQLSACConfig:
     """CQL-SAC hyperparameters."""
     # Network dimensions
     n_assets: int = 20
-    state_dim: int = 35
+    state_dim: int = 36  # BUG FIX: Changed from 35 to match StateBuilder output
     portfolio_dim: int = 22
     hidden_dim: int = 128
 
@@ -59,6 +60,17 @@ class CQLSACConfig:
 
     # Gradient penalty (Lipschitz constraint)
     lambda_gp: float = 10.0       # Gradient penalty weight
+
+    # Semantic smoothing (temporal consistency, paper: λ=0.1)
+    lambda_smooth: float = 0.1    # Semantic smoothing weight
+
+    # Architecture selection
+    use_hierarchical: bool = True  # Use HierarchicalActorCritic (True: full multi-modal architecture)
+    n_quantiles: int = 8            # Number of CVaR quantiles (for hierarchical critic)
+
+    # Embedding paths (optional, for HierarchicalActorCritic)
+    gdelt_embeddings_path: Optional[str] = None  # Path to GDELT embeddings HDF5
+    nostr_embeddings_path: Optional[str] = None  # Path to Nostr embeddings HDF5
 
     # Training
     batch_size: int = 256
@@ -120,29 +132,61 @@ class CQLSACAgent:
         """Build neural networks."""
         cfg = self.config
 
-        # Feature encoder
-        self.encoder = FeatureEncoder(
-            n_assets=cfg.n_assets,
-            local_feature_dim=cfg.state_dim - 6,  # 29 local + 6 global = 35
-            global_feature_dim=6,
-            portfolio_state_dim=cfg.portfolio_dim,
-            hidden_dim=cfg.hidden_dim,
-        ).to(self.device)
+        if cfg.use_hierarchical:
+            # Use HierarchicalActorCritic with adapter
+            hierarchical_model = HierarchicalActorCritic(
+                n_alphas=292,  # Alpha 101 + Alpha 191
+                n_assets=cfg.n_assets,
+                d_alpha=64,
+                d_text=64,
+                d_temporal=128,
+                d_global=6,
+                d_portfolio=cfg.portfolio_dim,
+                n_quantiles=cfg.n_quantiles,
+            ).to(self.device)
 
-        # Actor (policy)
-        self.actor = Actor(
-            input_dim=self.encoder.output_dim,
-            n_assets=cfg.n_assets,
-        ).to(self.device)
+            self.adapter = HierarchicalActorCriticAdapter(
+                hierarchical_model,
+                gdelt_embeddings_path=cfg.gdelt_embeddings_path,
+                nostr_embeddings_path=cfg.nostr_embeddings_path,
+                device=str(self.device),
+            )
+            self.adapter.to(self.device)
 
-        # Twin Q-networks
-        self.critic = TwinCritic(
-            state_dim=self.encoder.output_dim,
-            action_dim=cfg.n_assets,
-        ).to(self.device)
+            # Expose networks for compatibility
+            self.encoder = self.adapter.model.encoder
+            self.actor = self.adapter.model.actor
+            self.critic = self.adapter.model.critic
+            self.target_critic = copy.deepcopy(self.critic)
 
-        # Target networks
-        self.target_critic = copy.deepcopy(self.critic)
+        else:
+            # Original networks (fallback)
+            # Feature encoder
+            self.encoder = FeatureEncoder(
+                n_assets=cfg.n_assets,
+                local_feature_dim=cfg.state_dim - 6,  # 30 local + 6 global = 36 (BUG FIX)
+                global_feature_dim=6,
+                portfolio_state_dim=cfg.portfolio_dim,
+                hidden_dim=cfg.hidden_dim,
+            ).to(self.device)
+
+            # Actor (policy)
+            self.actor = Actor(
+                input_dim=self.encoder.output_dim,
+                n_assets=cfg.n_assets,
+            ).to(self.device)
+
+            # Twin Q-networks
+            self.critic = TwinCritic(
+                state_dim=self.encoder.output_dim,
+                action_dim=cfg.n_assets,
+            ).to(self.device)
+
+            # Target networks
+            self.target_critic = copy.deepcopy(self.critic)
+
+            # No adapter for basic networks
+            self.adapter = None
 
         # Freeze target networks
         for param in self.target_critic.parameters():
@@ -173,15 +217,40 @@ class CQLSACAgent:
         self,
         market_state: torch.Tensor,
         portfolio_state: torch.Tensor,
-    ) -> torch.Tensor:
-        """Encode state using feature encoder."""
-        return self.encoder(market_state, portfolio_state)
+        timestamps: Optional[List[str]] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Encode state using feature encoder.
+
+        Args:
+            market_state: (B, N, state_dim) market features
+            portfolio_state: (B, portfolio_dim) portfolio state
+            timestamps: Optional list of ISO timestamp strings for embedding lookup
+
+        Returns:
+            z_pooled: (B, 176) - Pooled representation for Critic
+            z_unpooled: (B, N, 176) - Unpooled representation for Actor
+        """
+        if self.config.use_hierarchical:
+            # Use adapter to get dual outputs (with timestamps for embeddings)
+            z_pooled, z_unpooled = self.adapter.encode_state(
+                market_state, portfolio_state, timestamps=timestamps
+            )
+        else:
+            # Basic encoder: single output, duplicate for compatibility
+            z = self.encoder(market_state, portfolio_state)
+            z_pooled = z
+            # Create fake unpooled by repeating pooled
+            z_unpooled = z.unsqueeze(1).repeat(1, self.config.n_assets, 1)
+
+        return z_pooled, z_unpooled
 
     def select_action(
         self,
         market_state: np.ndarray,
         portfolio_state: np.ndarray,
         deterministic: bool = False,
+        timestamp: Optional[str] = None,
     ) -> np.ndarray:
         """
         Select action given current state.
@@ -190,6 +259,7 @@ class CQLSACAgent:
             market_state: (n_assets, state_dim) array
             portfolio_state: (portfolio_dim,) array
             deterministic: if True, return mean action
+            timestamp: Optional ISO timestamp for embedding lookup
 
         Returns:
             action: (n_assets,) portfolio weights
@@ -199,14 +269,20 @@ class CQLSACAgent:
             market = torch.tensor(market_state, dtype=torch.float32, device=self.device).unsqueeze(0)
             portfolio = torch.tensor(portfolio_state, dtype=torch.float32, device=self.device).unsqueeze(0)
 
-            # Encode state
-            z = self.encode_state(market, portfolio)
+            # Encode state (dual outputs, with timestamps for embeddings)
+            timestamps = [timestamp] if timestamp else None
+            z_pooled, z_unpooled = self.encode_state(market, portfolio, timestamps=timestamps)
 
             # Get action
-            if deterministic:
-                action = self.actor(z)
+            if self.config.use_hierarchical:
+                # Use adapter for hierarchical actor
+                action, trade_prob = self.adapter.get_action(z_pooled, z_unpooled, deterministic)
             else:
-                action, _ = self.actor.get_action(z)
+                # Use basic actor (only needs pooled z)
+                if deterministic:
+                    action = self.actor(z_pooled)
+                else:
+                    action, _ = self.actor.get_action(z_pooled)
 
             return action.cpu().numpy().squeeze(0)
 
@@ -240,18 +316,45 @@ class CQLSACAgent:
 
         batch_size = market_states.shape[0]
 
-        # Encode current and next states
-        z = self.encode_state(market_states, portfolio_states)
-        with torch.no_grad():
-            z_next = self.encode_state(next_market_states, next_portfolio_states)
+        # Extract timestamps from batch (if available)
+        timestamps = batch.get('timestamps', None)
+        next_timestamps = batch.get('next_timestamps', None)
+
+        # Encode current state (dual outputs)
+        z_pooled, z_unpooled = self.encode_state(market_states, portfolio_states, timestamps=timestamps)
+
+        # Encode next state (with gradients for semantic smoothing)
+        next_z_pooled, next_z_unpooled = self.encode_state(next_market_states, next_portfolio_states, timestamps=next_timestamps)
+
+        # ========== Semantic Smoothing Loss (Paper: L_smooth) ==========
+        # L_smooth = λ × E[‖φ(H_t) - φ(H_{t+1})‖²]
+        # Encourages temporal consistency in semantic embeddings
+        # Use pooled representations for smoothing
+        # Update encoder separately to avoid graph conflicts
+        smooth_loss_value = 0.0
+        if cfg.lambda_smooth > 0:
+            smooth_loss = cfg.lambda_smooth * F.mse_loss(z_pooled, next_z_pooled.detach())
+            smooth_loss_value = smooth_loss.item()
+
+            # Optimize encoder separately for smoothing
+            self.actor_optimizer.zero_grad()  # Actor optimizer includes encoder
+            smooth_loss.backward()
+            if cfg.grad_clip > 0:
+                nn.utils.clip_grad_norm_(self.encoder.parameters(), cfg.grad_clip)
+            self.actor_optimizer.step()
+
+            # Re-encode states for critic/actor updates (graph is clean now)
+            z_pooled, z_unpooled = self.encode_state(market_states, portfolio_states, timestamps=timestamps)
+            next_z_pooled, next_z_unpooled = self.encode_state(next_market_states, next_portfolio_states, timestamps=next_timestamps)
 
         # ========== Update Critic ==========
         critic_loss, cql_loss, td_loss = self._update_critic(
-            z, actions, rewards, z_next, dones
+            z_pooled, z_unpooled, actions, rewards,
+            next_z_pooled.detach(), next_z_unpooled.detach(), dones
         )
 
         # ========== Update Actor ==========
-        actor_loss, alpha_loss = self._update_actor(z)
+        actor_loss, alpha_loss = self._update_actor(z_pooled, z_unpooled)
 
         # ========== Update Target Networks ==========
         soft_update(self.target_critic, self.critic, cfg.tau)
@@ -262,6 +365,7 @@ class CQLSACAgent:
             'critic_loss': critic_loss,
             'cql_loss': cql_loss,
             'td_loss': td_loss,
+            'smooth_loss': smooth_loss_value,
             'actor_loss': actor_loss,
             'alpha_loss': alpha_loss,
             'alpha': self.alpha.item(),
@@ -269,23 +373,31 @@ class CQLSACAgent:
 
     def _update_critic(
         self,
-        z: torch.Tensor,
+        z_pooled: torch.Tensor,
+        z_unpooled: torch.Tensor,
         actions: torch.Tensor,
         rewards: torch.Tensor,
-        z_next: torch.Tensor,
+        next_z_pooled: torch.Tensor,
+        next_z_unpooled: torch.Tensor,
         dones: torch.Tensor,
     ) -> Tuple[float, float, float]:
         """Update critic networks."""
         cfg = self.config
-        batch_size = z.shape[0]
+        batch_size = z_pooled.shape[0]
 
         # ========== TD Target ==========
         with torch.no_grad():
             # Sample next actions from policy
-            next_actions, next_log_probs = self.actor.get_action(z_next)
+            if cfg.use_hierarchical:
+                next_actions, _ = self.adapter.get_action(next_z_pooled, next_z_unpooled, deterministic=False)
+                # Need log_probs for SAC entropy term
+                # For now, compute it manually (TODO: improve adapter to return log_probs)
+                next_log_probs = torch.zeros(batch_size, device=self.device)  # Placeholder
+            else:
+                next_actions, next_log_probs = self.actor.get_action(next_z_pooled)
 
-            # Compute target Q-value
-            target_q1, target_q2 = self.target_critic(z_next, next_actions)
+            # Compute target Q-value (critic only uses pooled z)
+            target_q1, target_q2 = self.target_critic(next_z_pooled, next_actions)
             target_q = torch.min(target_q1, target_q2).squeeze(-1)
 
             # Entropy-regularized target
@@ -294,8 +406,8 @@ class CQLSACAgent:
             # TD target
             td_target = rewards + cfg.gamma * (1 - dones) * target_q
 
-        # Current Q-values
-        current_q1, current_q2 = self.critic(z, actions)
+        # Current Q-values (critic only uses pooled z)
+        current_q1, current_q2 = self.critic(z_pooled, actions)
         current_q1 = current_q1.squeeze(-1)
         current_q2 = current_q2.squeeze(-1)
 
@@ -311,19 +423,24 @@ class CQLSACAgent:
 
         # Sample actions from current policy
         with torch.no_grad():
-            policy_actions = torch.stack([
-                self.actor.get_action(z)[0] for _ in range(cfg.cql_n_actions)
-            ])  # (n_actions, batch, n_assets)
+            if cfg.use_hierarchical:
+                policy_actions = torch.stack([
+                    self.adapter.get_action(z_pooled, z_unpooled)[0] for _ in range(cfg.cql_n_actions)
+                ])  # (n_actions, batch, n_assets)
+            else:
+                policy_actions = torch.stack([
+                    self.actor.get_action(z_pooled)[0] for _ in range(cfg.cql_n_actions)
+                ])  # (n_actions, batch, n_assets)
 
-        # Compute Q-values for random and policy actions
+        # Compute Q-values for random and policy actions (critic uses pooled z)
         cql_q_random = []
         cql_q_policy = []
 
         for i in range(cfg.cql_n_actions):
-            q1_r, q2_r = self.critic(z, random_actions[i])
+            q1_r, q2_r = self.critic(z_pooled, random_actions[i])
             cql_q_random.append(torch.min(q1_r, q2_r).squeeze(-1))
 
-            q1_p, q2_p = self.critic(z, policy_actions[i])
+            q1_p, q2_p = self.critic(z_pooled, policy_actions[i])
             cql_q_policy.append(torch.min(q1_p, q2_p).squeeze(-1))
 
         cql_q_random = torch.stack(cql_q_random, dim=0)  # (n_actions, batch)
@@ -340,18 +457,19 @@ class CQLSACAgent:
 
         # ========== Gradient Penalty (Lipschitz) ==========
         if cfg.lambda_gp > 0:
-            gp_loss = self._gradient_penalty(z, actions)
+            gp_loss = self._gradient_penalty(z_pooled, actions)
         else:
             gp_loss = 0.0
 
-        # Total critic loss
+        # Total critic loss (includes TD, CQL, Gradient Penalty)
+        # Note: Semantic Smoothing is applied separately in update() to avoid graph conflicts
         total_loss = td_loss + cfg.lambda_cql * cql_loss
         if isinstance(gp_loss, torch.Tensor):
             total_loss = total_loss + cfg.lambda_gp * gp_loss
 
         # Optimize
         self.critic_optimizer.zero_grad()
-        total_loss.backward()
+        total_loss.backward(retain_graph=True)  # Retain graph for actor update
         if cfg.grad_clip > 0:
             nn.utils.clip_grad_norm_(self.critic.parameters(), cfg.grad_clip)
         self.critic_optimizer.step()
@@ -360,20 +478,20 @@ class CQLSACAgent:
 
     def _gradient_penalty(
         self,
-        z: torch.Tensor,
+        z_pooled: torch.Tensor,
         actions: torch.Tensor,
     ) -> torch.Tensor:
         """Compute gradient penalty for Lipschitz constraint."""
-        z.requires_grad_(True)
+        z_pooled.requires_grad_(True)
         actions.requires_grad_(True)
 
-        q1, q2 = self.critic(z, actions)
+        q1, q2 = self.critic(z_pooled, actions)
         q = (q1 + q2) / 2
 
         # Compute gradients
         gradients = torch.autograd.grad(
             outputs=q,
-            inputs=[z, actions],
+            inputs=[z_pooled, actions],
             grad_outputs=torch.ones_like(q),
             create_graph=True,
             retain_graph=True,
@@ -390,31 +508,48 @@ class CQLSACAgent:
 
         return gp
 
-    def _update_actor(self, z: torch.Tensor) -> Tuple[float, float]:
+    def _update_actor(
+        self,
+        z_pooled: torch.Tensor,
+        z_unpooled: torch.Tensor,
+    ) -> Tuple[float, float]:
         """Update actor network."""
-        # Sample actions from current policy
-        actions, log_probs = self.actor.get_action(z)
+        cfg = self.config
 
-        # Q-values for sampled actions
-        q1, q2 = self.critic(z, actions)
+        # Sample actions from current policy
+        if cfg.use_hierarchical:
+            actions, _ = self.adapter.get_action(z_pooled, z_unpooled, deterministic=False)
+            # For hierarchical, we need to compute log_probs manually
+            # For now, use a placeholder (will be updated when entropy is needed)
+            log_probs = torch.zeros(actions.shape[0], device=self.device)
+        else:
+            actions, log_probs = self.actor.get_action(z_pooled)
+
+        # Q-values for sampled actions (Critic uses pooled z)
+        q1, q2 = self.critic(z_pooled, actions)
         q_value = torch.min(q1, q2).squeeze(-1)
 
         # Actor loss: maximize Q - α * entropy
-        actor_loss = (self.alpha.detach() * log_probs - q_value).mean()
+        if cfg.use_hierarchical:
+            # For hierarchical, skip entropy term temporarily
+            # TODO: Implement proper entropy computation for HierarchicalActor
+            actor_loss = -q_value.mean()
+        else:
+            actor_loss = (self.alpha.detach() * log_probs - q_value).mean()
 
         # Optimize actor
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
-        if self.config.grad_clip > 0:
+        if cfg.grad_clip > 0:
             nn.utils.clip_grad_norm_(
                 list(self.encoder.parameters()) + list(self.actor.parameters()),
-                self.config.grad_clip
+                cfg.grad_clip
             )
         self.actor_optimizer.step()
 
         # ========== Update Temperature (Auto Entropy Tuning) ==========
         alpha_loss = 0.0
-        if self.config.auto_entropy_tuning:
+        if cfg.auto_entropy_tuning and not cfg.use_hierarchical:
             alpha_loss = -(self.log_alpha * (log_probs + self.target_entropy).detach()).mean()
 
             self.alpha_optimizer.zero_grad()
@@ -488,6 +623,10 @@ class ReplayBuffer:
         self.next_portfolio_states = np.zeros((capacity, portfolio_dim), dtype=np.float32)
         self.dones = np.zeros(capacity, dtype=np.float32)
 
+        # Timestamp storage (ISO format strings, max 32 characters)
+        self.timestamps = np.zeros(capacity, dtype='U32')
+        self.next_timestamps = np.zeros(capacity, dtype='U32')
+
     def add(
         self,
         market_state: np.ndarray,
@@ -497,6 +636,8 @@ class ReplayBuffer:
         next_market_state: np.ndarray,
         next_portfolio_state: np.ndarray,
         done: bool,
+        timestamp: Optional[str] = None,
+        next_timestamp: Optional[str] = None,
     ):
         """Add a transition to the buffer."""
         idx = self.position
@@ -508,6 +649,12 @@ class ReplayBuffer:
         self.next_market_states[idx] = next_market_state
         self.next_portfolio_states[idx] = next_portfolio_state
         self.dones[idx] = float(done)
+
+        # Store timestamps if provided
+        if timestamp is not None:
+            self.timestamps[idx] = timestamp
+        if next_timestamp is not None:
+            self.next_timestamps[idx] = next_timestamp
 
         self.position = (self.position + 1) % self.capacity
         self.size = min(self.size + 1, self.capacity)
@@ -524,6 +671,8 @@ class ReplayBuffer:
             'next_market_states': torch.tensor(self.next_market_states[indices], device=self.device),
             'next_portfolio_states': torch.tensor(self.next_portfolio_states[indices], device=self.device),
             'dones': torch.tensor(self.dones[indices], device=self.device),
+            'timestamps': self.timestamps[indices].tolist(),  # Convert to list of strings
+            'next_timestamps': self.next_timestamps[indices].tolist(),
         }
 
     def load_from_data(
@@ -533,6 +682,7 @@ class ReplayBuffer:
         actions: np.ndarray,
         rewards: np.ndarray,
         dones: np.ndarray,
+        timestamps: Optional[np.ndarray] = None,
     ):
         """
         Load pre-collected offline data into buffer.
@@ -543,11 +693,16 @@ class ReplayBuffer:
             actions: (T, n_assets)
             rewards: (T,)
             dones: (T,)
+            timestamps: (T,) Optional array of ISO timestamp strings
         """
         T = len(rewards)
         assert T <= self.capacity, f"Data size {T} exceeds capacity {self.capacity}"
 
         for t in range(T - 1):  # -1 because we need next state
+            # Prepare timestamp arguments
+            timestamp = timestamps[t] if timestamps is not None else None
+            next_timestamp = timestamps[t + 1] if timestamps is not None else None
+
             self.add(
                 market_state=market_states[t],
                 portfolio_state=portfolio_states[t],
@@ -556,6 +711,8 @@ class ReplayBuffer:
                 next_market_state=market_states[t + 1],
                 next_portfolio_state=portfolio_states[t + 1],
                 done=dones[t],
+                timestamp=timestamp,
+                next_timestamp=next_timestamp,
             )
 
     def __len__(self) -> int:
@@ -570,7 +727,7 @@ if __name__ == '__main__':
 
     config = CQLSACConfig(
         n_assets=20,
-        state_dim=35,
+        state_dim=36,  # BUG FIX: Changed from 35 to match StateBuilder output
         portfolio_dim=22,
     )
 

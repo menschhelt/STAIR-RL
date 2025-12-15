@@ -51,11 +51,6 @@ yfinance:
 
 alpha:
   alpha_101_dir: "/home/work/RL/customized-freqtrade/user_data/strategies/alphas/alpha_101"
-  alpha_191_dir: "/home/work/RL/customized-freqtrade/user_data/strategies/alphas/alpha_191"
-  pca:
-    n_components: 20  # Compress 300+ alphas to 20 PCs
-    lookback_days: 252  # 1 year rolling window
-    min_observations: 60
 
 # ========== Text Processing ==========
 

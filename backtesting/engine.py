@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from config.settings import DATA_DIR, BacktestConfig
 from backtesting.data_loader import ParquetDataLoader, BacktestDataProvider
 from backtesting.metrics import PerformanceMetrics
+from backtesting.pnl_calculator import PnLCalculator
 from backtesting.validator import DataValidator
 from features.state_builder import StateBuilder
 from factors.loading_matrix import LoadingMatrixCalculator
@@ -110,6 +111,15 @@ class BacktestEngine:
         # Components
         self.state_builder = StateBuilder(n_assets=self.config.universe_size)
         self.metrics_calculator = PerformanceMetrics()
+
+        # Note: BacktestEngine uses position-based tracking for accuracy.
+        # PnLCalculator (weight-based) is used by TradingEnv for RL training speed.
+        # Both approaches are valid for their respective use cases.
+        self.pnl_calculator = PnLCalculator(
+            transaction_cost_rate=self.config.taker_fee,
+            slippage_rate=self.config.slippage,
+        )
+
         self.validator = DataValidator()
         self.loading_matrix_calc = LoadingMatrixCalculator()
         self.factor_engine = CryptoFactorEngine()

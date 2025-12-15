@@ -4,10 +4,9 @@ Feature Building Script.
 
 Pre-calculates all features for efficient training:
 1. Alpha 101/191 factors
-2. PCA compression (300+ alphas -> 20 components)
-3. Risk factor loadings (beta_MKT, beta_SMB, beta_MOM, alpha_resid)
-4. Sentiment scores (if available)
-5. Universe history
+2. Risk factor loadings (beta_MKT, beta_SMB, beta_MOM, alpha_resid)
+3. Sentiment scores (if available)
+4. Universe history
 
 This is Phase 1 of the 2-phase training approach:
 - Phase 1 (this script): Heavy computation, results cached
@@ -16,7 +15,6 @@ This is Phase 1 of the 2-phase training approach:
 Usage:
     python scripts/build_features.py --start 2021-01-01 --end 2024-12-31
     python scripts/build_features.py --alphas-only
-    python scripts/build_features.py --pca-only
 """
 
 import argparse
@@ -116,80 +114,6 @@ def build_alpha_features(start_date: str, end_date: str, config: Config):
     )
 
     logger.info(f"Alpha features completed: {len(cache_paths)} symbols cached")
-
-
-def build_pca_features(start_date: str, end_date: str, config: Config):
-    """Apply rolling PCA to compress alphas."""
-    from features.pca_compressor import AlphaPCACompressor
-
-    logger.info("=" * 60)
-    logger.info("Building PCA-compressed features")
-    logger.info(f"Period: {start_date} to {end_date}")
-    logger.info(f"Components: {config.alpha.pca.n_components}")
-    logger.info("=" * 60)
-
-    compressor = AlphaPCACompressor(
-        n_components=config.alpha.pca.n_components,
-        lookback_days=config.alpha.pca.lookback_days,
-        min_observations=config.alpha.pca.min_observations,
-    )
-
-    # Load alpha cache
-    alpha_cache_dir = DATA_DIR / 'features' / 'alpha_cache'
-    if not alpha_cache_dir.exists():
-        logger.error(f"Alpha cache not found at {alpha_cache_dir}")
-        logger.info("Run with --alphas-only first")
-        return
-
-    # Process each symbol
-    output_dir = DATA_DIR / 'features' / 'pca_cache'
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    alpha_files = list(alpha_cache_dir.glob('*_features.parquet'))
-    logger.info(f"Found {len(alpha_files)} alpha files")
-
-    for alpha_file in alpha_files:
-        symbol = alpha_file.stem.replace('_features', '')
-        logger.info(f"Processing {symbol}...")
-
-        try:
-            # Load alphas
-            alpha_df = pd.read_parquet(alpha_file)
-
-            # Filter by date range
-            alpha_df = alpha_df[
-                (alpha_df.index >= start_date) &
-                (alpha_df.index <= end_date)
-            ]
-
-            if len(alpha_df) < config.alpha.pca.min_observations:
-                logger.warning(f"Insufficient data for {symbol}: {len(alpha_df)} rows")
-                continue
-
-            # Apply rolling PCA
-            pca_features, component_names = compressor.fit_transform_rolling(
-                alpha_features=alpha_df,
-                timestamps=alpha_df.index.tolist(),
-            )
-
-            # Save
-            pca_df = pd.DataFrame(
-                pca_features,
-                index=alpha_df.index,
-                columns=component_names,
-            )
-            pca_df.to_parquet(output_dir / f'{symbol}_pca.parquet')
-
-        except Exception as e:
-            logger.error(f"Failed to process {symbol}: {e}")
-            continue
-
-    # Save PCA model for later use
-    model_path = output_dir / 'pca_model.pkl'
-    compressor.save_model(model_path)
-    logger.info(f"PCA model saved to {model_path}")
-
-    logger.info("PCA features completed")
 
 
 def build_risk_factors(start_date: str, end_date: str, config: Config):
@@ -388,15 +312,11 @@ def build_all_features(start_date: str, end_date: str, config: Config):
     build_universe_history(start_date, end_date, config)
 
     # 2. Alpha features
-    logger.info("\n[2/5] Building alpha features...")
+    logger.info("\n[2/4] Building alpha features...")
     build_alpha_features(start_date, end_date, config)
 
-    # 3. PCA compression
-    logger.info("\n[3/5] Building PCA-compressed features...")
-    build_pca_features(start_date, end_date, config)
-
-    # 4. Risk factor loadings
-    logger.info("\n[4/5] Building risk factor loadings...")
+    # 3. Risk factor loadings
+    logger.info("\n[3/4] Building risk factor loadings...")
     build_risk_factors(start_date, end_date, config)
 
     # 5. Sentiment (optional, can be slow)
@@ -419,7 +339,6 @@ def print_feature_summary():
     dirs = {
         'Universe': DATA_DIR / 'universe',
         'Alpha Cache': DATA_DIR / 'features' / 'alpha_cache',
-        'PCA Cache': DATA_DIR / 'features' / 'pca_cache',
         'Factor Cache': DATA_DIR / 'features' / 'factor_cache',
         'Sentiment Cache': DATA_DIR / 'features' / 'sentiment_cache',
     }
@@ -454,7 +373,6 @@ def main():
     parser.add_argument('--all', action='store_true', help='Build all features')
     parser.add_argument('--universe-only', action='store_true', help='Build universe only')
     parser.add_argument('--alphas-only', action='store_true', help='Build alphas only')
-    parser.add_argument('--pca-only', action='store_true', help='Build PCA only')
     parser.add_argument('--factors-only', action='store_true', help='Build risk factors only')
     parser.add_argument('--sentiment-only', action='store_true', help='Build sentiment only')
 
@@ -472,7 +390,6 @@ def main():
 
     # Create output directories
     (DATA_DIR / 'features' / 'alpha_cache').mkdir(parents=True, exist_ok=True)
-    (DATA_DIR / 'features' / 'pca_cache').mkdir(parents=True, exist_ok=True)
     (DATA_DIR / 'features' / 'factor_cache').mkdir(parents=True, exist_ok=True)
     (DATA_DIR / 'features' / 'sentiment_cache').mkdir(parents=True, exist_ok=True)
 
@@ -481,8 +398,6 @@ def main():
         build_universe_history(args.start, args.end, config)
     elif args.alphas_only:
         build_alpha_features(args.start, args.end, config)
-    elif args.pca_only:
-        build_pca_features(args.start, args.end, config)
     elif args.factors_only:
         build_risk_factors(args.start, args.end, config)
     elif args.sentiment_only:

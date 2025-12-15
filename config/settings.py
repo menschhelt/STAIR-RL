@@ -98,20 +98,11 @@ class YFinanceConfig:
 
 
 @dataclass
-class PCAConfig:
-    """PCA compression configuration"""
-    n_components: int = 20  # Compress 300+ alphas to 20 PCs
-    lookback_days: int = 252  # 1 year rolling window
-    min_observations: int = 60
-
-
-@dataclass
 class AlphaConfig:
     """Alpha factor configuration"""
     alpha_101_dir: Path = ALPHA_BASE_PATH / "alpha_101"
-    alpha_191_dir: Path = ALPHA_BASE_PATH / "alpha_191"
-    skip_alphas: List[str] = field(default_factory=lambda: ["alpha_191_158"])
-    pca: PCAConfig = field(default_factory=PCAConfig)
+    # alpha_191_dir: Path = ALPHA_BASE_PATH / "alpha_191"  # DISABLED: Only using Alpha 101
+    skip_alphas: List[str] = field(default_factory=lambda: [])
 
 
 @dataclass
@@ -278,17 +269,10 @@ class Config:
             rate_limit=parse_rate_limit(yfinance_data)
         )
 
-        # Parse alpha config with nested pca
+        # Parse alpha config
         alpha_data = data.get('alpha', {})
-        pca_data = alpha_data.get('pca', {})
         alpha_cfg = AlphaConfig(
-            alpha_101_dir=Path(alpha_data.get('alpha_101_dir', ALPHA_BASE_PATH / "alpha_101")),
-            alpha_191_dir=Path(alpha_data.get('alpha_191_dir', ALPHA_BASE_PATH / "alpha_191")),
-            pca=PCAConfig(
-                n_components=pca_data.get('n_components', 20),
-                lookback_days=pca_data.get('lookback_days', 30),  # 30일 (5분봉 8,640샘플)
-                min_observations=pca_data.get('min_observations', 4000)  # 약 2주치
-            )
+            alpha_101_dir=Path(alpha_data.get('alpha_101_dir', ALPHA_BASE_PATH / "alpha_101"))
         )
 
         # Parse RL config with nested sub-configs
@@ -377,7 +361,7 @@ class Config:
             },
             'alpha': {
                 'alpha_101_dir': str(self.alpha.alpha_101_dir),
-                'alpha_191_dir': str(self.alpha.alpha_191_dir),
+                # 'alpha_191_dir' removed - only using Alpha 101
                 'skip_alphas': self.alpha.skip_alphas,
             },
             'text_processing': {

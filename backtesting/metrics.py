@@ -289,6 +289,38 @@ class PerformanceMetrics:
 
         return cagr / abs(max_dd)
 
+    def cvar(
+        self,
+        returns: np.ndarray,
+        alpha: float = 0.05,
+    ) -> float:
+        """
+        Calculate Conditional Value at Risk (CVaR) / Expected Shortfall.
+
+        CVaR is the expected return in the worst alpha% of cases.
+        For example, CVaR(0.05) is the average return in the worst 5% of periods.
+
+        Args:
+            returns: Array of period returns
+            alpha: Confidence level (default: 0.05 for 95% CVaR)
+
+        Returns:
+            CVaR (negative value indicates loss)
+        """
+        if len(returns) == 0:
+            return 0.0
+
+        # Sort returns from worst to best
+        sorted_returns = np.sort(returns)
+
+        # Get cutoff index for worst alpha% of returns
+        cutoff = max(1, int(len(sorted_returns) * alpha))
+
+        # CVaR is the average of the worst alpha% returns
+        cvar_value = np.mean(sorted_returns[:cutoff])
+
+        return float(cvar_value)
+
     # ========== Drawdown Metrics ==========
 
     def max_drawdown(self, equity_curve: np.ndarray) -> float:
@@ -538,6 +570,7 @@ class PerformanceMetrics:
             'sharpe_ratio': self.sharpe_ratio(returns, periods_per_year),
             'sortino_ratio': self.sortino_ratio(returns, 0, periods_per_year),
             'calmar_ratio': self.calmar_ratio(returns, equity_curve, periods_per_year),
+            'cvar_95': self.cvar(returns, alpha=0.05),
 
             # Drawdown
             'max_drawdown': self.max_drawdown(equity_curve),
@@ -580,6 +613,7 @@ class PerformanceMetrics:
         print(f"  Sharpe Ratio:      {metrics['sharpe_ratio']:.2f}")
         print(f"  Sortino Ratio:     {metrics['sortino_ratio']:.2f}")
         print(f"  Calmar Ratio:      {metrics['calmar_ratio']:.2f}")
+        print(f"  CVaR (95%):        {metrics['cvar_95']:.2%}")
 
         print("\nDrawdown:")
         print(f"  Max Drawdown:      {metrics['max_drawdown']:.2%}")

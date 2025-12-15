@@ -144,6 +144,93 @@ class FastFeatureBuilder:
 
         return wide_data
 
+    def detect_symbol_start_dates(
+        self,
+        data: Dict[str, pd.DataFrame]
+    ) -> Dict[str, datetime]:
+        """
+        Detect when each symbol first appeared in the data.
+
+        This identifies the listing date for each symbol to avoid lookahead bias.
+
+        Args:
+            data: Dict with 'close' DataFrame (timestamps × symbols)
+
+        Returns:
+            Dict mapping {symbol: first_valid_timestamp}
+        """
+        symbol_starts = {}
+        close_df = data['close']
+
+        self.logger.info(f"Detecting start dates for {len(close_df.columns)} symbols...")
+
+        for symbol in close_df.columns:
+            # Find first non-NaN value
+            first_valid_idx = close_df[symbol].first_valid_index()
+
+            if first_valid_idx is not None:
+                symbol_starts[symbol] = first_valid_idx
+                self.logger.debug(f"  {symbol}: {first_valid_idx}")
+            else:
+                self.logger.warning(f"  {symbol}: No valid data found")
+
+        self.logger.info(f"Found start dates for {len(symbol_starts)} symbols")
+        return symbol_starts
+
+    def apply_historical_mask(
+        self,
+        data: Dict[str, pd.DataFrame],
+        symbol_starts: Dict[str, datetime]
+    ) -> tuple[Dict[str, pd.DataFrame], pd.DataFrame]:
+        """
+        Mask data before each symbol's listing date with NaN.
+
+        This prevents lookahead bias by ensuring we only use data from
+        symbols that actually existed at each timestamp.
+
+        Args:
+            data: Dict of DataFrames (close, open, high, low, volume)
+            symbol_starts: Dict of {symbol: first_timestamp}
+
+        Returns:
+            Tuple of (masked_data_dict, historical_mask_df)
+            - masked_data_dict: Data with NaN for non-existent symbols
+            - historical_mask_df: Boolean mask (True = symbol exists, False = doesn't exist)
+        """
+        self.logger.info("Applying historical mask to prevent lookahead bias...")
+
+        masked_data = {}
+
+        # Create boolean mask based on close prices (timestamps × symbols)
+        close_df = data['close']
+        historical_mask = pd.DataFrame(True, index=close_df.index, columns=close_df.columns)
+
+        for symbol in close_df.columns:
+            if symbol in symbol_starts:
+                start_date = symbol_starts[symbol]
+                # Mark timestamps before listing as False
+                mask = close_df.index < start_date
+                historical_mask.loc[mask, symbol] = False
+
+        # Apply mask to OHLCV data
+        for col_name, df in data.items():
+            if col_name not in ['open', 'high', 'low', 'close', 'volume']:
+                # Skip derived fields (vwap, returns, amount)
+                masked_data[col_name] = df
+                continue
+
+            masked_df = df.copy()
+            # Set to NaN where historical_mask is False
+            masked_df[~historical_mask] = np.nan
+
+            masked_data[col_name] = masked_df
+            self.logger.debug(f"  Masked {col_name}")
+
+        self.logger.info(f"Historical mask created: {historical_mask.shape}, "
+                        f"Avg symbols per timestamp: {historical_mask.sum(axis=1).mean():.1f}")
+
+        return masked_data, historical_mask
+
     def _load_alpha_class(self, alpha_name: str):
         """동적으로 알파 클래스 로드"""
         try:
@@ -164,7 +251,8 @@ class FastFeatureBuilder:
     def _calculate_single_alpha(
         self,
         alpha_name: str,
-        data: Dict[str, pd.DataFrame]
+        data: Dict[str, pd.DataFrame],
+        historical_mask: Optional[pd.DataFrame] = None
     ) -> Optional[pd.DataFrame]:
         """BaseAlpha 클래스를 사용하여 단일 알파 계산"""
         try:
@@ -176,8 +264,13 @@ class FastFeatureBuilder:
             result = alpha_instance.calculate(data, pair=None)
 
             if result is not None:
-                # inf와 NaN 모두 0으로 처리
+                # 1. inf와 계산 NaN을 0으로 처리 (warmup, division 등)
                 result = result.replace([np.inf, -np.inf], 0).fillna(0)
+
+                # 2. 히스토리컬 마스크 재적용: 존재하지 않던 심볼은 다시 NaN으로
+                if historical_mask is not None:
+                    result[~historical_mask] = np.nan
+
                 return result.astype(np.float32)
             return None
 
@@ -253,14 +346,15 @@ class FastFeatureBuilder:
         self,
         data: Dict[str, pd.DataFrame],
         alpha_names: List[str],
-        n_jobs: int = 2
+        n_jobs: int = 12,
+        historical_mask: Optional[pd.DataFrame] = None
     ) -> Dict[str, pd.DataFrame]:
-        """알파 배치 계산 - 병렬 처리 (n_jobs=2)"""
+        """알파 배치 계산 - 병렬 처리 (n_jobs=12)"""
         from joblib import Parallel, delayed
 
         def calc_one(name):
             try:
-                result = self._calculate_single_alpha(name, data)
+                result = self._calculate_single_alpha(name, data, historical_mask)
                 return (name, result)
             except Exception as e:
                 return (name, None)
@@ -296,24 +390,32 @@ class FastFeatureBuilder:
         timestamps = data['close'].index
         self.logger.info(f"Data loaded: {len(timestamps)} timestamps, {len(symbols)} symbols")
 
-        # 2. 팩터 계산
+        # 2. Detect symbol start dates and apply historical mask
+        symbol_starts = self.detect_symbol_start_dates(data)
+        data, historical_mask = self.apply_historical_mask(data, symbol_starts)
+
+        # 3. 팩터 계산
         self.logger.info("Calculating factors...")
         factor_start = time.time()
         factors = self.calculate_factors(data)
         self.logger.info(f"Factors calculated in {time.time() - factor_start:.1f}s")
 
-        # 3. 알파를 배치로 계산하고 즉시 저장
+        # 4. 알파를 배치로 계산하고 즉시 저장
         all_alpha_names = self._get_all_alpha_names()
         alpha_cache_dir = Path('/home/work/data/stair-local/features/alpha_cache')
         alpha_cache_dir.mkdir(parents=True, exist_ok=True)
 
-        # 기존 캐시 삭제
+        # 기존 캐시 확인 (이미 완료된 알파는 건너뛰기)
+        existing_alphas = set()
         for f in alpha_cache_dir.glob('*.parquet'):
-            f.unlink()
+            existing_alphas.add(f.stem)
+
+        if existing_alphas:
+            self.logger.info(f"Found {len(existing_alphas)} existing alphas, will skip them")
 
         batch_size = 20
         alpha_start = time.time()
-        completed_alphas = []
+        completed_alphas = list(existing_alphas)  # 기존 완료된 알파 포함
         failed_alphas = []
 
         self.logger.info(f"Calculating {len(all_alpha_names)} alphas in batches of {batch_size}...")
@@ -323,23 +425,33 @@ class FastFeatureBuilder:
             batch_num = i // batch_size + 1
             total_batches = (len(all_alpha_names) + batch_size - 1) // batch_size
 
-            self.logger.info(f"Batch {batch_num}/{total_batches}: {batch_names[0]} ~ {batch_names[-1]}")
+            # 이미 완료된 알파 필터링
+            remaining_batch = [name for name in batch_names if name not in existing_alphas]
 
-            # 배치 계산
-            batch_alphas = self.calculate_alpha_batch(data, batch_names)
+            if not remaining_batch:
+                self.logger.info(f"Batch {batch_num}/{total_batches}: {batch_names[0]} ~ {batch_names[-1]} - SKIPPED (already exists)")
+                continue
+
+            self.logger.info(f"Batch {batch_num}/{total_batches}: {batch_names[0]} ~ {batch_names[-1]} - Processing {len(remaining_batch)}/{len(batch_names)} alphas")
+
+            # 배치 계산 (남은 알파만) - historical_mask 전달
+            batch_alphas = self.calculate_alpha_batch(data, remaining_batch, historical_mask=historical_mask)
 
             # 즉시 파일로 저장
+            saved_count = 0
             for alpha_name, alpha_df in batch_alphas.items():
                 cache_path = alpha_cache_dir / f"{alpha_name}.parquet"
                 alpha_df.to_parquet(cache_path, compression='snappy')
-                completed_alphas.append(alpha_name)
+                if alpha_name not in completed_alphas:
+                    completed_alphas.append(alpha_name)
+                saved_count += 1
 
             # 실패한 알파 기록
-            for name in batch_names:
+            for name in remaining_batch:
                 if name not in batch_alphas:
                     failed_alphas.append(name)
 
-            self.logger.info(f"  Saved {len(batch_alphas)} alphas, total: {len(completed_alphas)}/{len(all_alpha_names)}")
+            self.logger.info(f"  Saved {saved_count} new alphas, total: {len(completed_alphas)}/{len(all_alpha_names)}")
 
             # 메모리 해제
             del batch_alphas
@@ -350,7 +462,7 @@ class FastFeatureBuilder:
         if failed_alphas:
             self.logger.warning(f"  Failed alphas: {failed_alphas[:10]}...")
 
-        # 4. 심볼별 파일 생성
+        # 5. 심볼별 파일 생성
         self.logger.info("Combining features per symbol...")
 
         def save_symbol(sym):
