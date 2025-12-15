@@ -140,13 +140,14 @@ class BacktestConfig:
     buffer_start: str = "2020-01-01"
     buffer_end: str = "2020-12-31"
 
-    # Train / Val / Test
+    # Train / Val / Test (temporal separation for methodological rigor)
+    # 6-month gaps between splits to prevent temporal leakage
     train_start: str = "2021-01-01"
-    train_end: str = "2022-06-30"
-    val_start: str = "2022-07-01"
-    val_end: str = "2022-12-31"
-    test_start: str = "2023-01-01"
-    test_end: str = "2023-12-31"
+    train_end: str = "2022-06-30"    # 18 months for Phase 1 CQL-SAC
+    val_start: str = "2023-01-01"    # 6-month gap from train
+    val_end: str = "2024-06-30"      # 18 months for Phase 2 PPO-CVaR
+    test_start: str = "2025-01-01"   # 6-month gap from val
+    test_end: str = "2025-11-30"     # 11 months evaluation only
 
     # Binance Futures fee structure (VIP 0)
     taker_fee: float = 0.0004  # 0.04% per trade

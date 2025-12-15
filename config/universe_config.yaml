@@ -83,15 +83,19 @@ backtest:
   buffer_start: "2020-01-01"
   buffer_end: "2020-12-31"
 
-  # Train: 3년 (상승장/하락장/횡보장 모두 포함)
+  # Train: 18개월 (Phase 1 CQL-SAC 오프라인 학습)
   train_start: "2021-01-01"
-  train_end: "2023-12-31"
+  train_end: "2022-06-30"
 
-  # Validation: 1년
-  val_start: "2024-01-01"
-  val_end: "2024-12-31"
+  # 6-month gap: 2022-07 ~ 2022-12 (temporal separation)
 
-  # Test: 11개월 (12월은 미완성이므로 제외)
+  # Validation: 18개월 (Phase 2 PPO-CVaR 온라인 미세조정)
+  val_start: "2023-01-01"
+  val_end: "2024-06-30"
+
+  # 6-month gap: 2024-07 ~ 2024-12 (temporal separation)
+
+  # Test: 11개월 (평가 전용)
   test_start: "2025-01-01"
   test_end: "2025-11-30"
 

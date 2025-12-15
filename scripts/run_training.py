@@ -642,6 +642,7 @@ def run_phase2_ppo_cvar(
     pretrained_path: Path = None,
     embedding_dir: Path = None,
     n_envs: int = 1,
+    resume_path: Path = None,
 ):
     """
     Phase 2: PPO-CVaR Online Fine-tuning.
@@ -726,10 +727,26 @@ def run_phase2_ppo_cvar(
         device=str(device),
     )
 
-    # Load pretrained weights if available
-    if pretrained_path and pretrained_path.exists():
+    # Load pretrained weights if available (for fresh Phase 2 start)
+    if pretrained_path and pretrained_path.exists() and not resume_path:
         logger.info(f"Loading pretrained weights from {pretrained_path}")
         agent.load_pretrained(pretrained_path)
+
+    # Resume from Phase 2 checkpoint if provided
+    start_step = 0
+    start_episode = 0
+    if resume_path and resume_path.exists():
+        logger.info(f"Resuming Phase 2 from checkpoint: {resume_path}")
+        agent.load(str(resume_path))
+        # Extract step number from checkpoint filename (e.g., ppo_cvar_step_20000.pt)
+        try:
+            step_str = resume_path.stem.split('_')[-1]
+            start_step = int(step_str)
+            # Estimate episode from steps (rough approximation)
+            start_episode = start_step // config.rl.ppo_cvar.horizon
+            logger.info(f"Resuming from step {start_step}, episode ~{start_episode}")
+        except (ValueError, IndexError):
+            logger.warning("Could not parse step from checkpoint filename, starting from 0")
 
     # Preload alpha and macro data for fast training
     # This converts ~2,020 pandas ops per encode to O(1) numpy lookup
@@ -764,8 +781,8 @@ def run_phase2_ppo_cvar(
 
     # Training loop
     logger.info("Starting PPO-CVaR training...")
-    total_steps = 0
-    episode = 0
+    total_steps = start_step
+    episode = start_episode
 
     while total_steps < steps:
         state, _ = env.reset()
@@ -855,8 +872,8 @@ def run_phase2_ppo_cvar(
 
         episode += 1
 
-        # Checkpoint
-        if total_steps % 20000 == 0:
+        # Checkpoint (every 5000 steps, same as Phase 1)
+        if total_steps % 5000 == 0 and total_steps > 0:
             checkpoint_path = checkpoint_dir / f'ppo_cvar_step_{total_steps}.pt'
             agent.save(checkpoint_path)
             logger.info(f"Checkpoint saved: {checkpoint_path}")
@@ -972,7 +989,7 @@ def main():
     )
     parser.add_argument(
         '--resume', type=str, default=None,
-        help='Path to checkpoint to resume training from (Phase 1 CQL-SAC)'
+        help='Path to checkpoint to resume training from (Phase 1: cql_sac_step_*.pt, Phase 2: ppo_cvar_step_*.pt)'
     )
 
     args = parser.parse_args()
@@ -1026,7 +1043,11 @@ def main():
     elif args.phase == 2:
         steps = args.steps or config.rl.ppo_cvar.training_steps
         pretrained_path = Path(args.pretrained) if args.pretrained else None
-        run_phase2_ppo_cvar(config, device, steps, checkpoint_dir / 'phase2', pretrained_path, embedding_dir, args.n_envs)
+        resume_path = Path(args.resume) if args.resume else None
+        run_phase2_ppo_cvar(
+            config, device, steps, checkpoint_dir / 'phase2', pretrained_path,
+            embedding_dir, args.n_envs, resume_path=resume_path
+        )
     else:
         logger.error("Please specify --phase 1, --phase 2, or --all")
         sys.exit(1)
