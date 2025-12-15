@@ -346,6 +346,7 @@ def run_phase1_cql_sac(
     lr_actor: float = None,
     lr_critic: float = None,
     batch_size: int = None,
+    resume_path: Path = None,
 ):
     """
     Phase 1: CQL-SAC Offline Pre-training.
@@ -435,6 +436,20 @@ def run_phase1_cql_sac(
         config=agent_config,
         device=str(device),
     )
+
+    # Resume from checkpoint if provided
+    start_step = 1
+    if resume_path and resume_path.exists():
+        logger.info(f"Resuming from checkpoint: {resume_path}")
+        agent.load(str(resume_path))
+        # Extract step number from checkpoint filename (e.g., cql_sac_step_50000.pt)
+        try:
+            step_str = resume_path.stem.split('_')[-1]
+            start_step = int(step_str) + 1
+            logger.info(f"Resuming from step {start_step}")
+        except (ValueError, IndexError):
+            logger.warning("Could not parse step from checkpoint name, starting from step 1")
+            start_step = 1
 
     # Preload alpha and macro data for fast training
     # This converts ~2,020 pandas ops per encode to O(1) numpy lookup
@@ -551,9 +566,11 @@ def run_phase1_cql_sac(
 
     # Training loop
     logger.info("Starting CQL-SAC training...")
+    if start_step > 1:
+        logger.info(f"Resuming from step {start_step}, target: {steps}")
     batch_size = config.rl.cql_sac.batch_size
 
-    for step in range(1, steps + 1):
+    for step in range(start_step, steps + 1):
         # Sample batch
         batch = replay_buffer.sample(batch_size)
 
@@ -600,8 +617,8 @@ def run_phase1_cql_sac(
                 f"CQL Loss: {metrics.get('cql_loss', 0):.4f}"
             )
 
-        # Checkpoint
-        if step % 50000 == 0:
+        # Checkpoint per 10000
+        if step % 5000 == 0:
             checkpoint_path = checkpoint_dir / f'cql_sac_step_{step}.pt'
             agent.save(checkpoint_path)
             logger.info(f"Checkpoint saved: {checkpoint_path}")
@@ -953,6 +970,10 @@ def main():
         '--batch-size', type=int, default=None,
         help='Batch size (Phase 1 CQL-SAC, default: 384)'
     )
+    parser.add_argument(
+        '--resume', type=str, default=None,
+        help='Path to checkpoint to resume training from (Phase 1 CQL-SAC)'
+    )
 
     args = parser.parse_args()
 
@@ -996,9 +1017,11 @@ def main():
         run_full_training(config, device, checkpoint_dir, embedding_dir, args.n_envs)
     elif args.phase == 1:
         steps = args.steps or config.rl.cql_sac.training_steps
+        resume_path = Path(args.resume) if args.resume else None
         run_phase1_cql_sac(
             config, device, steps, checkpoint_dir / 'phase1', embedding_dir, args.n_envs,
-            lr_actor=args.lr_actor, lr_critic=args.lr_critic, batch_size=args.batch_size
+            lr_actor=args.lr_actor, lr_critic=args.lr_critic, batch_size=args.batch_size,
+            resume_path=resume_path
         )
     elif args.phase == 2:
         steps = args.steps or config.rl.ppo_cvar.training_steps

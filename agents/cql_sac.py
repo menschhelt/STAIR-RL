@@ -420,10 +420,8 @@ class CQLSACAgent:
         with torch.no_grad():
             # Sample next actions from policy
             if cfg.use_hierarchical:
-                next_actions, _ = self.adapter.get_action(next_z_pooled, next_z_unpooled, deterministic=False)
-                # Need log_probs for SAC entropy term
-                # For now, compute it manually (TODO: improve adapter to return log_probs)
-                next_log_probs = torch.zeros(batch_size, device=self.device)  # Placeholder
+                # HierarchicalActor.get_action() returns (weights, log_prob)
+                next_actions, next_log_probs = self.adapter.get_action(next_z_pooled, next_z_unpooled, deterministic=False)
             else:
                 next_actions, next_log_probs = self.actor.get_action(next_z_pooled)
 
@@ -549,10 +547,8 @@ class CQLSACAgent:
 
         # Sample actions from current policy
         if cfg.use_hierarchical:
-            actions, _ = self.adapter.get_action(z_pooled, z_unpooled, deterministic=False)
-            # For hierarchical, we need to compute log_probs manually
-            # For now, use a placeholder (will be updated when entropy is needed)
-            log_probs = torch.zeros(actions.shape[0], device=self.device)
+            # HierarchicalActor.get_action() returns (weights, log_prob)
+            actions, log_probs = self.adapter.get_action(z_pooled, z_unpooled, deterministic=False)
         else:
             actions, log_probs = self.actor.get_action(z_pooled)
 
@@ -560,13 +556,8 @@ class CQLSACAgent:
         q1, q2 = self.critic(z_pooled, actions)
         q_value = torch.min(q1, q2).squeeze(-1)
 
-        # Actor loss: maximize Q - α * entropy
-        if cfg.use_hierarchical:
-            # For hierarchical, skip entropy term temporarily
-            # TODO: Implement proper entropy computation for HierarchicalActor
-            actor_loss = -q_value.mean()
-        else:
-            actor_loss = (self.alpha.detach() * log_probs - q_value).mean()
+        # Actor loss: maximize Q - α * entropy (same for both hierarchical and standard)
+        actor_loss = (self.alpha.detach() * log_probs - q_value).mean()
 
         # Optimize actor
         self.actor_optimizer.zero_grad()
@@ -580,7 +571,8 @@ class CQLSACAgent:
 
         # ========== Update Temperature (Auto Entropy Tuning) ==========
         alpha_loss = 0.0
-        if cfg.auto_entropy_tuning and not cfg.use_hierarchical:
+        if cfg.auto_entropy_tuning:
+            # Now works for both hierarchical and standard actors
             alpha_loss = -(self.log_alpha * (log_probs + self.target_entropy).detach()).mean()
 
             self.alpha_optimizer.zero_grad()

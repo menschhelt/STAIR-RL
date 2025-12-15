@@ -151,9 +151,10 @@ class OHLCVSequenceBuilder:
         Returns:
             Array of shape (lookback, 5) with normalized [open, high, low, close, volume]
 
-            Normalization:
-            - OHLC: Converted to returns relative to first close
-            - Volume: Log-scaled (log(1 + volume))
+            Normalization (Log Returns for Stationarity):
+            - OHLC: Log returns log(p_t / p_{t-1}) * 100 for better gradient flow
+            - Volume: Log change log(v_t / v_{t-1})
+            - First row is padded with zeros (no previous candle)
 
             Returns zeros if insufficient data available.
         """
@@ -187,18 +188,34 @@ class OHLCVSequenceBuilder:
         ohlc = df[['open', 'high', 'low', 'close']].values  # (lookback, 4)
         volume = df['volume'].values  # (lookback,)
 
-        # Normalize OHLC to returns (relative to first close)
-        first_close = ohlc[0, 3]  # First candle close
-        if first_close > 0:
-            ohlc_normalized = (ohlc / first_close) - 1.0  # Returns
-        else:
-            logger.warning(f"Zero close price for {symbol} on {target_date}, using zeros")
-            ohlc_normalized = np.zeros_like(ohlc)
+        # ======================
+        # Log Returns for Stationarity (시계열 정상성 확보)
+        # ======================
+        # 기존 방식: (ohlc / first_close) - 1.0 → 비정상 (non-stationary)
+        # 새 방식: log(p_t / p_{t-1}) → 정상 (stationary)
 
-        # Normalize volume (log scaling)
-        volume_normalized = np.log1p(volume)  # log(1 + volume)
+        # Prevent division by zero
+        ohlc_safe = np.maximum(ohlc, 1e-8)
+        volume_safe = np.maximum(volume, 1e-8)
 
-        # Combine: [open_ret, high_ret, low_ret, close_ret, log_volume]
+        # Log returns: log(price_t / price_{t-1})
+        # np.diff reduces length by 1, so we pad with zeros at the beginning
+        log_ohlc = np.log(ohlc_safe)
+        ohlc_log_returns = np.diff(log_ohlc, axis=0)  # (lookback-1, 4)
+        ohlc_log_returns = np.vstack([np.zeros((1, 4)), ohlc_log_returns])  # (lookback, 4)
+
+        # Volume log change: log(volume_t / volume_{t-1})
+        log_volume = np.log(volume_safe)
+        volume_log_change = np.diff(log_volume)  # (lookback-1,)
+        volume_log_change = np.concatenate([[0.0], volume_log_change])  # (lookback,)
+
+        # Scale returns for better gradient flow (optional but recommended)
+        # Typical crypto 5-min log returns are ~0.001, scale by 100 to ~0.1
+        scale_factor = 100.0
+        ohlc_normalized = ohlc_log_returns * scale_factor
+        volume_normalized = volume_log_change  # Volume change already in reasonable range
+
+        # Combine: [open_logret, high_logret, low_logret, close_logret, volume_logchange]
         sequence = np.concatenate([
             ohlc_normalized,
             volume_normalized[:, np.newaxis]

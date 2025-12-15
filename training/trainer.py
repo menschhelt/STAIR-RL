@@ -182,7 +182,7 @@ class TrainerConfig:
     # Logging
     log_interval: int = 1000
     eval_interval: int = 10000
-    save_interval: int = 10000  # Save every 10000 steps for checkpoint resume
+    save_interval: int = 100  # Save every 10000 steps for checkpoint resume
 
     # Evaluation
     eval_episodes: int = 10

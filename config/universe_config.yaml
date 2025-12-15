@@ -108,7 +108,7 @@ rl:
     batch_size: 256
     replay_buffer_size: 1000000
     lambda_cql: 1.0
-    lambda_gp: 10.0
+    lambda_gp: 1.0
     alpha: 0.2  # SAC temperature
     tau: 0.005  # Target network update
     gamma: 0.99

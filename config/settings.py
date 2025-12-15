@@ -162,7 +162,7 @@ class CQLSACConfig:
     batch_size: int = 128  # Increased for better GPU utilization (was 32)
     replay_buffer_size: int = 1_000_000
     lambda_cql: float = 1.0  # CQL regularization
-    lambda_gp: float = 10.0  # Gradient penalty
+    lambda_gp: float = 1.0  # Gradient penalty
     alpha: float = 0.2  # SAC temperature
     tau: float = 0.005  # Target network update
     gamma: float = 0.99  # Discount factor
