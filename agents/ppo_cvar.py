@@ -73,6 +73,17 @@ class PPOCVaRConfig:
     gdelt_embeddings_path: Optional[str] = None  # Path to GDELT embeddings HDF5
     nostr_embeddings_path: Optional[str] = None  # Path to Nostr embeddings HDF5
 
+    # TERC (Transfer Entropy with Recursive Conditioning) - Paper Line 756
+    use_terc: bool = True         # Enable TERC token filtering + semantic gate (paper default)
+    terc_tau: float = 0.15        # Transfer entropy threshold (nats)
+    terc_use_learned: bool = True # Use learned importance (faster) vs actual TE (slower)
+
+    # Shapley-Gate Alignment (Paper Line 1375-1390, 2402-2409)
+    # L_align = -λ_align · Corr(g_t, Φ_{s,t})
+    # Note: Full alignment loss in training loop is expensive; enable for interpretability validation
+    lambda_align: float = 0.0     # Alignment loss weight (0.0 = disabled, 0.5 = paper default)
+    shapley_compute_interval: int = 10000  # Compute Shapley alignment every N steps
+
     # LR scheduling
     lr_decay: bool = True
     min_lr: float = 1e-5
@@ -186,6 +197,10 @@ class RolloutBuffer:
         """Reset buffer for next rollout."""
         self.position = 0
 
+    def is_full(self) -> bool:
+        """Check if buffer is full."""
+        return self.position >= self.horizon
+
     def __len__(self) -> int:
         return self.position
 
@@ -253,7 +268,7 @@ class PPOCVaRAgent:
         if cfg.use_hierarchical:
             # Use HierarchicalActorCritic with adapter
             hierarchical_model = HierarchicalActorCritic(
-                n_alphas=292,  # Will be updated when real alphas available
+                n_alphas=101,  # Alpha 101 only
                 n_assets=cfg.n_assets,
                 d_alpha=64,
                 d_text=64,
@@ -261,6 +276,10 @@ class PPOCVaRAgent:
                 d_global=6,
                 d_portfolio=cfg.portfolio_dim,
                 n_quantiles=cfg.n_quantiles,
+                # TERC (Transfer Entropy with Recursive Conditioning) - Paper Line 756
+                use_terc=cfg.use_terc,
+                terc_tau=cfg.terc_tau,
+                terc_use_learned=cfg.terc_use_learned,
             ).to(self.device)
 
             self.adapter = HierarchicalActorCriticAdapter(
@@ -313,14 +332,11 @@ class PPOCVaRAgent:
                 timestamps = [timestamp] if timestamp else None
                 z_pooled, z_unpooled = self.adapter.encode_state(market, portfolio, timestamps=timestamps)
 
-                # Get action
-                action, trade_prob = self.adapter.get_action(z_pooled, z_unpooled, deterministic)
+                # Get action with log_prob (from HierarchicalActor.get_action)
+                action, log_prob = self.adapter.get_action(z_pooled, z_unpooled, deterministic)
 
                 # Get value
                 value = self.adapter.get_value(z_pooled)
-
-                # Placeholder log_prob (will be computed during update)
-                log_prob = torch.zeros(1, device=self.device)
             else:
                 # Original actor-critic
                 action, log_prob, value = self.actor_critic.get_action_and_value(
@@ -429,8 +445,15 @@ class PPOCVaRAgent:
                 end = start + cfg.batch_size
                 batch_indices = indices[start:end]
 
-                # Get mini-batch
-                mb = {k: v[batch_indices] for k, v in data.items()}
+                # Get mini-batch (handle timestamps separately as they're a list)
+                mb = {}
+                for k, v in data.items():
+                    if k == 'timestamps':
+                        # timestamps is a list, index with numpy
+                        idx_np = batch_indices.cpu().numpy()
+                        mb[k] = [v[i] for i in idx_np]
+                    else:
+                        mb[k] = v[batch_indices]
 
                 # Compute current policy outputs
                 if cfg.use_hierarchical:
@@ -440,14 +463,14 @@ class PPOCVaRAgent:
                         mb['market_states'], mb['portfolio_states'], timestamps=timestamps
                     )
 
-                    # Get action
-                    actions, trade_prob = self.adapter.get_action(z_pooled, z_unpooled, deterministic=False)
+                    # Evaluate log_prob of OLD actions under CURRENT policy (proper PPO)
+                    old_actions = mb['actions']
+                    log_probs, entropy_batch = self.adapter.evaluate_actions(
+                        z_pooled, z_unpooled, old_actions
+                    )
 
                     # Get value
                     values = self.adapter.get_value(z_pooled).squeeze(-1)
-
-                    # Placeholder log_probs (will be computed for entropy)
-                    log_probs = torch.zeros(actions.shape[0], device=self.device)
                 else:
                     # Original encoding
                     z = self.actor_critic.encoder(mb['market_states'], mb['portfolio_states'])
@@ -497,8 +520,11 @@ class PPOCVaRAgent:
                 else:
                     value_loss = value_mse
 
-                # Entropy bonus (approximate)
-                entropy = -log_probs.mean()
+                # Entropy bonus
+                if cfg.use_hierarchical:
+                    entropy = entropy_batch.mean()  # Use proper entropy from evaluate_actions
+                else:
+                    entropy = -log_probs.mean()  # Approximate entropy
 
                 # CVaR penalty
                 cvar = self.compute_cvar(mb['returns'].cpu().numpy())
@@ -539,7 +565,8 @@ class PPOCVaRAgent:
 
         self.total_steps += 1
 
-        return {
+        # Base metrics
+        metrics = {
             'policy_loss': total_policy_loss / n_updates,
             'value_loss': total_value_loss / n_updates,
             'entropy': total_entropy / n_updates,
@@ -547,6 +574,18 @@ class PPOCVaRAgent:
             'lambda_cvar': self.lambda_cvar,
             'lr': self.optimizer.param_groups[0]['lr'],
         }
+
+        # Periodically compute Shapley-Gate alignment (Paper Line 1375-1390)
+        if cfg.lambda_align > 0 and self.total_steps % cfg.shapley_compute_interval == 0:
+            shapley_metrics = self.compute_shapley_alignment(
+                data['market_states'].cpu().numpy(),
+                data['portfolio_states'].cpu().numpy(),
+                n_samples=min(200, batch_size),
+            )
+            if 'gate_shapley_corr' in shapley_metrics:
+                metrics['gate_shapley_corr'] = shapley_metrics['gate_shapley_corr']
+
+        return metrics
 
     def load_from_cql_sac(self, cql_agent):
         """
@@ -586,6 +625,125 @@ class PPOCVaRAgent:
 
             print("Loaded weights from CQL-SAC agent")
 
+    def load_pretrained(self, path: str):
+        """
+        Load pre-trained CQL-SAC weights from checkpoint file.
+
+        This is a convenience method that loads a CQL-SAC checkpoint
+        and transfers encoder/actor weights to PPO-CVaR for Phase 2.
+
+        Args:
+            path: Path to CQL-SAC checkpoint file (.pt)
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        logger.info(f"Loading pre-trained weights from {path}")
+
+        # Load CQL-SAC checkpoint
+        # weights_only=False required because checkpoint contains CQLSACConfig object
+        checkpoint = torch.load(path, map_location=self.device, weights_only=False)
+
+        # Transfer encoder weights
+        if 'encoder' in checkpoint:
+            try:
+                self.actor_critic.encoder.load_state_dict(checkpoint['encoder'])
+                logger.info("  Loaded encoder weights from CQL-SAC")
+            except Exception as e:
+                logger.warning(f"  Failed to load encoder weights: {e}")
+
+        # Transfer actor weights
+        if 'actor' in checkpoint:
+            try:
+                self.actor_critic.actor.load_state_dict(checkpoint['actor'])
+                logger.info("  Loaded actor weights from CQL-SAC")
+            except Exception as e:
+                logger.warning(f"  Failed to load actor weights: {e}")
+
+        logger.info("Pre-trained weight transfer complete")
+
+    def compute_shapley_alignment(
+        self,
+        market_states: np.ndarray,
+        portfolio_states: np.ndarray,
+        n_samples: int = 500,
+    ) -> Dict[str, float]:
+        """
+        Compute Shapley-Gate alignment for interpretability validation.
+
+        Paper Line 1375-1390: L_align = -λ_align · Corr(g_t, Φ_{s,t})
+
+        This computes the correlation between learned gate activations
+        and Shapley values (true feature importance).
+
+        Args:
+            market_states: (N, n_assets, state_dim) market states
+            portfolio_states: (N, portfolio_dim) portfolio states
+            n_samples: Number of samples for Shapley estimation
+
+        Returns:
+            Dict with alignment metrics
+        """
+        try:
+            from evaluation.shapley_gate import compute_shapley_alignment
+        except ImportError:
+            return {'alignment_error': 'shapley_gate module not available'}
+
+        # Limit samples for computational efficiency
+        n_samples = min(n_samples, len(market_states))
+        indices = np.random.choice(len(market_states), n_samples, replace=False)
+
+        market_batch = market_states[indices]
+        portfolio_batch = portfolio_states[indices]
+
+        # Get gate activations from TERC module
+        if not self.config.use_terc:
+            return {'alignment_error': 'TERC not enabled'}
+
+        with torch.no_grad():
+            market_t = torch.FloatTensor(market_batch).to(self.device)
+            portfolio_t = torch.FloatTensor(portfolio_batch).to(self.device)
+
+            # Encode and get gate activations
+            if hasattr(self.adapter.model, 'encoder') and hasattr(self.adapter.model.encoder, 'semantic_gate'):
+                # Get intermediate gate values
+                # This requires the encoder to expose gate activations
+                z_pooled, z_unpooled = self.adapter.encode_state(market_t, portfolio_t)
+                gate_activations = getattr(self.adapter.model.encoder, '_last_gate_values', None)
+
+                if gate_activations is None:
+                    return {'alignment_error': 'Gate activations not captured'}
+            else:
+                return {'alignment_error': 'Semantic gate not available'}
+
+        # Define value function for Shapley
+        def value_fn(states):
+            with torch.no_grad():
+                states_t = torch.FloatTensor(states).to(self.device)
+                # Reshape if needed
+                if len(states_t.shape) == 2:
+                    states_t = states_t.unsqueeze(0)
+                z, _ = self.adapter.encode_state(states_t, portfolio_t[:len(states_t)])
+                return self.adapter.get_value(z).squeeze(-1).cpu().numpy()
+
+        # Compute alignment
+        try:
+            result = compute_shapley_alignment(
+                model_fn=value_fn,
+                states=market_batch.reshape(n_samples, -1),
+                gate_activations=gate_activations.cpu().numpy() if isinstance(gate_activations, torch.Tensor) else gate_activations,
+                background_states=market_states[:500].reshape(-1, market_states.shape[1] * market_states.shape[2]),
+                n_samples=min(100, n_samples),  # Limit for speed
+            )
+            return {
+                'gate_shapley_corr': result.correlation,
+                'alignment_loss': result.alignment_loss,
+                'gate_mean': result.gate_mean,
+                'p_value': result.p_value,
+            }
+        except Exception as e:
+            return {'alignment_error': str(e)}
+
     def save(self, path: str):
         """Save agent state."""
         torch.save({
@@ -598,7 +756,7 @@ class PPOCVaRAgent:
 
     def load(self, path: str):
         """Load agent state."""
-        checkpoint = torch.load(path, map_location=self.device)
+        checkpoint = torch.load(path, map_location=self.device, weights_only=False)
         self.actor_critic.load_state_dict(checkpoint['actor_critic'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])
         self.lambda_cvar = checkpoint['lambda_cvar']

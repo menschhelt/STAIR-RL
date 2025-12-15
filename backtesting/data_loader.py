@@ -277,6 +277,107 @@ class ParquetDataLoader:
         symbols = filtered['symbol'].dropna().unique().tolist()
         return symbols
 
+    def get_universe_timeline(
+        self,
+        start_date: date,
+        end_date: date,
+        top_n: int = 20,
+    ) -> pd.DataFrame:
+        """
+        Get full universe timeline with slot->symbol mapping for each date.
+
+        This enables dynamic universe rebalancing where:
+        - Agent trades "slots" (Top 1, Top 2, ...) not fixed symbols
+        - When universe rebalances, slots get new symbols
+        - Portfolio weights carry over to new symbols in same slot
+
+        Args:
+            start_date: Start date
+            end_date: End date
+            top_n: Number of top slots to include (default: 20)
+
+        Returns:
+            DataFrame with columns: ['date', 'slot', 'symbol', 'quote_volume']
+            - One row per (date, slot) combination
+            - Sorted by (date, slot)
+
+        Example:
+            >>> df = loader.get_universe_timeline('2021-01-01', '2021-01-07', top_n=3)
+            >>> df.head(6)
+               date  slot    symbol  quote_volume
+            0  2021-01-01     1  BTCUSDT   1e10
+            1  2021-01-01     2  ETHUSDT   5e9
+            2  2021-01-01     3  BNBUSDT   2e9
+            3  2021-01-02     1  BTCUSDT   1.1e10
+            4  2021-01-02     2  ETHUSDT   5.2e9
+            5  2021-01-02     3  BNBUSDT   2.1e9
+        """
+        history = self.load_universe_history()
+
+        if history.empty:
+            return pd.DataFrame()
+
+        # Filter by date range and top N slots
+        filtered = history[
+            (history['date'] >= start_date) &
+            (history['date'] <= end_date) &
+            (history['slot'] <= top_n)
+        ].copy()
+
+        # Sort by date and slot for consistent ordering
+        filtered = filtered.sort_values(['date', 'slot']).reset_index(drop=True)
+
+        return filtered
+
+    def get_rebalance_dates(
+        self,
+        start_date: date,
+        end_date: date,
+        top_n: int = 20,
+    ) -> List[Tuple[date, Dict[int, str], Dict[int, str]]]:
+        """
+        Get dates where universe composition changed.
+
+        Returns list of (date, old_universe, new_universe) tuples for each rebalance event.
+
+        Args:
+            start_date: Start date
+            end_date: End date
+            top_n: Number of slots
+
+        Returns:
+            List of tuples: (rebalance_date, old_mapping, new_mapping)
+            where mapping is {slot: symbol}
+        """
+        timeline = self.get_universe_timeline(start_date, end_date, top_n)
+
+        if timeline.empty:
+            return []
+
+        rebalances = []
+        prev_mapping = None
+
+        for dt, group in timeline.groupby('date'):
+            curr_mapping = {row['slot']: row['symbol'] for _, row in group.iterrows()}
+
+            if prev_mapping is not None:
+                # Check if any slot changed symbol
+                changed = False
+                for slot in range(1, top_n + 1):
+                    old_sym = prev_mapping.get(slot)
+                    new_sym = curr_mapping.get(slot)
+                    if old_sym != new_sym:
+                        changed = True
+                        break
+
+                if changed:
+                    rebalances.append((dt, prev_mapping, curr_mapping))
+
+            prev_mapping = curr_mapping
+
+        self.logger.info(f"Found {len(rebalances)} rebalance events between {start_date} and {end_date}")
+        return rebalances
+
     # ========== Text Data Loading ==========
 
     def load_nostr_data(

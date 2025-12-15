@@ -144,22 +144,27 @@ class BaseBenchmark(ABC):
         start_date: str,
         end_date: str,
         initial_nav: float = 100_000.0,
+        universe_timeline: Optional[pd.DataFrame] = None,
     ) -> BacktestResult:
         """
-        Run backtest on historical data.
+        Run vectorized backtest with dynamic universe support.
+
+        The backtest now properly handles daily universe changes:
+        - Each day uses that day's top N symbols by volume
+        - Portfolio weights are computed on the current universe
+        - Universe changes create turnover (position transfers)
 
         Args:
             data: DataFrame with columns:
                 - timestamp: Datetime index
                 - symbol: Asset symbol
                 - close: Close price
-                - returns: Period returns
-                - market_cap: Market capitalization (optional)
-                - factors: Factor values (optional)
-                - sentiment: Sentiment scores (optional)
+                - volume: Trading volume (for cap-weighting)
             start_date: Backtest start date
             end_date: Backtest end date
             initial_nav: Initial portfolio value
+            universe_timeline: Optional DataFrame with daily universe
+                columns: ['date', 'slot', 'symbol', 'quote_volume']
 
         Returns:
             BacktestResult with performance metrics
@@ -169,80 +174,221 @@ class BaseBenchmark(ABC):
         # Filter data by date range
         data = data[(data.index >= start_date) & (data.index <= end_date)]
 
-        # Get unique timestamps for rebalancing
-        timestamps = data.index.unique()
+        if len(data) == 0:
+            logger.warning("No data in date range")
+            return BacktestResult(strategy_name=self.name)
 
-        # Initialize tracking variables
+        # === PIVOT ALL DATA (all symbols) ===
+        logger.info("Pivoting data to matrices...")
+
+        # Get ALL unique symbols in data
+        all_symbols = data['symbol'].unique().tolist()
+
+        prices_matrix = data.pivot_table(
+            index=data.index, columns='symbol', values='close', aggfunc='first'
+        ).ffill().fillna(0)
+
+        returns_matrix = prices_matrix.pct_change().fillna(0)
+
+        # Volume for cap-weighting
+        if 'volume' in data.columns:
+            volume_matrix = data.pivot_table(
+                index=data.index, columns='symbol', values='volume', aggfunc='first'
+            ).ffill().fillna(0)
+        else:
+            volume_matrix = pd.DataFrame(1.0, index=prices_matrix.index, columns=prices_matrix.columns)
+
+        all_timestamps = prices_matrix.index
+        n_assets = self.config.n_assets
+
+        # === BUILD DAILY UNIVERSE MAPPING ===
+        # For each unique date, determine the top N symbols
+        unique_dates = pd.Series(all_timestamps).dt.date.unique()
+
+        # Build universe per date: date -> list of top N symbols
+        daily_universe = {}
+
+        if universe_timeline is not None and len(universe_timeline) > 0:
+            # Use provided universe timeline
+            for d in unique_dates:
+                day_uni = universe_timeline[universe_timeline['date'] == d]
+                day_uni = day_uni[day_uni['slot'] <= n_assets].sort_values('slot')
+                symbols_today = day_uni['symbol'].tolist()
+                # Filter to symbols that exist in our data
+                symbols_today = [s for s in symbols_today if s in prices_matrix.columns]
+                daily_universe[d] = symbols_today[:n_assets]
+        else:
+            # Compute universe from volume data (last bar of previous day)
+            for d in unique_dates:
+                # Get volume at end of this day (or use average)
+                day_mask = pd.Series(all_timestamps).dt.date == d
+                day_indices = np.where(day_mask.values)[0]
+                if len(day_indices) > 0:
+                    last_idx = day_indices[-1]
+                    day_volumes = volume_matrix.iloc[last_idx]
+                    top_symbols = day_volumes.nlargest(n_assets).index.tolist()
+                    daily_universe[d] = top_symbols
+                else:
+                    daily_universe[d] = all_symbols[:n_assets]
+
+        # === DETERMINE REBALANCING POINTS ===
+        if self.config.rebalance_freq == 'daily':
+            # Last bar of each day
+            rebalance_mask = pd.Series(False, index=all_timestamps)
+            for d in unique_dates:
+                day_ts = all_timestamps[pd.Series(all_timestamps).dt.date.values == d]
+                if len(day_ts) > 0:
+                    rebalance_mask[day_ts[-1]] = True
+        elif self.config.rebalance_freq == 'hourly':
+            rebalance_mask = pd.Series([ts.minute == 0 for ts in all_timestamps], index=all_timestamps)
+        else:
+            rebalance_mask = pd.Series(True, index=all_timestamps)
+
+        rebalance_indices = np.where(rebalance_mask.values)[0]
+        logger.info(f"Total bars: {len(all_timestamps)}, Rebalance points: {len(rebalance_indices)}")
+
+        # === COMPUTE PORTFOLIO RETURNS WITH DYNAMIC UNIVERSE ===
         nav = initial_nav
-        nav_history = []
-        returns_history = []
-        weights_history = []
-        turnover_history = []
+        nav_list = [nav]  # Start with initial NAV
+        returns_list = [0.0]  # First bar has 0 return
+        turnover_list = [0.0]
 
-        current_weights = np.zeros(self.config.n_assets)
+        # Track current holdings: symbol -> weight
+        current_holdings = {}
+        prev_reb_idx = 0
 
-        for i, ts in enumerate(timestamps):
-            # Get current data slice
-            ts_data = data.loc[ts]
+        for i, reb_idx in enumerate(rebalance_indices):
+            ts = all_timestamps[reb_idx]
+            current_date = ts.date()
+            universe_today = daily_universe.get(current_date, all_symbols[:n_assets])
 
-            # Prepare features
-            prices, features = self._prepare_features(data, ts, i)
+            # === COMPUTE RETURNS FROM PREVIOUS BAR TO CURRENT BAR ===
+            # Process bars from (prev_reb_idx+1) to reb_idx (exclusive of reb_idx for now)
+            start_bar = prev_reb_idx + 1 if i > 0 else 1  # Skip first bar (already added)
 
-            if prices is None:
-                continue
+            for bar_idx in range(start_bar, reb_idx):
+                if current_holdings:
+                    bar_return = 0.0
+                    for sym, weight in current_holdings.items():
+                        if sym in returns_matrix.columns:
+                            bar_return += weight * returns_matrix[sym].iloc[bar_idx]
+                    nav = nav * (1 + bar_return)
+                    nav_list.append(nav)
+                    returns_list.append(bar_return)
+                    turnover_list.append(0.0)
+                else:
+                    # No holdings yet - no return
+                    nav_list.append(nav)
+                    returns_list.append(0.0)
+                    turnover_list.append(0.0)
 
-            # Compute target weights
+            # === COMPUTE RETURN AT REBALANCE BAR (before rebalancing) ===
+            if current_holdings:
+                bar_return = 0.0
+                for sym, weight in current_holdings.items():
+                    if sym in returns_matrix.columns:
+                        bar_return += weight * returns_matrix[sym].iloc[reb_idx]
+                nav = nav * (1 + bar_return)
+            else:
+                bar_return = 0.0
+
+            # === PREPARE FEATURES FOR WEIGHT COMPUTATION ===
+            lookback_start = max(0, reb_idx - self.config.lookback_days)
+
+            universe_returns = np.zeros((reb_idx - lookback_start + 1, n_assets))
+            universe_volumes = np.zeros(n_assets)
+            universe_prices = np.zeros(n_assets)
+
+            for slot, sym in enumerate(universe_today[:n_assets]):
+                if sym in returns_matrix.columns:
+                    universe_returns[:, slot] = returns_matrix[sym].iloc[lookback_start:reb_idx+1].values
+                    universe_volumes[slot] = volume_matrix[sym].iloc[reb_idx]
+                    universe_prices[slot] = prices_matrix[sym].iloc[reb_idx]
+
+            features = {
+                'returns': universe_returns,
+                'market_caps': universe_volumes,
+                'volumes': universe_volumes,
+            }
+
+            # === COMPUTE NEW WEIGHTS ===
+            current_weights_arr = np.zeros(n_assets)
+            for slot, sym in enumerate(universe_today[:n_assets]):
+                current_weights_arr[slot] = current_holdings.get(sym, 0.0)
+
             target_weights = self.compute_weights(
                 timestamp=ts,
-                prices=prices,
+                prices=universe_prices,
                 features=features,
-                current_weights=current_weights,
+                current_weights=current_weights_arr,
             )
-
-            # Apply constraints
             target_weights = self._apply_constraints(target_weights)
 
-            # Get returns for this period
-            if 'returns' in features:
-                period_returns = features['returns'][-1] if len(features['returns']) > 0 else np.zeros(self.config.n_assets)
+            # === CALCULATE TURNOVER ===
+            new_holdings = {}
+            for slot, sym in enumerate(universe_today[:n_assets]):
+                new_holdings[sym] = target_weights[slot]
+
+            turnover = 0.0
+            all_syms = set(current_holdings.keys()) | set(new_holdings.keys())
+            for sym in all_syms:
+                old_w = current_holdings.get(sym, 0.0)
+                new_w = new_holdings.get(sym, 0.0)
+                turnover += abs(new_w - old_w)
+
+            # Apply transaction cost to this bar's return
+            cost_rate = turnover * (self.config.transaction_cost + self.config.slippage)
+            net_return = bar_return - cost_rate
+            nav_after_cost = nav * (1 - cost_rate) / (1 + bar_return) if (1 + bar_return) != 0 else nav
+            # Simpler: just deduct cost from NAV
+            nav = nav - nav * cost_rate
+
+            # Record this rebalance bar
+            nav_list.append(nav)
+            returns_list.append(net_return)
+            turnover_list.append(turnover)
+
+            # Update holdings
+            current_holdings = new_holdings
+            prev_reb_idx = reb_idx
+
+        # === HANDLE REMAINING BARS AFTER LAST REBALANCE ===
+        for bar_idx in range(prev_reb_idx + 1, len(all_timestamps)):
+            if current_holdings:
+                bar_return = 0.0
+                for sym, weight in current_holdings.items():
+                    if sym in returns_matrix.columns:
+                        bar_return += weight * returns_matrix[sym].iloc[bar_idx]
+                nav = nav * (1 + bar_return)
+                nav_list.append(nav)
+                returns_list.append(bar_return)
+                turnover_list.append(0.0)
             else:
-                period_returns = np.zeros(self.config.n_assets)
+                nav_list.append(nav)
+                returns_list.append(0.0)
+                turnover_list.append(0.0)
 
-            # Calculate portfolio return using PnLCalculator (unified with TradingEnv)
-            pnl_result = self.pnl_calculator.calculate_portfolio_return(
-                weights=target_weights,
-                asset_returns=period_returns,
-                prev_weights=current_weights,
-                funding_rates=None,  # No funding for spot trading
-                include_costs=True,
-            )
+        # === TRIM TO MATCH TIMESTAMPS ===
+        nav_list = nav_list[:len(all_timestamps)]
+        returns_list = returns_list[:len(all_timestamps)]
+        turnover_list = turnover_list[:len(all_timestamps)]
 
-            port_return = pnl_result['net_return']
-            turnover = pnl_result['turnover']
+        # Pad if needed
+        while len(nav_list) < len(all_timestamps):
+            nav_list.append(nav_list[-1] if nav_list else initial_nav)
+            returns_list.append(0.0)
+            turnover_list.append(0.0)
 
-            # Update NAV
-            nav = self.pnl_calculator.update_nav(nav, port_return)
-
-            # Record history
-            nav_history.append({'timestamp': ts, 'nav': nav})
-            returns_history.append({'timestamp': ts, 'return': port_return})
-            weights_history.append({'timestamp': ts, **{f'w_{j}': w for j, w in enumerate(target_weights)}})
-            turnover_history.append(turnover)
-
-            # Update current weights
-            current_weights = target_weights
-
-        # Convert to DataFrames
-        nav_df = pd.DataFrame(nav_history).set_index('timestamp')['nav']
-        returns_df = pd.DataFrame(returns_history).set_index('timestamp')['return']
-        weights_df = pd.DataFrame(weights_history).set_index('timestamp')
+        # Convert to pandas
+        nav_df = pd.Series(nav_list[:len(all_timestamps)], index=all_timestamps)
+        returns_df = pd.Series(returns_list[:len(all_timestamps)], index=all_timestamps)
 
         # Compute metrics
         result = self._compute_metrics(
             nav_series=nav_df,
             returns_series=returns_df,
-            weights_df=weights_df,
-            turnover_history=turnover_history,
+            weights_df=pd.DataFrame(),  # Not tracking per-slot weights
+            turnover_history=turnover_list,
             initial_nav=initial_nav,
         )
 
@@ -388,13 +534,10 @@ class BaseBenchmark(ABC):
         if len(returns_series) == 0:
             return result
 
-        # Determine periods per year based on rebalance frequency
-        if self.config.rebalance_freq == '5min':
-            periods_per_year = 252 * 24 * 12  # 5-min bars per year
-        elif self.config.rebalance_freq == 'hourly':
-            periods_per_year = 252 * 24
-        else:  # daily
-            periods_per_year = 252
+        # Determine periods per year based on DATA frequency (always 5-min bars)
+        # Crypto trades 24/7, so use 365 days
+        # Returns are computed at 5-min granularity regardless of rebalance frequency
+        periods_per_year = 365 * 24 * 12  # 5-min bars per year (crypto 24/7)
 
         # Use PerformanceMetrics for unified calculation
         metrics_calc = PerformanceMetrics(risk_free_rate=0.0, annualize=True)

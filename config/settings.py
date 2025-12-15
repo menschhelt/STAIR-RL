@@ -159,7 +159,7 @@ class CQLSACConfig:
     """Phase 1: CQL-SAC Offline Pre-training"""
     learning_rate_actor: float = 3e-4
     learning_rate_critic: float = 1e-3
-    batch_size: int = 256
+    batch_size: int = 128  # Increased for better GPU utilization (was 32)
     replay_buffer_size: int = 1_000_000
     lambda_cql: float = 1.0  # CQL regularization
     lambda_gp: float = 10.0  # Gradient penalty

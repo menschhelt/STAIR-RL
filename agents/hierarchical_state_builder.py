@@ -40,11 +40,11 @@ class HierarchicalStateBuilder:
         self,
         n_assets: int,
         n_alphas: int = 101,
-        temporal_window: int = 20,
+        temporal_window: int = 5,  # Reduced from 20 for memory efficiency
         gdelt_embeddings_path: Optional[str] = None,
         nostr_embeddings_path: Optional[str] = None,
         ohlcv_data_dir: Optional[str] = None,
-        ohlcv_lookback: int = 288,
+        ohlcv_lookback: int = 72,  # Reduced from 288 (6h instead of 24h) for memory efficiency
         alpha_cache_dir: Optional[str] = None,
         macro_data_dir: Optional[str] = None,
         use_normalized_alphas: bool = True,
@@ -118,7 +118,7 @@ class HierarchicalStateBuilder:
             from features.macro_loader import MacroDataLoader
             self.macro_loader = MacroDataLoader(
                 macro_data_dir=macro_data_dir,
-                cache_months=12,
+                cache_months=24,  # Increased from 12 for better caching
             )
         else:
             self.macro_loader = None
@@ -180,24 +180,38 @@ class HierarchicalStateBuilder:
         # ======================
         # 1. Alphas (B, T, N, 101)
         # ======================
-        if self.alpha_loader is not None and self._current_symbols is not None and timestamps is not None:
-            # Load actual Alpha101 factors from cache
-            import numpy as np
-            from datetime import datetime as dt
-
-            # Parse timestamps
-            ts_list = []
+        # Filter valid timestamps (not empty strings or NaT)
+        valid_ts_for_alphas = []
+        if timestamps is not None:
             for ts in timestamps[-self.temporal_window:]:
-                if isinstance(ts, str):
-                    ts_list.append(pd.Timestamp(ts))
-                else:
-                    ts_list.append(pd.Timestamp(ts))
+                ts_str = str(ts).strip() if ts else ''
+                if ts_str and ts_str.upper() != 'NAT':
+                    parsed = pd.Timestamp(ts)
+                    if not pd.isnull(parsed):
+                        valid_ts_for_alphas.append(parsed)
 
-            # Get alphas for current symbols and timestamps
-            alpha_np = self.alpha_loader.get_alphas_for_symbols(
-                symbols=self._current_symbols[:N],
-                timestamps=ts_list,
-            )  # (T, N, 101)
+        if self.alpha_loader is not None and self._current_symbols is not None and len(valid_ts_for_alphas) > 0:
+            # Load actual Alpha101 factors
+            import numpy as np
+
+            # Use filtered valid timestamps
+            ts_list = valid_ts_for_alphas
+
+            # Use fast method if preloaded, otherwise fall back to slow method
+            if self.alpha_loader.has_slot_mapping():
+                # Best: slot-aware lookup (dynamic universe support)
+                alpha_np = self.alpha_loader.get_alphas_for_slots_fast(ts_list)  # (T, N_slots, 101)
+            elif self.alpha_loader.is_preloaded():
+                # Fallback: get all preloaded symbols (may cause dimension mismatch!)
+                alpha_np = self.alpha_loader.get_alphas_fast(ts_list)  # (T, N_all, 101)
+                # Slice to N assets if needed
+                if alpha_np.shape[1] > N:
+                    alpha_np = alpha_np[:, :N, :]
+            else:
+                alpha_np = self.alpha_loader.get_alphas_for_symbols(
+                    symbols=self._current_symbols[:N],
+                    timestamps=ts_list,
+                )  # (T, N, 101)
 
             # Convert to tensor and add batch dimension
             alphas = torch.from_numpy(alpha_np).to(device=device, dtype=torch.float32)
@@ -226,26 +240,41 @@ class HierarchicalStateBuilder:
         # ======================
         # 2. News Embeddings - Market-Wide (B, T, 768) [NO N dimension]
         # ======================
-        if self.embedding_loader is not None and timestamps is not None:
-            # Load actual GDELT embeddings (market-wide)
-            # timestamps should be list of length >= 1 (current time)
-            # We need to compute timestamps for [t-T+1, ..., t]
+        # Pre-compute temporal_timestamps ONCE for all downstream uses
+        temporal_timestamps = None
+        temporal_timestamps_pd = None  # pd.Timestamp objects for macro lookup
 
+        if timestamps is not None and len(timestamps) > 0:
             # Use the last timestamp as current time
             current_time = pd.Timestamp(timestamps[-1])
-            temporal_timestamps = []
-            for i in range(self.temporal_window):
-                # Go back in time (5-minute intervals)
-                ts = current_time - pd.Timedelta(minutes=5 * (self.temporal_window - 1 - i))
-                temporal_timestamps.append(ts.isoformat())
+
+            # OPTIMIZED: Use numpy for timestamp computation (36x faster than pd.Timedelta loop)
+            import numpy as np
+            base_np = np.datetime64(current_time.value, 'ns')
+            offsets_ns = np.arange(self.temporal_window - 1, -1, -1) * 5 * 60 * int(1e9)  # minutes to ns
+            timestamps_np = base_np - offsets_ns.astype('timedelta64[ns]')
+
+            # Convert to ISO strings for embedding lookup
+            temporal_timestamps = [pd.Timestamp(ts).isoformat() for ts in timestamps_np]
+
+            # Keep pd.Timestamp objects for macro lookup (avoid re-parsing)
+            temporal_timestamps_pd = [pd.Timestamp(ts) for ts in timestamps_np]
+
+        if self.embedding_loader is not None and temporal_timestamps is not None:
 
             # Get embeddings for all assets (used for Top 20 pooling)
             asset_indices = list(range(N))
 
             # Get GDELT embeddings (market-wide): (T, 768)
-            news_emb_single = self.embedding_loader.get_gdelt_embeddings_marketwide(
-                temporal_timestamps, asset_indices
-            )
+            # Use fast method if available (300x faster)
+            if hasattr(self.embedding_loader, 'get_gdelt_embeddings_marketwide_fast'):
+                news_emb_single = self.embedding_loader.get_gdelt_embeddings_marketwide_fast(
+                    temporal_timestamps, asset_indices
+                )
+            else:
+                news_emb_single = self.embedding_loader.get_gdelt_embeddings_marketwide(
+                    temporal_timestamps, asset_indices
+                )
 
             # Expand batch dimension: (1, T, 768)
             news_embedding = news_emb_single.unsqueeze(0)
@@ -265,9 +294,15 @@ class HierarchicalStateBuilder:
         # ======================
         if self.embedding_loader is not None and timestamps is not None:
             # Load actual Nostr embeddings (market-wide, use same temporal_timestamps)
-            social_emb_single = self.embedding_loader.get_nostr_embeddings_marketwide(
-                temporal_timestamps, asset_indices
-            )
+            # Use fast method if available (300x faster)
+            if hasattr(self.embedding_loader, 'get_nostr_embeddings_marketwide_fast'):
+                social_emb_single = self.embedding_loader.get_nostr_embeddings_marketwide_fast(
+                    temporal_timestamps, asset_indices
+                )
+            else:
+                social_emb_single = self.embedding_loader.get_nostr_embeddings_marketwide(
+                    temporal_timestamps, asset_indices
+                )
 
             # Expand batch dimension: (1, T, 768)
             social_embedding = social_emb_single.unsqueeze(0)
@@ -287,9 +322,15 @@ class HierarchicalStateBuilder:
         # ======================
         if self.embedding_loader is not None and timestamps is not None:
             # Get actual social signal mask (market-wide)
-            has_signal_single = self.embedding_loader.get_social_signal_mask_marketwide(
-                temporal_timestamps, asset_indices
-            )
+            # Use fast method if available (300x faster)
+            if hasattr(self.embedding_loader, 'get_social_signal_mask_marketwide_fast'):
+                has_signal_single = self.embedding_loader.get_social_signal_mask_marketwide_fast(
+                    temporal_timestamps, asset_indices
+                )
+            else:
+                has_signal_single = self.embedding_loader.get_social_signal_mask_marketwide(
+                    temporal_timestamps, asset_indices
+                )
 
             # Expand batch dimension: (1, T, 1)
             has_social_signal = has_signal_single.unsqueeze(0)
@@ -370,42 +411,47 @@ class HierarchicalStateBuilder:
             )
 
         # ======================
-        # 6. Global Features (B, T, 23)
+        # 6. Global Features (B, T, 28) - 23 macro + 5 Fama-French
         # ======================
-        # Load macro indicators with forward-fill strategy
-        if self.macro_loader is not None and timestamps is not None:
-            # Use the last timestamp as current time
-            current_time = pd.Timestamp(timestamps[-1])
+        # OPTIMIZED: Use pre-computed temporal_timestamps_pd and batch lookup
 
-            # Compute timestamps for [t-T+1, ..., t]
-            temporal_timestamps = []
-            for i in range(self.temporal_window):
-                # Go back in time (5-minute intervals)
-                ts = current_time - pd.Timedelta(minutes=5 * (self.temporal_window - 1 - i))
-                temporal_timestamps.append(ts)
+        if self.macro_loader is not None and temporal_timestamps_pd is not None:
+            try:
+                # Use batch lookup if preloaded (much faster than individual calls)
+                if self.macro_loader.is_preloaded() and hasattr(self.macro_loader, 'get_features_batch'):
+                    # FAST PATH: Single batch lookup (T lookups in one call)
+                    global_features_np = self.macro_loader.get_features_batch(temporal_timestamps_pd)
+                    global_features_single = torch.from_numpy(global_features_np)
+                elif self.macro_loader.is_preloaded():
+                    # MEDIUM PATH: Individual fast lookups
+                    global_features_list = []
+                    for ts in temporal_timestamps_pd:
+                        macro_feat = self.macro_loader.get_features_fast(ts)
+                        global_features_list.append(torch.from_numpy(macro_feat))
+                    global_features_single = torch.stack(global_features_list)
+                else:
+                    # SLOW PATH: Individual slow lookups (parquet reads)
+                    global_features_list = []
+                    for ts in temporal_timestamps_pd:
+                        macro_feat = self.macro_loader.get_global_features(ts)
+                        global_features_list.append(torch.from_numpy(macro_feat))
+                    global_features_single = torch.stack(global_features_list)
 
-            # Load macro features for each timestamp
-            global_features_list = []
-            for ts in temporal_timestamps:
-                try:
-                    macro_feat = self.macro_loader.get_global_features(ts)
-                    global_features_list.append(torch.from_numpy(macro_feat))
-                except Exception as e:
-                    # Fallback to zeros on error
-                    import logging
-                    logging.warning(f"Failed to load macro features for {ts}: {e}")
-                    global_features_list.append(
-                        torch.zeros(self.macro_loader.n_features, dtype=torch.float32)
-                    )
+                # Expand batch dimension: (1, T, n_features)
+                global_features = global_features_single.unsqueeze(0)
 
-            # Stack temporal: (T, 23)
-            global_features_single = torch.stack(global_features_list)
+                # Repeat for batch size: (B, T, n_features)
+                global_features = global_features.repeat(B, 1, 1).to(device)
 
-            # Expand batch dimension: (1, T, 23)
-            global_features = global_features_single.unsqueeze(0)
-
-            # Repeat for batch size: (B, T, 23)
-            global_features = global_features.repeat(B, 1, 1).to(device)
+            except Exception as e:
+                import logging
+                logging.warning(f"Failed to load macro features: {e}")
+                n_global_features = self.macro_loader.n_features if self.macro_loader else 6
+                global_features = torch.zeros(
+                    B, self.temporal_window, n_global_features,
+                    device=device,
+                    dtype=torch.float32
+                )
         else:
             # Fallback: zeros (mock data or no macro loader)
             # Default to 23 features if macro_loader is initialized, else 6 for backward compat

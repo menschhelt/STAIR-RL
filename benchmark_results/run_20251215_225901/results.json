@@ -1,0 +1,54 @@
+{
+  "equal_weight": {
+    "strategy": "Equal-Weight (EW)",
+    "total_return": 0.4802989727879312,
+    "annual_return": 0.0009838938836852495,
+    "sharpe_ratio": 0.058086630609576244,
+    "sortino_ratio": 0.05423817925671715,
+    "max_drawdown": -0.9233275145654165,
+    "calmar_ratio": 0.0010656063658868332,
+    "cvar_95": -0.01322705022334484,
+    "volatility": 0.09313560050914448,
+    "total_turnover": 2.0,
+    "total_cost": 0.0018
+  },
+  "cap_weight": {
+    "strategy": "Cap-Weight (CW)",
+    "total_return": -0.42872625222776795,
+    "annual_return": -0.0014027288545533922,
+    "sharpe_ratio": 0.036421114740324535,
+    "sortino_ratio": 0.034891128296755836,
+    "max_drawdown": -0.9469526813853482,
+    "calmar_ratio": -0.0014813230145176008,
+    "cvar_95": -0.013865509517132597,
+    "volatility": 0.09925122274861115,
+    "total_turnover": 207.48653269258128,
+    "total_cost": 0.18673787942332315
+  },
+  "markowitz": {
+    "strategy": "Markowitz (MV)",
+    "total_return": -0.5445849609243851,
+    "annual_return": -0.001970036845133194,
+    "sharpe_ratio": 0.02902359729775098,
+    "sortino_ratio": 0.028047600826261777,
+    "max_drawdown": -0.9365072020618337,
+    "calmar_ratio": -0.0021036212230862205,
+    "cvar_95": -0.013797681843424744,
+    "volatility": 0.09692766503996147,
+    "total_turnover": 989.9308075518496,
+    "total_cost": 0.8909377267966646
+  },
+  "min_variance": {
+    "strategy": "Minimum Variance (MinVar)",
+    "total_return": 3.1015792191053855,
+    "annual_return": 0.003544772997680967,
+    "sharpe_ratio": 0.08470281555233579,
+    "sortino_ratio": 0.084445741665955,
+    "max_drawdown": -0.6654439111949398,
+    "calmar_ratio": 0.005326982887125198,
+    "cvar_95": -0.010720012679694517,
+    "volatility": 0.07615204731363681,
+    "total_turnover": 734.9746206246489,
+    "total_cost": 0.6614771585621839
+  }
+}

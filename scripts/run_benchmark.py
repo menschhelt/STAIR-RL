@@ -46,8 +46,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def load_data(config: Config, start_date: str, end_date: str) -> pd.DataFrame:
-    """Load and prepare data for benchmarking."""
+def load_data(config: Config, start_date: str, end_date: str):
+    """Load and prepare data for benchmarking.
+
+    Returns:
+        Tuple of (ohlcv_data, universe_timeline)
+    """
     from backtesting.data_loader import ParquetDataLoader
     from datetime import datetime, timezone
 
@@ -63,14 +67,17 @@ def load_data(config: Config, start_date: str, end_date: str) -> pd.DataFrame:
     start_dt = datetime.strptime(start_date, '%Y-%m-%d').replace(tzinfo=timezone.utc)
     end_dt = datetime.strptime(end_date, '%Y-%m-%d').replace(tzinfo=timezone.utc)
 
-    # Load universe symbols (filter to top N)
-    universe_symbols = data_loader.get_universe_symbols(
+    # Load universe timeline (daily universe with slot->symbol mapping)
+    universe_timeline = data_loader.get_universe_timeline(
         start_dt.date(),
         end_dt.date(),
         top_n=config.universe.top_n
     )
+    logger.info(f"Universe timeline: {len(universe_timeline)} rows")
 
-    logger.info(f"Universe: {len(universe_symbols)} symbols (top {config.universe.top_n})")
+    # Get all unique symbols from universe timeline
+    universe_symbols = universe_timeline['symbol'].dropna().unique().tolist()
+    logger.info(f"Universe: {len(universe_symbols)} unique symbols")
 
     # Load OHLCV data for all symbols
     ohlcv_dict = data_loader.load_ohlcv_multi(
@@ -94,7 +101,7 @@ def load_data(config: Config, start_date: str, end_date: str) -> pd.DataFrame:
     ohlcv_data = ohlcv_data.sort_index()
 
     logger.info(f"Loaded OHLCV data: {len(ohlcv_data)} rows, {len(universe_symbols)} symbols")
-    return ohlcv_data
+    return ohlcv_data, universe_timeline
 
 
 def run_benchmark_suite(
@@ -111,8 +118,8 @@ def run_benchmark_suite(
     logger.info(f"Period: {start_date} to {end_date}")
     logger.info("=" * 60)
 
-    # Load data
-    data = load_data(config, start_date, end_date)
+    # Load data with universe timeline
+    data, universe_timeline = load_data(config, start_date, end_date)
 
     if len(data) == 0:
         logger.error("No data available for benchmarking")
@@ -127,11 +134,12 @@ def run_benchmark_suite(
         slippage=config.backtest.slippage,
     )
 
-    # Create runner
+    # Create runner with universe timeline
     runner = BenchmarkRunner(
         data=data,
         config=benchmark_config,
         output_dir=output_dir,
+        universe_timeline=universe_timeline,
     )
 
     # Run suite
@@ -178,8 +186,8 @@ def run_specific_strategies(
         logger.info(f"Available: {list(BENCHMARK_REGISTRY.keys())}")
         return None
 
-    # Load data
-    data = load_data(config, start_date, end_date)
+    # Load data with universe timeline
+    data, universe_timeline = load_data(config, start_date, end_date)
 
     if len(data) == 0:
         logger.error("No data available for benchmarking")
@@ -194,11 +202,12 @@ def run_specific_strategies(
         slippage=config.backtest.slippage,
     )
 
-    # Create runner
+    # Create runner with universe timeline
     runner = BenchmarkRunner(
         data=data,
         config=benchmark_config,
         output_dir=output_dir,
+        universe_timeline=universe_timeline,
     )
 
     # Run strategies

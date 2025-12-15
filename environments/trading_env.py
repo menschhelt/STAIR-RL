@@ -276,6 +276,10 @@ class TradingEnv(gym.Env):
         self._portfolio.leverage_ratio = position_info.leverage_ratio
         self._portfolio.cash_ratio = position_info.cash_ratio
 
+        # Check for slot changes (dynamic universe rebalancing)
+        slot_changes = self._get_slot_changes()
+        rotation_cost = self._calculate_rotation_cost(slot_changes, prev_weights)
+
         # Compute portfolio return using PnLCalculator (unified with BacktestEngine)
         pnl_result = self.pnl_calculator.calculate_portfolio_return(
             weights=position_info.final_weights,
@@ -292,7 +296,12 @@ class TradingEnv(gym.Env):
 
         # Calculate slippage separately (PnLCalculator uses transaction_cost only)
         slippage_cost = turnover * self.config.slippage_rate
-        total_cost = transaction_cost + slippage_cost
+
+        # Add rotation cost to total cost
+        total_cost = transaction_cost + slippage_cost + rotation_cost
+
+        # Deduct rotation cost from return
+        port_return -= rotation_cost
 
         # Update NAV using PnLCalculator
         old_nav = self._portfolio.nav
@@ -344,8 +353,11 @@ class TradingEnv(gym.Env):
         info['port_return'] = port_return
         info['transaction_cost'] = transaction_cost
         info['slippage_cost'] = slippage_cost
+        info['rotation_cost'] = rotation_cost
         info['total_cost'] = total_cost
         info['turnover'] = turnover
+        info['is_rebalance'] = slot_changes.any()
+        info['slots_changed'] = slot_changes.sum()
 
         return obs, reward, terminated, truncated, info
 
@@ -403,6 +415,51 @@ class TradingEnv(gym.Env):
         if self._step_idx % self.config.funding_rate_interval == 0:
             return self.data['funding_rates'][self._step_idx]
         return np.zeros(self.config.n_assets)
+
+    def _get_slot_changes(self) -> np.ndarray:
+        """
+        Get slot changes for current timestep (dynamic universe rebalancing).
+
+        Returns:
+            Boolean array (N,) indicating which slots changed symbol
+        """
+        if 'slot_changes' not in self.data:
+            return np.zeros(self.config.n_assets, dtype=bool)
+        return self.data['slot_changes'][self._step_idx]
+
+    def _calculate_rotation_cost(
+        self,
+        slot_changes: np.ndarray,
+        weights: np.ndarray,
+    ) -> float:
+        """
+        Calculate rotation cost when universe rebalances.
+
+        When a slot's symbol changes, we effectively:
+        1. Close position in old symbol (transaction cost)
+        2. Open position in new symbol (transaction cost)
+
+        Args:
+            slot_changes: Boolean array (N,) of which slots changed
+            weights: Current portfolio weights (N,)
+
+        Returns:
+            Rotation cost as fraction of NAV
+        """
+        if not slot_changes.any():
+            return 0.0
+
+        # For each slot that changed, we pay 2x transaction cost (close + open)
+        # on the absolute weight in that slot
+        changed_weights = np.abs(weights[slot_changes])
+        rotation_turnover = 2 * changed_weights.sum()
+
+        # Apply transaction cost rate
+        rotation_cost = rotation_turnover * (
+            self.config.transaction_cost_rate + self.config.slippage_rate
+        )
+
+        return rotation_cost
 
     # NOTE: _compute_portfolio_return method removed - now using PnLCalculator
     # This eliminates code duplication with BacktestEngine

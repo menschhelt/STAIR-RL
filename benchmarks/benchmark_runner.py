@@ -81,7 +81,7 @@ BENCHMARK_SUITES = {
     ),
     'traditional': BenchmarkSuite(
         name='Traditional Strategies',
-        strategies=['equal_weight', 'cap_weight', 'markowitz', 'min_variance'],
+        strategies=['equal_weight', 'cap_weight', 'markowitz', 'min_variance', 'equal_risk'],
         description='Non-ML baseline strategies'
     ),
     'rl_only': BenchmarkSuite(
@@ -125,6 +125,7 @@ class BenchmarkRunner:
         data: pd.DataFrame,
         config: Optional[BenchmarkConfig] = None,
         output_dir: Optional[Path] = None,
+        universe_timeline: Optional[pd.DataFrame] = None,
     ):
         """
         Initialize benchmark runner.
@@ -133,11 +134,13 @@ class BenchmarkRunner:
             data: Historical data for backtesting
             config: Benchmark configuration
             output_dir: Directory for saving results
+            universe_timeline: Daily universe mapping (date, slot, symbol, quote_volume)
         """
         self.data = data
         self.config = config or BenchmarkConfig()
         self.output_dir = Path(output_dir) if output_dir else Path('benchmark_results')
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.universe_timeline = universe_timeline
 
         self.results: Dict[str, BacktestResult] = {}
 
@@ -176,12 +179,13 @@ class BenchmarkRunner:
                 benchmark_class = BENCHMARK_REGISTRY[strategy_name]
                 benchmark = benchmark_class(config=self.config, **kwargs)
 
-                # Run backtest
+                # Run backtest with dynamic universe support
                 result = benchmark.run_backtest(
                     data=self.data.copy(),
                     start_date=start_date,
                     end_date=end_date,
                     initial_nav=initial_nav,
+                    universe_timeline=self.universe_timeline,
                 )
 
                 results[strategy_name] = result

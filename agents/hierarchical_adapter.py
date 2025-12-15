@@ -66,13 +66,16 @@ class HierarchicalActorCriticAdapter(nn.Module):
         self.state_builder = HierarchicalStateBuilder(
             n_assets=hierarchical_model.n_assets,
             n_alphas=101,  # Alpha101 only (alpha_000 ~ alpha_100)
-            temporal_window=20,
+            temporal_window=5,  # Reduced from 20 for memory efficiency
             gdelt_embeddings_path=gdelt_embeddings_path,
             nostr_embeddings_path=nostr_embeddings_path,
             macro_data_dir=macro_data_dir,
-            use_normalized_alphas=True,  # Use L1-normalized alphas
+            use_normalized_alphas=True,  # Use normalized alphas (alpha_cache_normalized/)
             device=device,
         )
+
+        # Performance optimization: preload all alphas into memory
+        self.state_builder.preload_alphas()
 
     def encode_state(
         self,
@@ -107,6 +110,57 @@ class HierarchicalActorCriticAdapter(nn.Module):
 
         return z_pooled, z_unpooled
 
+    def encode_state_fast(
+        self,
+        batch: dict,
+        prefix: str = '',
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        FAST encode state using precomputed features (skips build_state_dict).
+
+        This method is ~10x faster than encode_state() because it:
+        1. Uses precomputed features directly from batch (no data loading)
+        2. Skips timestamp parsing and feature lookup
+        3. Only runs the encoder forward pass (which needs gradients)
+
+        Args:
+            batch: Dict with precomputed features from ReplayBuffer.sample():
+                - 'alphas' or 'next_alphas': (B, T, N, 101)
+                - 'gdelt_embeddings_marketwide' or 'next_gdelt_...': (B, T, 768)
+                - 'nostr_embeddings_marketwide' or 'next_nostr_...': (B, T, 768)
+                - 'global_features' or 'next_global_features': (B, T, n_macro)
+                - 'market_states' or 'next_market_states': (B, N, state_dim)
+                - 'portfolio_states' or 'next_portfolio_states': (B, portfolio_dim)
+            prefix: '' for current state, 'next_' for next state
+
+        Returns:
+            z_pooled: (B, 176) - Pooled representation for Critic
+            z_unpooled: (B, N, 176) - Unpooled representation for Actor
+        """
+        # Build state_dict directly from precomputed features
+        # Map batch keys to encoder expected keys:
+        #   - batch: gdelt_embeddings_marketwide → encoder: news_embedding
+        #   - batch: nostr_embeddings_marketwide → encoder: social_embedding
+        #   - batch: social_signal_mask → encoder: has_social_signal
+        state_dict = {
+            'alphas': batch[f'{prefix}alphas'],
+            'news_embedding': batch[f'{prefix}gdelt_embeddings_marketwide'],
+            'social_embedding': batch[f'{prefix}nostr_embeddings_marketwide'],
+            'global_features': batch[f'{prefix}global_features'],
+            'market_state': batch[f'{prefix}market_states'],
+            'portfolio_state': batch[f'{prefix}portfolio_states'],
+        }
+
+        # Optional: social signal mask → has_social_signal
+        mask_key = f'{prefix}social_signal_mask' if prefix else 'social_signal_mask'
+        if mask_key in batch:
+            state_dict['has_social_signal'] = batch[mask_key]
+
+        # Encode using HierarchicalFeatureEncoder (with gradients)
+        z_pooled, z_unpooled = self.model.encoder(state_dict)
+
+        return z_pooled, z_unpooled
+
     def get_action(
         self,
         z_pooled: torch.Tensor,
@@ -114,11 +168,11 @@ class HierarchicalActorCriticAdapter(nn.Module):
         deterministic: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Get action from HierarchicalActor.
+        Get action from HierarchicalActor with log probability.
 
-        This method calls the HierarchicalActor which has two heads:
-        - Meta Head: Global trade/hold decision (uses z_pooled)
-        - Portfolio Head: Per-asset weight allocation (uses z_unpooled)
+        This method calls the HierarchicalActor's get_action which:
+        - Outputs portfolio weights with optional exploration noise
+        - Computes log probability for PPO training
 
         Args:
             z_pooled: (B, 176) - Pooled representation
@@ -126,22 +180,42 @@ class HierarchicalActorCriticAdapter(nn.Module):
             deterministic: If True, use deterministic policy (for evaluation)
 
         Returns:
-            weights: (B, N) - Portfolio weights (from Portfolio Head)
-            trade_prob: (B, 1) - Trade probability (from Meta Head)
+            weights: (B, N) - Portfolio weights
+            log_prob: (B,) - Log probability of the action (for PPO)
 
         Notes:
-            - trade_prob is currently ignored in training (future enhancement)
-            - When trade_prob < 0.5, could set weights to zero (hold)
+            - Lazy Agent architecture: no explicit trade/hold decision
+            - Lazy behavior emerges from transaction cost penalties
+            - log_prob is computed from exploration noise distribution
         """
-        # Forward through HierarchicalActor
-        # Returns: (trade_prob, weights)
-        trade_prob, weights = self.model.actor(z_pooled, z_unpooled)
+        # Use HierarchicalActor.get_action() which returns (weights, log_prob)
+        weights, log_prob = self.model.actor.get_action(
+            z_pooled, z_unpooled, deterministic=deterministic
+        )
 
-        # Note: In current implementation, we ignore trade_prob and just use weights
-        # Future enhancement: Apply trade_prob threshold to weights
-        # if trade_prob < 0.5: weights = zeros
+        return weights, log_prob
 
-        return weights, trade_prob
+    def evaluate_actions(
+        self,
+        z_pooled: torch.Tensor,
+        z_unpooled: torch.Tensor,
+        old_actions: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Evaluate log probability of given actions under current policy.
+
+        Used by PPO to compute π_θ(a|s) for stored actions.
+
+        Args:
+            z_pooled: (B, 176) - Pooled representation
+            z_unpooled: (B, N, 176) - Unpooled representation
+            old_actions: (B, N) - Actions from rollout buffer to evaluate
+
+        Returns:
+            log_prob: (B,) - Log probability of old_actions under current policy
+            entropy: (B,) - Policy entropy
+        """
+        return self.model.actor.evaluate_actions(z_pooled, z_unpooled, old_actions)
 
     def get_value(self, z_pooled: torch.Tensor) -> torch.Tensor:
         """

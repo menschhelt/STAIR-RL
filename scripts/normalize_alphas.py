@@ -3,27 +3,29 @@
 Cross-sectional L1 Normalization for Alpha Factors.
 
 Alpha 신호 정규화 단계:
-1. 각 timestamp에서 모든 심볼의 알파 값 수집
+1. 각 timestamp에서 **당시 존재하던 심볼만** 수집 (historical NaN 유지)
 2. 평균 계산 → 빼서 중립화 (롱숏 중립)
 3. L1 norm 적용 → |합|=1 되도록 정규화
 
 이렇게 하면:
 - 알파 신호 합이 0 (롱숏 중립)
 - 절대값 합이 1 (다른 알파와 비교 가능, Cross-Attention 준비)
+- Historical NaN 보존 (상장 전 심볼은 NaN 유지)
+
+Input format: alpha_101_{idx}.parquet (per-alpha files)
+Output format: alpha_101_{idx}.parquet (same, but normalized)
 
 Usage:
     python scripts/normalize_alphas.py
-    python scripts/normalize_alphas.py --workers 8
+    python scripts/normalize_alphas.py --in-place  # overwrite original
 """
 
 import argparse
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import List
 import pandas as pd
 import numpy as np
-from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
 
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -37,137 +39,68 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def load_all_alpha_files(cache_dir: Path) -> Dict[str, pd.DataFrame]:
+def normalize_alpha_file(
+    input_path: Path,
+    output_path: Path,
+) -> dict:
     """
-    Load all alpha cache files.
-
-    Returns:
-        Dict[symbol -> DataFrame]
-    """
-    files = list(cache_dir.glob('*_features.parquet'))
-    logger.info(f"Found {len(files)} alpha cache files")
-
-    data = {}
-    for f in files:
-        symbol = f.stem.replace('_features', '')
-        try:
-            df = pd.read_parquet(f)
-            if 'timestamp' in df.columns and len(df) > 0:
-                data[symbol] = df
-        except Exception as e:
-            logger.warning(f"Failed to load {f.name}: {e}")
-
-    logger.info(f"Loaded {len(data)} symbols")
-    return data
-
-
-def get_alpha_columns(df: pd.DataFrame) -> List[str]:
-    """Get only alpha columns (exclude factors, OHLCV, metadata)."""
-    return [c for c in df.columns if 'alpha_' in c.lower()]
-
-
-def normalize_cross_section(
-    data: Dict[str, pd.DataFrame],
-    alpha_cols: List[str],
-) -> Dict[str, pd.DataFrame]:
-    """
-    Apply cross-sectional L1 normalization to all alphas.
-
-    **Vectorized Implementation** - 100x faster than loop version.
-
-    For each alpha at each timestamp:
-    1. Collect values across all symbols
-    2. Subtract mean (market neutral)
-    3. Divide by L1 norm (|sum| = 1)
+    Normalize a single alpha file with cross-sectional L1 normalization.
 
     Args:
-        data: Dict[symbol -> DataFrame]
-        alpha_cols: List of alpha column names
+        input_path: Path to input alpha parquet file
+        output_path: Path to save normalized alpha
 
     Returns:
-        Dict[symbol -> normalized DataFrame]
+        Stats dict with normalization results
     """
-    symbols = list(data.keys())
-    logger.info(f"Processing {len(symbols)} symbols, {len(alpha_cols)} alphas (Vectorized)")
+    # Load alpha file
+    # Format: index=timestamp, columns=symbols, values=alpha values
+    df = pd.read_parquet(input_path)
 
-    # Step 1: 각 심볼 DataFrame에 timestamp를 인덱스로 설정
-    indexed_data = {}
-    for symbol, df in data.items():
-        df_copy = df.copy()
-        df_copy = df_copy.set_index('timestamp')
-        indexed_data[symbol] = df_copy
+    original_shape = df.shape
 
-    # Step 2: 각 알파별로 (timestamp × symbol) Pivot 테이블 생성 후 정규화
-    for alpha_idx, alpha_col in enumerate(alpha_cols):
-        if alpha_idx % 50 == 0:
-            logger.info(f"Processing alpha {alpha_idx+1}/{len(alpha_cols)}: {alpha_col}")
+    # Store original NaN mask (historical data - unlisted symbols at each time)
+    original_nan_mask = df.isna()
 
-        # 2a. 모든 심볼의 해당 알파 값을 하나의 DataFrame으로 결합
-        # 결과: (timestamp, symbol) 형태의 wide DataFrame
-        alpha_series_list = []
-        for symbol in symbols:
-            if alpha_col in indexed_data[symbol].columns:
-                series = indexed_data[symbol][alpha_col].rename(symbol)
-                alpha_series_list.append(series)
+    # Step 1: Cross-sectional mean neutralization (per timestamp)
+    # Only use non-NaN values for mean calculation
+    row_mean = df.mean(axis=1, skipna=True)
+    demeaned = df.sub(row_mean, axis=0)
 
-        if not alpha_series_list:
-            continue
+    # Step 2: Cross-sectional L1 normalization (per timestamp)
+    l1_norm = demeaned.abs().sum(axis=1, skipna=True)
+    # Prevent division by zero
+    l1_norm = l1_norm.replace(0, np.nan)
+    normalized = demeaned.div(l1_norm, axis=0)
 
-        # Concat: rows=timestamp, columns=symbols
-        wide_df = pd.concat(alpha_series_list, axis=1)
+    # Division-by-zero NaN → 0 (when L1 norm is 0, all values were 0)
+    normalized = normalized.fillna(0)
 
-        # 원본 NaN 위치 저장 (Historical masking 보존용)
-        original_nan_mask = wide_df.isna()
+    # Step 3: Restore historical NaN mask (CRITICAL!)
+    # Symbols that didn't exist at a timestamp should remain NaN
+    normalized[original_nan_mask] = np.nan
 
-        # 2b. Cross-sectional Mean Neutralization (행별 평균 빼기)
-        # axis=1: 같은 timestamp의 모든 심볼에 대해 연산
-        row_mean = wide_df.mean(axis=1, skipna=True)
-        demeaned = wide_df.sub(row_mean, axis=0)
+    # Save normalized alpha
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    normalized.to_parquet(output_path, compression='snappy')
 
-        # 2c. Cross-sectional L1 Normalization (행별 L1 norm으로 나누기)
-        l1_norm = demeaned.abs().sum(axis=1, skipna=True)
-        # 0으로 나누기 방지
-        l1_norm = l1_norm.replace(0, np.nan)
-        normalized = demeaned.div(l1_norm, axis=0)
+    # Compute stats for verification
+    # Pick a random timestamp to check sum and L1 norm
+    mid_idx = len(normalized) // 2
+    sample_row = normalized.iloc[mid_idx]
+    valid_values = sample_row.dropna()
 
-        # Division-by-zero NaN만 0으로 채우기 (L1 norm=0인 경우)
-        normalized = normalized.fillna(0)
-
-        # Historical NaN 복원 (상장 전 심볼은 반드시 NaN 유지)
-        normalized[original_nan_mask] = np.nan
-
-        # 2d. 정규화된 값을 다시 각 심볼 DataFrame에 저장
-        for symbol in symbols:
-            if symbol in normalized.columns:
-                indexed_data[symbol][alpha_col] = normalized[symbol]
-
-    # Step 3: 인덱스를 다시 컬럼으로 변환
-    result = {}
-    for symbol, df in indexed_data.items():
-        df_reset = df.reset_index()
-        result[symbol] = df_reset
-
-    logger.info(f"Normalization complete for {len(alpha_cols)} alphas")
-    return result
-
-
-def save_normalized_data(
-    normalized_data: Dict[str, pd.DataFrame],
-    output_dir: Path,
-):
-    """Save normalized data to new files."""
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    for symbol, df in normalized_data.items():
-        output_path = output_dir / f"{symbol}_features.parquet"
-        df.to_parquet(output_path, compression='snappy')
-
-    logger.info(f"Saved {len(normalized_data)} normalized files to {output_dir}")
+    return {
+        'shape': original_shape,
+        'nan_count': original_nan_mask.sum().sum(),
+        'sample_sum': valid_values.sum() if len(valid_values) > 0 else 0,
+        'sample_l1': valid_values.abs().sum() if len(valid_values) > 0 else 0,
+    }
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Cross-sectional L1 normalization for alpha factors'
+        description='Cross-sectional L1 normalization for alpha factors (per-alpha format)'
     )
     parser.add_argument(
         '--cache-dir', type=str,
@@ -190,53 +123,60 @@ def main():
     output_dir = Path(args.output_dir) if not args.in_place else cache_dir
 
     logger.info("=" * 60)
-    logger.info("Cross-sectional L1 Normalization")
+    logger.info("Cross-sectional L1 Normalization (Per-Alpha Format)")
     logger.info(f"Input: {cache_dir}")
     logger.info(f"Output: {output_dir}")
     logger.info("=" * 60)
 
-    # Load data
-    logger.info("\n[1/3] Loading alpha cache files...")
-    data = load_all_alpha_files(cache_dir)
+    # Find all alpha files
+    alpha_files = sorted(cache_dir.glob('alpha_101_*.parquet'))
+    logger.info(f"Found {len(alpha_files)} alpha files")
 
-    if not data:
-        logger.error("No data loaded!")
+    if not alpha_files:
+        logger.error("No alpha files found!")
         return
 
-    # Get alpha columns from first file
-    first_df = list(data.values())[0]
-    alpha_cols = get_alpha_columns(first_df)
-    logger.info(f"Found {len(alpha_cols)} alpha columns")
+    # Process each alpha file
+    logger.info("\n[1/2] Normalizing alpha files...")
+    all_stats = []
 
-    # Normalize
-    logger.info("\n[2/3] Applying cross-sectional L1 normalization...")
-    normalized_data = normalize_cross_section(data, alpha_cols)
+    for i, input_path in enumerate(alpha_files):
+        output_path = output_dir / input_path.name
 
-    # Save
-    logger.info("\n[3/3] Saving normalized data...")
-    save_normalized_data(normalized_data, output_dir)
+        try:
+            stats = normalize_alpha_file(input_path, output_path)
+            all_stats.append(stats)
 
-    # Verify
+            if (i + 1) % 10 == 0 or i == 0:
+                logger.info(
+                    f"[{i+1}/{len(alpha_files)}] {input_path.name}: "
+                    f"sum={stats['sample_sum']:.6f}, L1={stats['sample_l1']:.4f}"
+                )
+        except Exception as e:
+            logger.error(f"Failed to normalize {input_path.name}: {e}")
+
+    # Summary
     logger.info("\n" + "=" * 60)
-    logger.info("Verification:")
-    sample_symbol = list(normalized_data.keys())[0]
-    sample_df = normalized_data[sample_symbol]
-    sample_alpha = alpha_cols[0]
+    logger.info("[2/2] Verification Summary")
+    logger.info("=" * 60)
 
-    # Check a random timestamp
-    ts_idx = len(sample_df) // 2
-    ts = sample_df.iloc[ts_idx]['timestamp']
+    if all_stats:
+        avg_sum = np.mean([s['sample_sum'] for s in all_stats])
+        avg_l1 = np.mean([s['sample_l1'] for s in all_stats])
+        total_nans = sum(s['nan_count'] for s in all_stats)
 
-    # Collect normalized values at this timestamp
-    values_at_ts = []
-    for symbol, df in normalized_data.items():
-        matching = df[df['timestamp'] == ts]
-        if len(matching) > 0:
-            values_at_ts.append(matching.iloc[0][sample_alpha])
+        logger.info(f"Processed: {len(all_stats)} alpha files")
+        logger.info(f"Average sample sum: {avg_sum:.6f} (should be ~0)")
+        logger.info(f"Average sample L1 norm: {avg_l1:.4f} (should be ~1)")
+        logger.info(f"Total historical NaNs preserved: {total_nans:,}")
+        logger.info(f"Output directory: {output_dir}")
 
-    logger.info(f"Sample check at {ts}, alpha={sample_alpha}:")
-    logger.info(f"  Sum: {sum(values_at_ts):.6f} (should be ~0)")
-    logger.info(f"  L1 norm: {sum(abs(v) for v in values_at_ts):.6f} (should be ~1)")
+    logger.info("=" * 60)
+    logger.info("Done! Normalized alphas saved to:")
+    logger.info(f"  {output_dir}")
+    logger.info("")
+    logger.info("To use normalized alphas in training:")
+    logger.info("  Set use_normalized_alphas=True in hierarchical_adapter.py")
     logger.info("=" * 60)
 
 

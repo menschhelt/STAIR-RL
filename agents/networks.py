@@ -17,8 +17,11 @@ Output Action:
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict
 import numpy as np
+
+# TERC (Transfer Entropy with Recursive Conditioning) for semantic filtering
+from .terc import TERCFilter, SemanticGate, TERCConfig, TERCModule
 
 
 class FeatureEncoder(nn.Module):
@@ -302,6 +305,12 @@ class Critic(nn.Module):
         if self.q_function:
             if action is None:
                 raise ValueError("Q-function requires action input")
+            # Debug: print shapes if they don't match expected
+            if state.shape[-1] + action.shape[-1] != self.mlp[0].in_features:
+                raise ValueError(
+                    f"Shape mismatch in Critic! state: {state.shape}, action: {action.shape}, "
+                    f"expected input: {self.mlp[0].in_features}"
+                )
             x = torch.cat([state, action], dim=-1)
         else:
             x = state
@@ -854,6 +863,10 @@ class HierarchicalFeatureEncoder(nn.Module):
         n_alpha_heads: int = 8,
         n_asset_heads: int = 8,
         dropout: float = 0.1,
+        # TERC (Transfer Entropy with Recursive Conditioning) parameters
+        use_terc: bool = True,
+        terc_tau: float = 0.15,
+        terc_use_learned: bool = True,
     ):
         super().__init__()
 
@@ -861,6 +874,11 @@ class HierarchicalFeatureEncoder(nn.Module):
         self.d_temporal = d_temporal
         self.d_global = d_global
         self.d_portfolio = d_portfolio
+        self.use_terc = use_terc
+
+        # Gate activation storage for logging (Paper Line 758)
+        self._last_gate_values = None
+        self._last_terc_importance = None
 
         # Alpha processing
         self.alpha_attention = CrossAlphaAttention(
@@ -869,6 +887,21 @@ class HierarchicalFeatureEncoder(nn.Module):
             n_heads=n_alpha_heads,
             dropout=dropout,
         )
+
+        # TERC Filter for semantic embeddings (논문 Line 756: h^sem ← TERC-Filter)
+        if use_terc:
+            terc_config = TERCConfig(
+                embedding_dim=768,
+                tau=terc_tau,
+                use_learned_importance=terc_use_learned,
+            )
+            self.terc_filter = TERCFilter(terc_config)
+            # Semantic Gate (논문 Line 758: g ← σ(W_g z + b_g))
+            # Gate input: h_alpha (64) + h_price (64) = 128
+            self.semantic_gate = SemanticGate(
+                numeric_dim=d_alpha + d_price,  # 128
+                semantic_dim=d_text,  # 64
+            )
 
         # Text processing
         self.news_proj = TextProjection(768, d_text, dropout)
@@ -949,28 +982,59 @@ class HierarchicalFeatureEncoder(nn.Module):
         ohlcv_seq = state_dict.get('ohlcv_seq', None)
         global_feat = state_dict['global_features']
         portfolio = state_dict['portfolio_state']
+        terc_target = state_dict.get('terc_target', None)  # Optional target for TE calc
 
         B, T, N, _ = alphas.shape
 
         # 1. Alpha attention: (B, T, N, 101) -> (B, T, N, 64)
         h_alpha = self.alpha_attention(alphas)
 
-        # 2. Text projection - Market-Wide: (B, T, 768) -> (B, T, 64)
-        h_news_global = self.news_proj(news_emb)        # (B, T, 64)
-        h_social_global = self.social_proj(social_emb, has_social)  # (B, T, 64)
+        # 2. TERC Filtering (논문 Line 756: h^sem ← TERC-Filter(h^sem, F_t, τ))
+        # Apply before text projection to filter on 768-dim embeddings
+        if self.use_terc:
+            news_emb_filtered, _news_importance = self.terc_filter(
+                news_emb, target=terc_target
+            )
+            social_emb_filtered, _social_importance = self.terc_filter(
+                social_emb, target=terc_target
+            )
+        else:
+            news_emb_filtered = news_emb
+            social_emb_filtered = social_emb
 
-        # Broadcast market-wide text features to per-asset: (B, T, 64) -> (B, T, N, 64)
-        h_news = h_news_global.unsqueeze(2).expand(B, T, N, -1)
-        h_social = h_social_global.unsqueeze(2).expand(B, T, N, -1)
+        # 3. Text projection - Market-Wide: (B, T, 768) -> (B, T, 64)
+        h_news_global = self.news_proj(news_emb_filtered)        # (B, T, 64)
+        h_social_global = self.social_proj(social_emb_filtered, has_social)  # (B, T, 64)
 
-        # 3. Price encoding: (B, T, N, 288, 5) -> (B, T, N, 64)
+        # 4. Price encoding: (B, T, N, 288, 5) -> (B, T, N, 64)
         if ohlcv_seq is not None:
             h_price = self.price_encoder(ohlcv_seq)
         else:
             # Fallback to zeros if OHLCV not provided (backward compatibility)
             h_price = torch.zeros(B, T, N, 64, device=alphas.device)
 
-        # 4. Concat per asset: (B, T, N, 256)
+        # 5. Semantic Gate (논문 Line 758: g ← σ(W_g z + b_g))
+        # Gate semantic features based on numeric context (alpha + price)
+        if self.use_terc:
+            # Combine alpha and price for gate input: (B, T, N, 128)
+            h_numeric = torch.cat([h_alpha, h_price], dim=-1)
+
+            # Broadcast text to per-asset: (B, T, 64) -> (B, T, N, 64)
+            h_news_broadcast = h_news_global.unsqueeze(2).expand(B, T, N, -1)
+            h_social_broadcast = h_social_global.unsqueeze(2).expand(B, T, N, -1)
+
+            # Apply semantic gate (논문 Line 759: z̃ ← [h^num; g ⊙ h^sem; x^port])
+            h_news, gate_news = self.semantic_gate(h_numeric, h_news_broadcast)
+            h_social, gate_social = self.semantic_gate(h_numeric, h_social_broadcast)
+
+            # Store gate activations for logging
+            self._last_gate_values = (gate_news + gate_social) / 2  # Average of both gates
+        else:
+            # No gating: simple broadcast
+            h_news = h_news_global.unsqueeze(2).expand(B, T, N, -1)
+            h_social = h_social_global.unsqueeze(2).expand(B, T, N, -1)
+
+        # 6. Concat per asset: (B, T, N, 256)
         h_concat = torch.cat([h_alpha, h_news, h_social, h_price], dim=-1)
 
         # 5. Cross-asset attention: (B, T, N, 256)
@@ -1002,6 +1066,62 @@ class HierarchicalFeatureEncoder(nn.Module):
         z_unpooled = torch.cat([h_assets, h_global_exp, h_port_exp], dim=-1)  # (B, N, 176)
 
         return z_pooled, z_unpooled
+
+    def get_gate_statistics(self) -> Dict[str, float]:
+        """
+        Get gate activation statistics for TensorBoard logging.
+
+        Returns:
+            Dict with gate statistics:
+            - gate/mean_activation: Average gate value
+            - gate/std_activation: Standard deviation of gate values
+            - gate/active_ratio: Ratio of gates > 0.5 (actively passing semantic info)
+        """
+        if self._last_gate_values is None:
+            return {}
+
+        gate = self._last_gate_values.detach()
+
+        # Flatten gate values for statistics
+        gate_flat = gate.reshape(-1)
+
+        return {
+            'mean_activation': float(gate_flat.mean().item()),
+            'std_activation': float(gate_flat.std().item()),
+            'active_ratio': float((gate_flat > 0.5).float().mean().item()),
+        }
+
+    def get_terc_metrics(self) -> Dict[str, float]:
+        """
+        Get TERC filter metrics for TensorBoard logging.
+
+        Returns:
+            Dict with terc/* metrics if TERC is enabled, empty dict otherwise.
+        """
+        if not self.use_terc or not hasattr(self, 'terc_filter'):
+            return {}
+
+        return self.terc_filter.get_terc_metrics_for_tensorboard()
+
+    def get_all_tensorboard_metrics(self) -> Dict[str, float]:
+        """
+        Get all encoder metrics for TensorBoard logging.
+
+        Returns:
+            Combined dict with gate/* and terc/* metrics.
+        """
+        metrics = {}
+
+        # Gate statistics
+        gate_stats = self.get_gate_statistics()
+        for key, value in gate_stats.items():
+            metrics[f'gate/{key}'] = value
+
+        # TERC metrics
+        terc_stats = self.get_terc_metrics()
+        metrics.update(terc_stats)
+
+        return metrics
 
 
 class HierarchicalActor(nn.Module):
@@ -1111,6 +1231,52 @@ class HierarchicalActor(nn.Module):
 
         return noisy_weights, log_prob
 
+    def evaluate_actions(
+        self,
+        z_pooled: torch.Tensor,
+        z_unpooled: torch.Tensor,
+        old_actions: torch.Tensor,
+        portfolio_noise_scale: float = 0.1,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Evaluate log probability of given actions under current policy.
+
+        This is needed for PPO to compute the ratio π_θ(a|s) / π_θ_old(a|s)
+        where we need π_θ(a|s) for the OLD actions under the CURRENT policy.
+
+        Args:
+            z_pooled: (B, 176) pooled features
+            z_unpooled: (B, N, 176) per-asset features
+            old_actions: (B, N) actions to evaluate (from buffer)
+            portfolio_noise_scale: Scale of exploration noise (must match collection)
+
+        Returns:
+            log_prob: (B,) log probability of old_actions under current policy
+            entropy: (B,) entropy of the policy (for entropy bonus)
+        """
+        # Get current policy mean (deterministic output)
+        mean_weights = self.forward(z_pooled, z_unpooled)
+
+        # Convert actions and means to logit space
+        # Clamp to avoid numerical issues at boundaries
+        old_logits = torch.atanh(old_actions.clamp(-0.999, 0.999))
+        mean_logits = torch.atanh(mean_weights.clamp(-0.999, 0.999))
+
+        # Compute implied noise (what noise would have produced old_actions from current mean)
+        implied_noise = (old_logits - mean_logits) / portfolio_noise_scale
+
+        # Log probability under Gaussian: -0.5 * ||noise||^2 - 0.5 * N * log(2π) - N * log(σ)
+        # Simplified (ignoring constants): -0.5 * ||noise||^2
+        log_prob = -0.5 * (implied_noise ** 2).sum(dim=-1)
+
+        # Entropy of Gaussian: 0.5 * N * (1 + log(2π)) + N * log(σ)
+        # Simplified approximation
+        n_actions = old_actions.shape[-1]
+        entropy = 0.5 * n_actions * (1 + 2.837)  # 2.837 ≈ log(2π)
+        entropy = torch.full((old_actions.shape[0],), entropy, device=old_actions.device)
+
+        return log_prob, entropy
+
 
 class HierarchicalCritic(nn.Module):
     """
@@ -1191,10 +1357,15 @@ class HierarchicalActorCritic(nn.Module):
         critic_hidden_dims: Tuple[int, ...] = (256, 128),
         n_quantiles: int = 32,
         dropout: float = 0.1,
+        # TERC (Transfer Entropy with Recursive Conditioning) - Paper Line 756
+        use_terc: bool = False,
+        terc_tau: float = 0.15,
+        terc_use_learned: bool = True,
     ):
         super().__init__()
 
         self.n_assets = n_assets
+        self.use_terc = use_terc
 
         # Shared encoder
         self.encoder = HierarchicalFeatureEncoder(
@@ -1206,6 +1377,9 @@ class HierarchicalActorCritic(nn.Module):
             d_global=d_global,
             d_portfolio=d_portfolio,
             dropout=dropout,
+            use_terc=use_terc,
+            terc_tau=terc_tau,
+            terc_use_learned=terc_use_learned,
         )
 
         d_model = self.encoder.output_dim  # 176
@@ -1269,6 +1443,23 @@ class HierarchicalActorCritic(nn.Module):
         z_pooled, _ = self.encoder(state_dict)
         value, _ = self.critic(z_pooled)
         return value.squeeze(-1)
+
+    def get_gate_statistics(self) -> Dict[str, float]:
+        """
+        Get gate activation statistics for TensorBoard logging.
+
+        Delegates to encoder's gate statistics.
+        """
+        return self.encoder.get_gate_statistics()
+
+    def get_all_tensorboard_metrics(self) -> Dict[str, float]:
+        """
+        Get all model metrics for TensorBoard logging.
+
+        Delegates to encoder's combined tensorboard metrics.
+        Returns metrics prefixed with gate/ and terc/.
+        """
+        return self.encoder.get_all_tensorboard_metrics()
 
 
 # ========== Standalone Testing ==========

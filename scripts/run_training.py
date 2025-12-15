@@ -25,6 +25,7 @@ import subprocess
 import socket
 
 import numpy as np
+import pandas as pd
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
@@ -103,6 +104,238 @@ def setup_device(gpu_id: int = 0):
     return device
 
 
+def preload_data_for_fast_training(
+    agent,
+    symbols: list,
+    timestamps: np.ndarray,
+    start_date: str,
+    end_date: str,
+    slot_symbols: np.ndarray = None,
+):
+    """
+    Preload alpha and macro data into memory for O(1) lookup during training.
+
+    This dramatically speeds up training by avoiding repeated pandas operations.
+    Without preload: ~2,020 pandas ops per encode (101 alphas × 20 symbols)
+    With preload: O(1) numpy indexing
+
+    For dynamic universe support, pass slot_symbols to enable proper mapping
+    from (timestamp, slot) → symbol → preload_index.
+
+    Args:
+        agent: CQLSACAgent or PPOCVaRAgent with hierarchical adapter
+        symbols: List of ALL trading symbols ever in universe (e.g., 100 symbols)
+        timestamps: Array of ISO timestamp strings from training data
+        start_date: Start date for macro data preload (e.g., '2021-01-01')
+        end_date: End date for macro data preload (e.g., '2022-06-30')
+        slot_symbols: (T, N_slots) array of symbol names at each timestamp.
+                     Enables dynamic universe: model gets only 20 slot symbols at each time.
+    """
+    logger.info("=" * 60)
+    logger.info("Preloading data for fast training...")
+    logger.info("=" * 60)
+
+    # Check if agent has hierarchical adapter
+    if not hasattr(agent, 'adapter') or agent.adapter is None:
+        logger.warning("Agent does not have hierarchical adapter, skipping preload")
+        return
+
+    state_builder = agent.adapter.state_builder
+
+    # 1. Set symbols for alpha loading
+    if state_builder._current_symbols is None:
+        state_builder.set_symbols(symbols)
+        logger.info(f"Set symbols: {len(symbols)} symbols")
+
+    # 2. Preload Alpha data as numpy array for O(1) lookup
+    if state_builder.alpha_loader is not None:
+        # Convert timestamps to DatetimeIndex
+        ts_datetime = pd.to_datetime(timestamps)
+        ts_datetime = pd.DatetimeIndex(ts_datetime)
+
+        logger.info(f"Preloading alphas: {len(ts_datetime)} timestamps, {len(symbols)} symbols")
+        state_builder.alpha_loader.preload_as_numpy(
+            symbols=symbols,
+            timestamps=ts_datetime,
+        )
+        logger.info(f"Alpha preload complete: {state_builder.alpha_loader.is_preloaded()}")
+
+        # 2b. Set slot_symbols mapping for dynamic universe support
+        if slot_symbols is not None:
+            logger.info(f"Setting slot_symbols mapping: {slot_symbols.shape}")
+            state_builder.alpha_loader.set_slot_symbols(slot_symbols)
+            logger.info(f"Slot mapping ready: {state_builder.alpha_loader.has_slot_mapping()}")
+        else:
+            logger.warning("No slot_symbols provided - will use simple slicing (may cause issues)")
+    else:
+        logger.warning("Alpha loader not available, skipping alpha preload")
+
+    # 3. Preload Macro data for O(1) lookup
+    if state_builder.macro_loader is not None:
+        logger.info(f"Preloading macro data: {start_date} to {end_date}")
+        state_builder.macro_loader.preload_all(
+            start_date=start_date,
+            end_date=end_date,
+            freq='5min',
+        )
+        logger.info(f"Macro preload complete: {state_builder.macro_loader.is_preloaded()}")
+    else:
+        logger.warning("Macro loader not available, skipping macro preload")
+
+    logger.info("=" * 60)
+    logger.info("Data preload complete - ready for fast training!")
+    logger.info("=" * 60)
+
+
+def precompute_features_for_buffer(
+    agent,
+    timestamps: np.ndarray,
+    slot_symbols: np.ndarray,
+    n_slots: int = 20,
+    embedding_dim: int = 768,
+    temporal_window: int = 24,
+) -> dict:
+    """
+    Precompute ALL features into numpy arrays for O(1) buffer lookup.
+
+    This is the KEY optimization that eliminates build_state_dict() overhead.
+    Features are precomputed ONCE and indexed directly during training.
+
+    Args:
+        agent: CQLSACAgent with hierarchical adapter (already preloaded)
+        timestamps: Array of ISO timestamp strings (T_total,)
+        slot_symbols: (T_total, N_slots) - which symbols are in each slot per timestamp
+        n_slots: Number of asset slots (default 20)
+        embedding_dim: Embedding dimension (default 768)
+        temporal_window: Temporal window for lookback (default 24)
+
+    Returns:
+        dict with precomputed arrays and timestamp mapping:
+        - 'alphas': (T_total, N_slots, 101) - Alpha factors
+        - 'gdelt': (T_total, 768) - GDELT embeddings
+        - 'nostr': (T_total, 768) - Nostr embeddings
+        - 'macro': (T_total, n_macro) - Macro features
+        - 'ts_to_idx': timestamp -> index mapping
+        - 'timestamp_indices': (T_total,) integer indices
+    """
+    import time
+    from tqdm import tqdm
+
+    logger.info("=" * 60)
+    logger.info("Precomputing features for ReplayBuffer...")
+    logger.info("=" * 60)
+
+    T_total = len(timestamps)
+    state_builder = agent.adapter.state_builder
+
+    # Create timestamp -> index mapping
+    ts_to_idx = {ts: i for i, ts in enumerate(timestamps)}
+    timestamp_indices = np.arange(T_total, dtype=np.int32)
+
+    logger.info(f"Total timestamps: {T_total:,}")
+    logger.info(f"Slots per timestamp: {n_slots}")
+    logger.info(f"Temporal window: {temporal_window}")
+
+    # 1. Extract alphas from preloaded alpha_loader
+    logger.info("[1/4] Extracting alpha factors...")
+    start_time = time.time()
+
+    alpha_loader = state_builder.alpha_loader
+    if alpha_loader is not None and alpha_loader.has_slot_mapping():
+        # Use get_alphas_for_slots for all timestamps
+        # This uses pre-computed slot_symbol_indices mapping
+        all_indices = np.arange(T_total)
+        preloaded_alphas = alpha_loader.get_alphas_for_slots(all_indices)
+        logger.info(f"  Alpha shape: {preloaded_alphas.shape}")  # (T_total, N_slots, 101)
+    else:
+        logger.warning("  Alpha loader not ready, using zeros")
+        preloaded_alphas = np.zeros((T_total, n_slots, 101), dtype=np.float32)
+
+    elapsed = time.time() - start_time
+    logger.info(f"  Done in {elapsed:.1f}s")
+
+    # 2. Extract macro features from preloaded macro_loader
+    logger.info("[2/4] Extracting macro features...")
+    start_time = time.time()
+
+    macro_loader = state_builder.macro_loader
+    if macro_loader is not None and macro_loader.is_preloaded():
+        # Get macro features for all timestamps
+        # macro_loader has preloaded_data indexed by timestamp
+        preloaded_macro = macro_loader.get_features_batch(timestamps)
+        logger.info(f"  Macro shape: {preloaded_macro.shape}")  # (T_total, n_macro)
+    else:
+        logger.warning("  Macro loader not ready, using zeros")
+        n_macro = 32  # Default
+        preloaded_macro = np.zeros((T_total, n_macro), dtype=np.float32)
+
+    elapsed = time.time() - start_time
+    logger.info(f"  Done in {elapsed:.1f}s")
+
+    # 3. Extract GDELT embeddings
+    logger.info("[3/4] Extracting GDELT embeddings...")
+    start_time = time.time()
+
+    embedding_loader = state_builder.embedding_loader
+    if embedding_loader is not None and hasattr(embedding_loader, 'get_gdelt_embeddings_marketwide_fast'):
+        try:
+            # Use the fast batch method that returns (T, 768) tensor
+            gdelt_tensor = embedding_loader.get_gdelt_embeddings_marketwide_fast(list(timestamps))
+            preloaded_gdelt = gdelt_tensor.cpu().numpy()
+            logger.info(f"  GDELT shape: {preloaded_gdelt.shape}")
+        except Exception as e:
+            logger.warning(f"  GDELT extraction failed: {e}, using zeros")
+            preloaded_gdelt = np.zeros((T_total, embedding_dim), dtype=np.float32)
+    else:
+        logger.warning("  GDELT loader not available, using zeros")
+        preloaded_gdelt = np.zeros((T_total, embedding_dim), dtype=np.float32)
+
+    elapsed = time.time() - start_time
+    logger.info(f"  Done in {elapsed:.1f}s")
+
+    # 4. Extract Nostr embeddings
+    logger.info("[4/4] Extracting Nostr embeddings...")
+    start_time = time.time()
+
+    if embedding_loader is not None and hasattr(embedding_loader, 'get_nostr_embeddings_marketwide_fast'):
+        try:
+            # Use the fast batch method that returns (T, 768) tensor
+            nostr_tensor = embedding_loader.get_nostr_embeddings_marketwide_fast(list(timestamps))
+            preloaded_nostr = nostr_tensor.cpu().numpy()
+            logger.info(f"  Nostr shape: {preloaded_nostr.shape}")
+        except Exception as e:
+            logger.warning(f"  Nostr extraction failed: {e}, using zeros")
+            preloaded_nostr = np.zeros((T_total, embedding_dim), dtype=np.float32)
+    else:
+        logger.warning("  Nostr loader not available, using zeros")
+        preloaded_nostr = np.zeros((T_total, embedding_dim), dtype=np.float32)
+
+    elapsed = time.time() - start_time
+    logger.info(f"  Done in {elapsed:.1f}s")
+
+    # Memory usage
+    total_memory = (
+        preloaded_alphas.nbytes +
+        preloaded_macro.nbytes +
+        preloaded_gdelt.nbytes +
+        preloaded_nostr.nbytes
+    ) / 1e9
+    logger.info(f"Total precomputed memory: {total_memory:.2f} GB")
+
+    logger.info("=" * 60)
+    logger.info("Feature precomputation complete!")
+    logger.info("=" * 60)
+
+    return {
+        'alphas': preloaded_alphas,
+        'gdelt': preloaded_gdelt,
+        'nostr': preloaded_nostr,
+        'macro': preloaded_macro,
+        'ts_to_idx': ts_to_idx,
+        'timestamp_indices': timestamp_indices,
+    }
+
+
 def run_phase1_cql_sac(
     config: Config,
     device: torch.device,
@@ -110,6 +343,9 @@ def run_phase1_cql_sac(
     checkpoint_dir: Path,
     embedding_dir: Path = None,
     n_envs: int = 1,
+    lr_actor: float = None,
+    lr_critic: float = None,
+    batch_size: int = None,
 ):
     """
     Phase 1: CQL-SAC Offline Pre-training.
@@ -126,18 +362,26 @@ def run_phase1_cql_sac(
     logger.info(f"Training steps: {steps:,}")
     logger.info("=" * 60)
 
-    # Load training data
-    logger.info("Loading training data...")
+    # Load training data with DYNAMIC universe rebalancing
+    logger.info("Loading training data with DYNAMIC universe...")
     data_loader = TrainingDataLoader(
         data_dir=DATA_DIR,
         n_assets=config.universe.top_n,
     )
 
-    train_data = data_loader.load_period(
+    # Use dynamic loading for realistic universe rotation
+    train_data = data_loader.load_period_dynamic(
         start_date=config.backtest.train_start,
         end_date=config.backtest.train_end,
     )
     logger.info(f"Training data loaded: {train_data['states'].shape[0]} timesteps")
+
+    # Log dynamic universe stats
+    if 'slot_changes' in train_data:
+        rebalances = train_data['rebalance_mask'].sum()
+        total_changes = train_data['slot_changes'].sum()
+        logger.info(f"Dynamic universe: {rebalances} rebalance events, {total_changes} total slot changes")
+        logger.info(f"All symbols in period: {len(train_data.get('all_symbols', []))}")
 
     # Create environment
     env_config = EnvConfig(
@@ -152,21 +396,30 @@ def run_phase1_cql_sac(
     )
 
     # Get dimensions
-    state_dim = env.observation_space.shape[0]
-    action_dim = env.action_space.shape[0]
-    logger.info(f"State dim: {state_dim}, Action dim: {action_dim}")
+    # observation_space is Dict: {'market': (N, state_dim), 'portfolio': (N+2,)}
+    market_space = env.observation_space['market']
+    state_dim = market_space.shape[1]  # state_dim per asset
+    action_dim = env.action_space.shape[0]  # N assets
+    logger.info(f"State dim: {state_dim}, Action dim (n_assets): {action_dim}")
 
-    # Create agent config
+    # Create agent config (use CLI args if provided, otherwise use config defaults)
+    final_lr_actor = lr_actor if lr_actor is not None else config.rl.cql_sac.learning_rate_actor
+    final_lr_critic = lr_critic if lr_critic is not None else config.rl.cql_sac.learning_rate_critic
+    final_batch_size = batch_size if batch_size is not None else config.rl.cql_sac.batch_size
+
+    logger.info(f"Learning rates - Actor: {final_lr_actor}, Critic: {final_lr_critic}")
+    logger.info(f"Batch size: {final_batch_size}")
+
     agent_config = CQLSACConfig(
         n_assets=action_dim,
         state_dim=state_dim,
-        lr_actor=config.rl.cql_sac.learning_rate_actor,
-        lr_critic=config.rl.cql_sac.learning_rate_critic,
+        lr_actor=final_lr_actor,
+        lr_critic=final_lr_critic,
         lambda_cql=config.rl.cql_sac.lambda_cql,
         lambda_gp=config.rl.cql_sac.lambda_gp,
         tau=config.rl.cql_sac.tau,
         gamma=config.rl.cql_sac.gamma,
-        batch_size=config.rl.cql_sac.batch_size,
+        batch_size=final_batch_size,
     )
 
     # Set embedding paths if provided
@@ -183,37 +436,110 @@ def run_phase1_cql_sac(
         device=str(device),
     )
 
+    # Preload alpha and macro data for fast training
+    # This converts ~2,020 pandas ops per encode to O(1) numpy lookup
+    # For dynamic universe, use all_symbols (all symbols ever in universe)
+    symbols = train_data.get('all_symbols', train_data.get('symbols', [f'ASSET_{i}' for i in range(config.universe.top_n)]))
+    preload_data_for_fast_training(
+        agent=agent,
+        symbols=symbols,
+        timestamps=train_data['timestamps'],
+        start_date=config.backtest.train_start,
+        end_date=config.backtest.train_end,
+        slot_symbols=train_data.get('slot_symbols'),  # (T, 20) - which symbols in each slot
+    )
+
     # Fill replay buffer with historical data
     logger.info("Building replay buffer from historical data...")
+    portfolio_dim = action_dim + 2  # weights + leverage_ratio + cash_ratio
     replay_buffer = ReplayBuffer(
+        capacity=config.rl.cql_sac.replay_buffer_size,
+        n_assets=action_dim,
         state_dim=state_dim,
-        action_dim=action_dim,
-        max_size=config.rl.cql_sac.replay_buffer_size,
-        device=device,
+        portfolio_dim=portfolio_dim,
+        device=str(device),
     )
 
     # Collect transitions from environment
-    state, _ = env.reset()
-    episode_transitions = []
+    state_dict, info = env.reset()
+    current_timestamp = info.get('timestamp', None)
 
-    while len(replay_buffer) < min(config.rl.cql_sac.replay_buffer_size, len(train_data) * 0.9):
+    while len(replay_buffer) < min(config.rl.cql_sac.replay_buffer_size, len(train_data['states']) * 0.9):
         # Use behavior policy (can be random or heuristic)
         action = env.action_space.sample()
 
-        next_state, reward, terminated, truncated, info = env.step(action)
+        next_state_dict, reward, terminated, truncated, info = env.step(action)
         done = terminated or truncated
+        next_timestamp = info.get('timestamp', None)
 
-        replay_buffer.add(state, action, reward, next_state, done)
+        # Extract market and portfolio states from dict
+        replay_buffer.add(
+            market_state=state_dict['market'],
+            portfolio_state=state_dict['portfolio'],
+            action=action,
+            reward=reward,
+            next_market_state=next_state_dict['market'],
+            next_portfolio_state=next_state_dict['portfolio'],
+            done=done,
+            timestamp=current_timestamp,
+            next_timestamp=next_timestamp,
+        )
 
         if done:
-            state, _ = env.reset()
+            state_dict, info = env.reset()
+            current_timestamp = info.get('timestamp', None)
         else:
-            state = next_state
+            state_dict = next_state_dict
+            current_timestamp = next_timestamp
 
         if len(replay_buffer) % 10000 == 0:
             logger.info(f"Replay buffer: {len(replay_buffer):,} transitions")
 
     logger.info(f"Replay buffer filled: {len(replay_buffer):,} transitions")
+
+    # ========== FAST PATH SETUP: Precompute features for O(1) lookup ==========
+    # This converts ~300ms/step build_state_dict() overhead to ~5ms numpy indexing
+    slot_symbols = train_data.get('slot_symbols')
+    if slot_symbols is not None and hasattr(agent, 'adapter') and agent.adapter is not None:
+        logger.info("Setting up FAST training path...")
+
+        # 1. Create timestamp -> index mapping
+        timestamps = train_data['timestamps']
+        ts_to_idx = {ts: i for i, ts in enumerate(timestamps)}
+
+        # 2. Convert buffer's string timestamps to integer indices
+        logger.info("Converting buffer timestamps to indices...")
+        for i in range(replay_buffer.size):
+            ts = replay_buffer.timestamps[i]
+            next_ts = replay_buffer.next_timestamps[i]
+
+            # Map to index (fallback to 0 if not found)
+            replay_buffer.timestamp_indices[i] = ts_to_idx.get(ts, 0)
+            replay_buffer.next_timestamp_indices[i] = ts_to_idx.get(next_ts, 0)
+
+        # 3. Precompute ALL features into numpy arrays
+        precomputed = precompute_features_for_buffer(
+            agent=agent,
+            timestamps=timestamps,
+            slot_symbols=slot_symbols,
+            n_slots=config.universe.top_n,
+            embedding_dim=768,
+            temporal_window=replay_buffer.temporal_window,
+        )
+
+        # 4. Set preloaded features in buffer (SHARED references, no copy)
+        replay_buffer.set_preloaded_features(
+            alphas=precomputed['alphas'],
+            gdelt=precomputed['gdelt'],
+            nostr=precomputed['nostr'],
+            macro=precomputed['macro'],
+        )
+
+        logger.info("FAST training path ready!")
+        logger.info(f"  Expected speedup: ~300ms/step -> ~25ms/step")
+    else:
+        logger.warning("FAST path not available - using SLOW build_state_dict() per step")
+    # ========== END FAST PATH SETUP ==========
 
     # Setup TensorBoard
     tb_log_dir = checkpoint_dir / 'tensorboard'
@@ -239,6 +565,17 @@ def run_phase1_cql_sac(
         writer.add_scalar('Loss/Actor', metrics.get('actor_loss', 0), step)
         writer.add_scalar('Loss/CQL', metrics.get('cql_loss', 0), step)
         writer.add_scalar('Loss/Total', metrics.get('total_loss', 0), step)
+
+        # Batch reward statistics (offline data)
+        batch_rewards = batch['rewards']
+        if hasattr(batch_rewards, 'cpu'):
+            batch_rewards = batch_rewards.cpu().numpy()
+        elif hasattr(batch_rewards, 'numpy'):
+            batch_rewards = batch_rewards.numpy()
+        writer.add_scalar('Batch/Reward_Mean', float(batch_rewards.mean()), step)
+        writer.add_scalar('Batch/Reward_Std', float(batch_rewards.std()), step)
+        writer.add_scalar('Batch/Reward_Min', float(batch_rewards.min()), step)
+        writer.add_scalar('Batch/Reward_Max', float(batch_rewards.max()), step)
 
         # SAC-specific metrics
         if 'alpha' in metrics:
@@ -304,18 +641,26 @@ def run_phase2_ppo_cvar(
     logger.info(f"Training steps: {steps:,}")
     logger.info("=" * 60)
 
-    # Load validation data
-    logger.info("Loading validation data...")
+    # Load validation data with DYNAMIC universe rebalancing
+    logger.info("Loading validation data with DYNAMIC universe...")
     data_loader = TrainingDataLoader(
         data_dir=DATA_DIR,
         n_assets=config.universe.top_n,
     )
 
-    val_data = data_loader.load_period(
+    # Use dynamic loading for realistic universe rotation
+    val_data = data_loader.load_period_dynamic(
         start_date=config.backtest.val_start,
         end_date=config.backtest.val_end,
     )
     logger.info(f"Validation data loaded: {val_data['states'].shape[0]} timesteps")
+
+    # Log dynamic universe stats
+    if 'slot_changes' in val_data:
+        rebalances = val_data['rebalance_mask'].sum()
+        total_changes = val_data['slot_changes'].sum()
+        logger.info(f"Dynamic universe: {rebalances} rebalance events, {total_changes} total slot changes")
+        logger.info(f"All symbols in period: {len(val_data.get('all_symbols', []))}")
 
     # Create environment
     env_config = EnvConfig(
@@ -330,8 +675,10 @@ def run_phase2_ppo_cvar(
     )
 
     # Get dimensions
-    state_dim = env.observation_space.shape[0]
-    action_dim = env.action_space.shape[0]
+    # observation_space is Dict: {'market': (N, state_dim), 'portfolio': (N+2,)}
+    market_space = env.observation_space['market']
+    state_dim = market_space.shape[1]  # state_dim per asset
+    action_dim = env.action_space.shape[0]  # N assets
 
     # Create agent config
     agent_config = PPOCVaRConfig(
@@ -367,11 +714,26 @@ def run_phase2_ppo_cvar(
         logger.info(f"Loading pretrained weights from {pretrained_path}")
         agent.load_pretrained(pretrained_path)
 
+    # Preload alpha and macro data for fast training
+    # This converts ~2,020 pandas ops per encode to O(1) numpy lookup
+    # For dynamic universe, use all_symbols (all symbols ever in universe)
+    symbols = val_data.get('all_symbols', val_data.get('symbols', [f'ASSET_{i}' for i in range(config.universe.top_n)]))
+    preload_data_for_fast_training(
+        agent=agent,
+        symbols=symbols,
+        timestamps=val_data['timestamps'],
+        start_date=config.backtest.val_start,
+        end_date=config.backtest.val_end,
+        slot_symbols=val_data.get('slot_symbols'),  # (T, 20) - which symbols in each slot
+    )
+
     # Rollout buffer
+    portfolio_dim = action_dim + 2  # weights + leverage_ratio + cash_ratio
     rollout_buffer = RolloutBuffer(
         horizon=config.rl.ppo_cvar.horizon,
+        n_assets=action_dim,
         state_dim=state_dim,
-        action_dim=action_dim,
+        portfolio_dim=portfolio_dim,
         device=device,
     )
 
@@ -398,14 +760,17 @@ def run_phase2_ppo_cvar(
         # Collect rollout
         while not rollout_buffer.is_full():
             # Get action from policy
-            action, log_prob, value = agent.get_action(state)
+            # state is dict with 'market' and 'portfolio' keys
+            market_state = state['market']
+            portfolio_state = state['portfolio']
+            action, log_prob, value = agent.select_action(market_state, portfolio_state)
 
             # Step environment
             next_state, reward, terminated, truncated, info = env.step(action)
             done = terminated or truncated
 
-            # Store transition
-            rollout_buffer.add(state, action, reward, value, log_prob, done)
+            # Store transition (RolloutBuffer expects market and portfolio separately)
+            rollout_buffer.add(market_state, portfolio_state, action, reward, value, log_prob, done)
 
             episode_reward += reward
             episode_steps += 1
@@ -425,8 +790,10 @@ def run_phase2_ppo_cvar(
         # Update policy
         if rollout_buffer.is_full() or done:
             # Compute returns and advantages
-            last_value = agent.get_value(state) if not done else 0
-            rollout_buffer.compute_returns(last_value, agent.gamma, agent.gae_lambda)
+            market_state = state['market']
+            portfolio_state = state['portfolio']
+            last_value = agent.get_value(market_state, portfolio_state) if not done else 0
+            rollout_buffer.compute_gae(last_value, agent.config.gamma, agent.config.gae_lambda)
 
             # PPO update
             metrics = agent.update(rollout_buffer)
@@ -574,6 +941,18 @@ def main():
         '--n-envs', type=int, default=1,
         help='Number of parallel environments (vectorized training)'
     )
+    parser.add_argument(
+        '--lr-actor', type=float, default=None,
+        help='Actor learning rate (Phase 1 CQL-SAC, default: 3e-4)'
+    )
+    parser.add_argument(
+        '--lr-critic', type=float, default=None,
+        help='Critic learning rate (Phase 1 CQL-SAC, default: 1e-3)'
+    )
+    parser.add_argument(
+        '--batch-size', type=int, default=None,
+        help='Batch size (Phase 1 CQL-SAC, default: 384)'
+    )
 
     args = parser.parse_args()
 
@@ -617,7 +996,10 @@ def main():
         run_full_training(config, device, checkpoint_dir, embedding_dir, args.n_envs)
     elif args.phase == 1:
         steps = args.steps or config.rl.cql_sac.training_steps
-        run_phase1_cql_sac(config, device, steps, checkpoint_dir / 'phase1', embedding_dir, args.n_envs)
+        run_phase1_cql_sac(
+            config, device, steps, checkpoint_dir / 'phase1', embedding_dir, args.n_envs,
+            lr_actor=args.lr_actor, lr_critic=args.lr_critic, batch_size=args.batch_size
+        )
     elif args.phase == 2:
         steps = args.steps or config.rl.ppo_cvar.training_steps
         pretrained_path = Path(args.pretrained) if args.pretrained else None

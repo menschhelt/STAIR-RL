@@ -27,10 +27,12 @@ Usage:
 
 import numpy as np
 import pandas as pd
+import time
 from pathlib import Path
 from typing import Dict, List, Optional
 from datetime import datetime
 import logging
+from tqdm import tqdm
 
 from config.settings import DATA_DIR
 from features.fama_french import FamaFrenchCalculator
@@ -110,6 +112,10 @@ class MacroDataLoader:
         # Cache: {(year, month): DataFrame}
         self._fred_cache: Dict[tuple, pd.DataFrame] = {}
         self._yfinance_cache: Dict[tuple, pd.DataFrame] = {}
+
+        # Fast numpy preload (initialized by preload_all())
+        self._preloaded_data: Optional[np.ndarray] = None
+        self._timestamp_to_idx: Optional[Dict] = None
 
         # Initialize Fama-French calculator
         if include_fama_french:
@@ -380,4 +386,183 @@ class MacroDataLoader:
         """Clear all cached data."""
         self._fred_cache.clear()
         self._yfinance_cache.clear()
+        self._preloaded_data = None
+        self._timestamp_to_idx = None
         logger.info("Cleared macro data cache")
+
+    def preload_all(
+        self,
+        start_date: str,
+        end_date: str,
+        freq: str = '5min',
+    ) -> None:
+        """
+        Preload all macro data for a date range into numpy array.
+
+        OPTIMIZED: Uses vectorized pandas operations instead of per-timestamp loops.
+        Macro data (daily/weekly/monthly) is forward-filled to 5min frequency.
+
+        Args:
+            start_date: Start date (e.g., '2021-01-01')
+            end_date: End date (e.g., '2022-12-31')
+            freq: Timestamp frequency (default: '5min')
+
+        After calling this, use get_features_fast() for O(1) lookup.
+        """
+        logger.info(f"Preloading macro data: {start_date} to {end_date}")
+        total_start = time.time()
+
+        # Step 1: Generate all timestamps
+        logger.info("[1/4] Generating timestamp range...")
+        timestamps = pd.date_range(start_date, end_date, freq=freq, tz='UTC')
+        T = len(timestamps)
+        logger.info(f"  {T:,} timestamps × {self.n_features} features")
+
+        # Step 2: Create numpy array (T, n_features)
+        logger.info("[2/4] Allocating numpy array...")
+        self._preloaded_data = np.zeros((T, self.n_features), dtype=np.float32)
+        self._timestamp_to_idx = {ts: i for i, ts in enumerate(timestamps)}
+
+        # Step 3: Load all months needed
+        logger.info("[3/4] Loading monthly parquet files...")
+        months_to_load = set()
+        for ts in timestamps:
+            months_to_load.add((ts.year, ts.month))
+
+        for year, month in tqdm(sorted(months_to_load), desc="Loading months", unit="month"):
+            self._load_month_fred(year, month)
+            self._load_month_yfinance(year, month)
+
+        logger.info(f"  Loaded {len(months_to_load)} months of data")
+
+        # Combine ALL cached data into single DataFrame (vectorized)
+        all_dfs = []
+        for (year, month), df in self._fred_cache.items():
+            if not df.empty:
+                all_dfs.append(df)
+        for (year, month), df in self._yfinance_cache.items():
+            if not df.empty:
+                all_dfs.append(df)
+
+        if not all_dfs:
+            logger.warning("No macro data found, using zeros")
+            return
+
+        combined_df = pd.concat(all_dfs, ignore_index=True)
+        logger.info(f"  Combined {len(combined_df):,} macro data points")
+
+        # Step 4: Process each indicator ONCE with vectorized forward-fill
+        logger.info("[4/4] Building feature matrix (vectorized forward-fill)...")
+        ffill_start = time.time()
+
+        for j, indicator in enumerate(tqdm(self.indicators, desc="Forward-fill indicators", unit="ind")):
+            indicator_data = combined_df[combined_df['indicator_name'] == indicator].copy()
+
+            if indicator_data.empty:
+                continue
+
+            # Sort by timestamp and remove duplicates (keep last)
+            indicator_data = indicator_data.sort_values('timestamp')
+            indicator_data = indicator_data.drop_duplicates(subset='timestamp', keep='last')
+
+            # Normalize values
+            indicator_data['normalized'] = indicator_data['value'].apply(
+                lambda v: self._normalize_indicator(indicator, v)
+            )
+
+            # Create a Series with the indicator's native timestamps
+            native_series = pd.Series(
+                indicator_data['normalized'].values,
+                index=indicator_data['timestamp']
+            )
+
+            # Reindex to target 5min timestamps with forward-fill
+            # This is the KEY optimization: one reindex + ffill per indicator
+            filled_series = native_series.reindex(timestamps, method='ffill')
+
+            # Fill any remaining NaN at the start with 0
+            filled_series = filled_series.fillna(0)
+
+            # Store in numpy array
+            self._preloaded_data[:, j] = filled_series.values
+
+        ffill_elapsed = time.time() - ffill_start
+        total_elapsed = time.time() - total_start
+        memory_mb = self._preloaded_data.nbytes / 1e6
+
+        logger.info(f"Macro preload complete!")
+        logger.info(f"  Shape: {self._preloaded_data.shape}")
+        logger.info(f"  Memory: {memory_mb:.1f} MB")
+        logger.info(f"  Forward-fill time: {ffill_elapsed:.1f}s")
+        logger.info(f"  Total time: {total_elapsed:.1f}s")
+
+    def get_features_fast(self, timestamp: pd.Timestamp) -> np.ndarray:
+        """
+        Fast O(1) lookup of macro features using preloaded numpy array.
+
+        Args:
+            timestamp: Target timestamp
+
+        Returns:
+            np.ndarray of shape (n_features,)
+
+        Raises:
+            ValueError if preload_all() was not called first
+        """
+        if self._preloaded_data is None:
+            raise ValueError("Must call preload_all() before get_features_fast()")
+
+        # Ensure timestamp is timezone-aware
+        if timestamp.tz is None:
+            timestamp = timestamp.tz_localize('UTC')
+
+        idx = self._timestamp_to_idx.get(timestamp)
+        if idx is not None:
+            return self._preloaded_data[idx]
+        else:
+            # Timestamp not in preloaded data, return zeros
+            return np.zeros(self.n_features, dtype=np.float32)
+
+    def is_preloaded(self) -> bool:
+        """Check if numpy preload is ready."""
+        return self._preloaded_data is not None
+
+    def get_features_batch(self, timestamps: list) -> np.ndarray:
+        """
+        Fast O(1) batch lookup of macro features using preloaded numpy array.
+
+        OPTIMIZED: Uses vectorized numpy indexing for T timestamps at once.
+
+        Args:
+            timestamps: List of timestamps (length T)
+
+        Returns:
+            np.ndarray of shape (T, n_features)
+
+        Raises:
+            ValueError if preload_all() was not called first
+        """
+        if self._preloaded_data is None:
+            raise ValueError("Must call preload_all() before get_features_batch()")
+
+        T = len(timestamps)
+        result = np.zeros((T, self.n_features), dtype=np.float32)
+
+        for i, ts in enumerate(timestamps):
+            # Handle numpy.str_ and other string-like types
+            if isinstance(ts, (np.str_, np.bytes_)):
+                ts = str(ts)
+
+            # Ensure timestamp is timezone-aware
+            if hasattr(ts, 'tz') and ts.tz is None:
+                ts = ts.tz_localize('UTC')
+            elif isinstance(ts, str):
+                ts = pd.Timestamp(ts)
+                if ts.tz is None:
+                    ts = ts.tz_localize('UTC')
+
+            idx = self._timestamp_to_idx.get(ts)
+            if idx is not None:
+                result[i] = self._preloaded_data[idx]
+
+        return result

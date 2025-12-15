@@ -20,8 +20,8 @@ Usage:
 import multiprocessing as mp
 from typing import Callable, List, Optional
 import numpy as np
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 
 from environments.trading_env import TradingEnv
 

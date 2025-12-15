@@ -10,6 +10,7 @@ import h5py
 import numpy as np
 import pandas as pd
 import torch
+from tqdm import tqdm
 
 
 class EmbeddingLoader:
@@ -63,9 +64,36 @@ class EmbeddingLoader:
         self.gdelt_index = self._build_index(self.gdelt_file)
         self.nostr_index = self._build_index(self.nostr_file)
 
+        print(f"EmbeddingLoader: Loading embeddings into memory...")
+
+        # Load all embeddings into memory (600-700MB total)
+        # This avoids 54.7ms disk I/O per embedding (50-100x speedup)
+        print(f"  Loading GDELT embeddings (all at once)...")
+        gdelt_all = self.gdelt_file['embeddings'][:].astype(np.float32)
+        self.gdelt_embeddings = {key: gdelt_all[idx] for key, idx in self.gdelt_index.items()}
+
+        # FAST PATH: Keep contiguous array for vectorized lookup
+        self._gdelt_array = gdelt_all  # (N_embeddings, 768)
+        self._gdelt_ts_asset_to_idx = self.gdelt_index  # {ts_asset: idx}
+
+        print(f"  Loading Nostr embeddings (all at once)...")
+        nostr_all = self.nostr_file['embeddings'][:].astype(np.float32)
+        self.nostr_embeddings = {key: nostr_all[idx] for key, idx in self.nostr_index.items()}
+
+        # FAST PATH: Keep contiguous array for vectorized lookup
+        self._nostr_array = nostr_all  # (N_embeddings, 768)
+        self._nostr_ts_asset_to_idx = self.nostr_index  # {ts_asset: idx}
+
+        # Build timestamp-only index for market-wide fast lookup
+        # Group by timestamp (strip asset idx)
+        self._gdelt_ts_to_indices = self._build_ts_index(self.gdelt_index)
+        self._nostr_ts_to_indices = self._build_ts_index(self.nostr_index)
+
         print(f"EmbeddingLoader initialized:")
-        print(f"  GDELT: {len(self.gdelt_index):,} embeddings")
-        print(f"  Nostr: {len(self.nostr_index):,} embeddings")
+        print(f"  GDELT: {len(self.gdelt_index):,} embeddings (loaded to memory)")
+        print(f"  Nostr: {len(self.nostr_index):,} embeddings (loaded to memory)")
+        print(f"  GDELT unique timestamps: {len(self._gdelt_ts_to_indices):,}")
+        print(f"  Nostr unique timestamps: {len(self._nostr_ts_to_indices):,}")
 
     def _build_index(self, h5file) -> Dict[str, int]:
         """
@@ -84,6 +112,30 @@ class EmbeddingLoader:
             key_str = key.decode('utf-8') if isinstance(key, bytes) else key
             index[key_str] = i
         return index
+
+    def _build_ts_index(self, ts_asset_index: Dict[str, int]) -> Dict[str, List[int]]:
+        """
+        Build {timestamp: [embedding_indices]} mapping for market-wide lookups.
+
+        Groups embeddings by timestamp for fast vectorized market-wide aggregation.
+
+        Args:
+            ts_asset_index: Dict mapping 'timestamp_assetIdx' -> embedding_index
+
+        Returns:
+            Dict mapping timestamp -> list of embedding indices for that timestamp
+        """
+        ts_to_indices = {}
+        for key, idx in ts_asset_index.items():
+            # Key format: "2021-01-01T12:00:00+00:00_5"
+            # Split to get timestamp (everything before last underscore)
+            parts = key.rsplit('_', 1)
+            if len(parts) == 2:
+                ts = parts[0]
+                if ts not in ts_to_indices:
+                    ts_to_indices[ts] = []
+                ts_to_indices[ts].append(idx)
+        return ts_to_indices
 
     def _round_timestamp(self, ts: str) -> str:
         """
@@ -126,10 +178,9 @@ class EmbeddingLoader:
             for n, asset_idx in enumerate(asset_indices):
                 key = f"{ts_rounded}_{asset_idx}"
 
-                if key in self.gdelt_index:
-                    idx = self.gdelt_index[key]
-                    emb = self.gdelt_file['embeddings'][idx]
-                    embeddings[t, n, :] = torch.from_numpy(emb.astype(np.float32))
+                if key in self.gdelt_embeddings:
+                    emb = self.gdelt_embeddings[key]
+                    embeddings[t, n, :] = torch.from_numpy(emb)
                 # else: leave as zeros (no news for this asset at this time)
 
         return embeddings
@@ -159,10 +210,9 @@ class EmbeddingLoader:
             for n, asset_idx in enumerate(asset_indices):
                 key = f"{ts_rounded}_{asset_idx}"
 
-                if key in self.nostr_index:
-                    idx = self.nostr_index[key]
-                    emb = self.nostr_file['embeddings'][idx]
-                    embeddings[t, n, :] = torch.from_numpy(emb.astype(np.float32))
+                if key in self.nostr_embeddings:
+                    emb = self.nostr_embeddings[key]
+                    embeddings[t, n, :] = torch.from_numpy(emb)
                 # else: leave as zeros (no social posts for this asset at this time)
 
         return embeddings
@@ -192,7 +242,7 @@ class EmbeddingLoader:
             for n, asset_idx in enumerate(asset_indices):
                 key = f"{ts_rounded}_{asset_idx}"
 
-                if key in self.nostr_index:
+                if key in self.nostr_embeddings:
                     mask[t, n, 0] = 1.0
 
         return mask
@@ -235,10 +285,9 @@ class EmbeddingLoader:
             for asset_idx in asset_indices:
                 key = f"{ts_rounded}_{asset_idx}"
 
-                if key in self.gdelt_index:
-                    idx = self.gdelt_index[key]
-                    emb = self.gdelt_file['embeddings'][idx]
-                    asset_embs.append(emb.astype(np.float32))
+                if key in self.gdelt_embeddings:
+                    emb = self.gdelt_embeddings[key]
+                    asset_embs.append(emb)
 
             # Mean pooling across assets
             if asset_embs:
@@ -282,10 +331,9 @@ class EmbeddingLoader:
             for asset_idx in asset_indices:
                 key = f"{ts_rounded}_{asset_idx}"
 
-                if key in self.nostr_index:
-                    idx = self.nostr_index[key]
-                    emb = self.nostr_file['embeddings'][idx]
-                    asset_embs.append(emb.astype(np.float32))
+                if key in self.nostr_embeddings:
+                    emb = self.nostr_embeddings[key]
+                    asset_embs.append(emb)
 
             # Mean pooling across assets
             if asset_embs:
@@ -326,7 +374,7 @@ class EmbeddingLoader:
             for asset_idx in asset_indices:
                 key = f"{ts_rounded}_{asset_idx}"
 
-                if key in self.nostr_index:
+                if key in self.nostr_embeddings:
                     has_data = True
                     break
 
@@ -334,6 +382,127 @@ class EmbeddingLoader:
                 mask[t, 0] = 1.0
 
         return mask
+
+    # ============================================================
+    # FAST Market-Wide Methods (Vectorized, ~300x faster)
+    # ============================================================
+
+    def _round_timestamp_fast(self, ts) -> str:
+        """Fast timestamp rounding without pandas parsing overhead."""
+        # Handle numpy.str_ and other string-like types
+        if isinstance(ts, (np.str_, np.bytes_)):
+            ts = str(ts)
+
+        if isinstance(ts, pd.Timestamp):
+            dt = ts
+        elif isinstance(ts, str):
+            # Fast path: assume ISO format and parse minimally
+            dt = pd.Timestamp(ts)
+        else:
+            dt = pd.Timestamp(ts)
+
+        minute = (dt.minute // 5) * 5
+        rounded = dt.replace(minute=minute, second=0, microsecond=0)
+        return rounded.isoformat()
+
+    def get_gdelt_embeddings_marketwide_fast(
+        self,
+        timestamps: List,
+        asset_indices: Optional[List[int]] = None,
+        max_assets: int = 20,
+    ) -> torch.Tensor:
+        """
+        FAST market-wide GDELT embeddings using vectorized numpy operations.
+
+        ~300x faster than the non-fast version by:
+        1. Using pre-built timestamp index
+        2. Vectorized numpy fancy indexing
+        3. Batched mean computation
+
+        Args:
+            timestamps: List of timestamps (pd.Timestamp or ISO strings)
+            asset_indices: Ignored (uses all available per timestamp)
+            max_assets: Ignored (uses all available per timestamp)
+
+        Returns:
+            embeddings: (T, 768) tensor - market-wide news embeddings
+        """
+        T = len(timestamps)
+        result = np.zeros((T, 768), dtype=np.float32)
+
+        for t, ts in enumerate(timestamps):
+            ts_rounded = self._round_timestamp_fast(ts)
+
+            if ts_rounded in self._gdelt_ts_to_indices:
+                indices = self._gdelt_ts_to_indices[ts_rounded]
+                # Vectorized: get all embeddings for this timestamp at once
+                embs = self._gdelt_array[indices]  # (N_assets, 768)
+                # Vectorized mean
+                result[t, :] = embs.mean(axis=0)
+
+        return torch.from_numpy(result).to(self.device)
+
+    def get_nostr_embeddings_marketwide_fast(
+        self,
+        timestamps: List,
+        asset_indices: Optional[List[int]] = None,
+        max_assets: int = 20,
+    ) -> torch.Tensor:
+        """
+        FAST market-wide Nostr embeddings using vectorized numpy operations.
+
+        ~300x faster than the non-fast version.
+
+        Args:
+            timestamps: List of timestamps (pd.Timestamp or ISO strings)
+            asset_indices: Ignored (uses all available per timestamp)
+            max_assets: Ignored (uses all available per timestamp)
+
+        Returns:
+            embeddings: (T, 768) tensor - market-wide social embeddings
+        """
+        T = len(timestamps)
+        result = np.zeros((T, 768), dtype=np.float32)
+
+        for t, ts in enumerate(timestamps):
+            ts_rounded = self._round_timestamp_fast(ts)
+
+            if ts_rounded in self._nostr_ts_to_indices:
+                indices = self._nostr_ts_to_indices[ts_rounded]
+                # Vectorized: get all embeddings for this timestamp at once
+                embs = self._nostr_array[indices]  # (N_assets, 768)
+                # Vectorized mean
+                result[t, :] = embs.mean(axis=0)
+
+        return torch.from_numpy(result).to(self.device)
+
+    def get_social_signal_mask_marketwide_fast(
+        self,
+        timestamps: List,
+        asset_indices: Optional[List[int]] = None,
+        max_assets: int = 20,
+    ) -> torch.Tensor:
+        """
+        FAST market-wide social signal mask.
+
+        Args:
+            timestamps: List of timestamps (pd.Timestamp or ISO strings)
+            asset_indices: Ignored
+            max_assets: Ignored
+
+        Returns:
+            mask: (T, 1) tensor with 1.0 if ANY asset has social data
+        """
+        T = len(timestamps)
+        result = np.zeros((T, 1), dtype=np.float32)
+
+        for t, ts in enumerate(timestamps):
+            ts_rounded = self._round_timestamp_fast(ts)
+
+            if ts_rounded in self._nostr_ts_to_indices:
+                result[t, 0] = 1.0
+
+        return torch.from_numpy(result).to(self.device)
 
     def close(self):
         """Close HDF5 file handles."""

@@ -30,6 +30,142 @@ from environments.trading_env import TradingEnv, EnvConfig
 from agents.cql_sac import CQLSACAgent, CQLSACConfig, ReplayBuffer
 from agents.ppo_cvar import PPOCVaRAgent, PPOCVaRConfig, RolloutBuffer
 
+# Theory validation modules (Paper Theorem 2: PAC Bound)
+from evaluation.h_divergence import HdivergenceMonitor, compare_with_paper_claims
+
+# Additional imports for comprehensive TensorBoard logging
+from collections import deque
+
+
+class PortfolioMetricsTracker:
+    """
+    Tracks portfolio performance metrics for TensorBoard logging.
+
+    Metrics tracked:
+    - Rolling Sharpe ratio
+    - Maximum drawdown
+    - Turnover
+    - CVaR and violation rate
+    """
+
+    def __init__(self, window_size: int = 252, alpha_cvar: float = 0.95):
+        """
+        Initialize portfolio metrics tracker.
+
+        Args:
+            window_size: Rolling window for Sharpe calculation
+            alpha_cvar: Confidence level for CVaR (default 95%)
+        """
+        self.window_size = window_size
+        self.alpha_cvar = alpha_cvar
+
+        # Rolling buffers
+        self.returns_buffer = deque(maxlen=window_size)
+        self.weights_history = deque(maxlen=2)  # For turnover
+        self.cumulative_returns = []
+
+        # CVaR tracking
+        self.cvar_threshold = 0.05  # 5% threshold (paper: kappa)
+        self.cvar_violations = 0
+        self.cvar_total_checks = 0
+
+    def update(self, ret: float, weights: Optional[np.ndarray] = None):
+        """
+        Update metrics with new return and weights.
+
+        Args:
+            ret: Single period return
+            weights: Current portfolio weights (optional, for turnover)
+        """
+        self.returns_buffer.append(ret)
+
+        if weights is not None:
+            self.weights_history.append(weights.copy())
+
+        # Track cumulative return for drawdown
+        if len(self.cumulative_returns) == 0:
+            self.cumulative_returns.append(1 + ret)
+        else:
+            self.cumulative_returns.append(self.cumulative_returns[-1] * (1 + ret))
+
+    def get_rolling_sharpe(self, risk_free_rate: float = 0.0) -> float:
+        """Calculate annualized rolling Sharpe ratio."""
+        if len(self.returns_buffer) < 20:
+            return 0.0
+
+        returns = np.array(self.returns_buffer)
+        excess_returns = returns - risk_free_rate / 252  # Daily adjustment
+
+        mean_ret = np.mean(excess_returns)
+        std_ret = np.std(excess_returns, ddof=1)
+
+        if std_ret < 1e-8:
+            return 0.0
+
+        # Annualize (assuming daily returns)
+        sharpe = (mean_ret / std_ret) * np.sqrt(252)
+        return float(sharpe)
+
+    def get_max_drawdown(self) -> float:
+        """Calculate maximum drawdown from cumulative returns."""
+        if len(self.cumulative_returns) < 2:
+            return 0.0
+
+        cum_returns = np.array(self.cumulative_returns)
+        running_max = np.maximum.accumulate(cum_returns)
+        drawdowns = (cum_returns - running_max) / running_max
+
+        return float(np.min(drawdowns))
+
+    def get_turnover(self) -> float:
+        """Calculate portfolio turnover (last rebalance)."""
+        if len(self.weights_history) < 2:
+            return 0.0
+
+        prev_weights = self.weights_history[-2]
+        curr_weights = self.weights_history[-1]
+
+        # Turnover = sum of absolute weight changes / 2
+        turnover = np.sum(np.abs(curr_weights - prev_weights)) / 2
+        return float(turnover)
+
+    def get_cvar(self) -> float:
+        """Calculate empirical CVaR from returns buffer."""
+        if len(self.returns_buffer) < 20:
+            return 0.0
+
+        returns = np.array(self.returns_buffer)
+        losses = -returns  # Convert to losses
+
+        sorted_losses = np.sort(losses)
+        cutoff = int(len(sorted_losses) * (1 - self.alpha_cvar))
+        cutoff = max(1, cutoff)
+
+        cvar = sorted_losses[-cutoff:].mean()
+
+        # Track violations
+        self.cvar_total_checks += 1
+        if cvar > self.cvar_threshold:
+            self.cvar_violations += 1
+
+        return float(cvar)
+
+    def get_cvar_violation_rate(self) -> float:
+        """Get rate of CVaR threshold violations."""
+        if self.cvar_total_checks == 0:
+            return 0.0
+        return self.cvar_violations / self.cvar_total_checks
+
+    def get_all_metrics(self) -> Dict[str, float]:
+        """Get all portfolio metrics for logging."""
+        return {
+            'sharpe_rolling': self.get_rolling_sharpe(),
+            'max_drawdown': self.get_max_drawdown(),
+            'turnover': self.get_turnover(),
+            'cvar_95': self.get_cvar(),
+            'cvar_violation_rate': self.get_cvar_violation_rate(),
+        }
+
 
 @dataclass
 class TrainerConfig:
@@ -46,7 +182,7 @@ class TrainerConfig:
     # Logging
     log_interval: int = 1000
     eval_interval: int = 10000
-    save_interval: int = 50000
+    save_interval: int = 10000  # Save every 10000 steps for checkpoint resume
 
     # Evaluation
     eval_episodes: int = 10
@@ -115,6 +251,14 @@ class Trainer:
         self.writer = SummaryWriter(str(log_path))
         self.logger.info(f"TensorBoard logs: {log_path}")
 
+    def _get_gpu_suffix(self) -> str:
+        """Get GPU ID suffix for run_name differentiation."""
+        if torch.cuda.is_available():
+            # Get current CUDA device index
+            gpu_id = torch.cuda.current_device()
+            return f"_gpu{gpu_id}"
+        return "_cpu"
+
     def _log_metrics(self, metrics: Dict[str, float], step: int, prefix: str = ''):
         """Log metrics to TensorBoard and console."""
         if self.writer is not None:
@@ -161,6 +305,14 @@ class Phase1Trainer(Trainer):
 
         # Replay buffer
         self.replay_buffer: Optional[ReplayBuffer] = None
+
+        # Theory validation: H-divergence monitor (Paper Theorem 2)
+        self.h_div_monitor = HdivergenceMonitor(
+            buffer_size=10000,
+            compute_interval=10000,  # Compute every 10k steps
+            alpha=0.95,  # CVaR confidence level
+            kappa=0.05,  # CVaR threshold (5%)
+        )
 
     def load_offline_data(
         self,
@@ -214,6 +366,7 @@ class Phase1Trainer(Trainer):
         self,
         total_steps: int,
         run_name: Optional[str] = None,
+        resume: bool = True,
     ) -> Dict[str, List[float]]:
         """
         Run Phase 1 offline training.
@@ -221,6 +374,7 @@ class Phase1Trainer(Trainer):
         Args:
             total_steps: Total training steps
             run_name: Name for this training run
+            resume: If True, resume from model.pt if it exists
 
         Returns:
             Dict of training metrics history
@@ -228,10 +382,18 @@ class Phase1Trainer(Trainer):
         if self.replay_buffer is None or len(self.replay_buffer) == 0:
             raise RuntimeError("No data loaded. Call load_offline_data() first.")
 
-        run_name = run_name or f"phase1_cql_sac_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        run_name = run_name or f"phase1_cql_sac_{datetime.now().strftime('%Y%m%d_%H%M%S')}{self._get_gpu_suffix()}"
         self._init_tensorboard(run_name)
 
-        self.logger.info(f"Starting Phase 1 training: {total_steps} steps")
+        # Check for existing checkpoint to resume (run_name 기반)
+        start_step = 0
+        if resume:
+            checkpoint_path = self.find_checkpoint(run_name)
+            if checkpoint_path:
+                start_step = self.load_checkpoint(checkpoint_path)
+                self.logger.info(f"Resuming training from step {start_step}")
+
+        self.logger.info(f"Starting Phase 1 training: {total_steps} steps (starting from {start_step})")
         self.logger.info(f"Replay buffer size: {len(self.replay_buffer)}")
 
         # Training history
@@ -240,24 +402,49 @@ class Phase1Trainer(Trainer):
             'actor_loss': [],
             'cql_loss': [],
             'alpha': [],
+            'd_H': [],  # H-divergence for Theorem 2 validation
         }
 
         start_time = time.time()
 
-        for step in range(1, total_steps + 1):
+        for step in range(start_step + 1, total_steps + 1):
             # Sample batch and update
             batch = self.replay_buffer.sample(self.cql_config.batch_size)
             metrics = self.agent.update(batch)
+
+            # Collect offline states for H-divergence (Paper Theorem 2)
+            # Flatten market states: (B, N, D) -> (B, N*D)
+            market_states = batch['market_states']
+            if isinstance(market_states, torch.Tensor):
+                market_states = market_states.cpu().numpy()
+            flat_states = market_states.reshape(market_states.shape[0], -1)
+            self.h_div_monitor.add_offline_states(flat_states)
 
             # Record metrics
             for key in history:
                 if key in metrics:
                     history[key].append(metrics[key])
 
+            # Log H-divergence metrics periodically
+            if step % 10000 == 0:
+                h_div_stats = self.h_div_monitor.get_statistics()
+                if h_div_stats:
+                    d_H = h_div_stats.get('d_H_latest', 0.0)
+                    history['d_H'].append(d_H)
+                    self._log_metrics({'d_H': d_H}, step, prefix='theory')
+
+                    # Compare with paper claims
+                    comparison = compare_with_paper_claims(d_H, method='CQL')
+                    self.logger.info(
+                        f"Step {step} H-divergence: d_H={d_H:.4f} "
+                        f"(paper: {comparison['paper_claim_mean']:.2f}±{comparison['paper_claim_std']:.2f}, "
+                        f"z={comparison['z_score']:.2f})"
+                    )
+
             # Log
             self._log_metrics(metrics, step, prefix='train')
 
-            # Save checkpoint
+            # Save checkpoint every save_interval steps
             if step % self.config.save_interval == 0:
                 self._save_checkpoint(step, run_name)
 
@@ -273,11 +460,69 @@ class Phase1Trainer(Trainer):
         return history
 
     def _save_checkpoint(self, step: int, run_name: str, final: bool = False):
-        """Save training checkpoint."""
+        """Save training checkpoint with full state for resume."""
         suffix = 'final' if final else f'step_{step}'
         path = self.config.checkpoint_dir / f'{run_name}_{suffix}.pt'
-        self.agent.save(str(path))
+
+        # Save comprehensive checkpoint for resume
+        checkpoint = {
+            'step': step,
+            'run_name': run_name,
+            'encoder': self.agent.encoder.state_dict(),
+            'actor': self.agent.actor.state_dict(),
+            'critic': self.agent.critic.state_dict(),
+            'target_critic': self.agent.target_critic.state_dict(),
+            'log_alpha': self.agent.log_alpha,
+            'actor_optimizer': self.agent.actor_optimizer.state_dict(),
+            'critic_optimizer': self.agent.critic_optimizer.state_dict(),
+            'config': self.agent.config,
+            'total_steps': self.agent.total_steps,
+        }
+        if self.agent.config.auto_entropy_tuning:
+            checkpoint['alpha_optimizer'] = self.agent.alpha_optimizer.state_dict()
+
+        torch.save(checkpoint, path)
         self.logger.info(f"Saved checkpoint: {path}")
+
+        # Also save as {run_name}_model.pt for easy resume (run_name으로 구분)
+        model_path = self.config.checkpoint_dir / f'{run_name}_model.pt'
+        torch.save(checkpoint, model_path)
+        self.logger.info(f"Saved latest model: {model_path}")
+
+    def load_checkpoint(self, path: Path) -> int:
+        """Load checkpoint and return the step to resume from."""
+        self.logger.info(f"Loading checkpoint from {path}")
+        checkpoint = torch.load(path, map_location=self.device, weights_only=False)
+
+        self.agent.encoder.load_state_dict(checkpoint['encoder'])
+        self.agent.actor.load_state_dict(checkpoint['actor'])
+        self.agent.critic.load_state_dict(checkpoint['critic'])
+        self.agent.target_critic.load_state_dict(checkpoint['target_critic'])
+        self.agent.log_alpha = checkpoint['log_alpha']
+        self.agent.actor_optimizer.load_state_dict(checkpoint['actor_optimizer'])
+        self.agent.critic_optimizer.load_state_dict(checkpoint['critic_optimizer'])
+        self.agent.total_steps = checkpoint['total_steps']
+
+        if self.agent.config.auto_entropy_tuning and 'alpha_optimizer' in checkpoint:
+            self.agent.alpha_optimizer.load_state_dict(checkpoint['alpha_optimizer'])
+
+        step = checkpoint.get('step', 0)
+        self.logger.info(f"Resumed from step {step}")
+        return step
+
+    def find_checkpoint(self, run_name: str) -> Optional[Path]:
+        """Find checkpoint file for given run_name."""
+        # 1. run_name 전용 체크포인트
+        model_path = self.config.checkpoint_dir / f'{run_name}_model.pt'
+        if model_path.exists():
+            return model_path
+
+        # 2. 기존 model.pt (하위 호환)
+        legacy_path = self.config.checkpoint_dir / 'model.pt'
+        if legacy_path.exists():
+            return legacy_path
+
+        return None
 
 
 class Phase2Trainer(Trainer):
@@ -320,6 +565,21 @@ class Phase2Trainer(Trainer):
         # Rollout buffer
         self.rollout_buffer: Optional[RolloutBuffer] = None
 
+        # Theory validation: H-divergence monitor (Paper Theorem 2)
+        # Tracks distribution shift between offline (Phase 1) and online (Phase 2)
+        self.h_div_monitor = HdivergenceMonitor(
+            buffer_size=10000,
+            compute_interval=5000,  # Compute every 5k steps (more frequent for online)
+            alpha=0.95,
+            kappa=0.05,
+        )
+
+        # Portfolio metrics tracker for TensorBoard
+        self.portfolio_tracker = PortfolioMetricsTracker(
+            window_size=252,
+            alpha_cvar=0.95,
+        )
+
     def load_pretrained(self, path: Path):
         """Load pre-trained CQL-SAC agent weights."""
         self.logger.info(f"Loading pre-trained weights from {path}")
@@ -331,6 +591,34 @@ class Phase2Trainer(Trainer):
         # Transfer weights
         self.agent.load_from_cql_sac(cql_agent)
 
+    def load_offline_states_for_h_divergence(self, data_path: Path, n_samples: int = 10000):
+        """
+        Load offline states from Phase1 data for H-divergence comparison.
+
+        This enables Theorem 2 validation by comparing offline (Phase1) vs online (Phase2)
+        state distributions.
+
+        Args:
+            data_path: Path to offline data (same as Phase1)
+            n_samples: Number of samples to load for comparison
+        """
+        self.logger.info(f"Loading offline states for H-divergence from {data_path}")
+
+        data = np.load(data_path, allow_pickle=True)
+        market_states = data['market_states']  # (T, n_assets, state_dim)
+
+        # Sample randomly if dataset is larger than n_samples
+        T = len(market_states)
+        if T > n_samples:
+            indices = np.random.choice(T, n_samples, replace=False)
+            market_states = market_states[indices]
+
+        # Flatten and add to offline buffer
+        flat_states = market_states.reshape(market_states.shape[0], -1)
+        self.h_div_monitor.add_offline_states(flat_states)
+
+        self.logger.info(f"Loaded {len(flat_states)} offline states for H-divergence baseline")
+
     def set_environment(self, env: TradingEnv):
         """Set the training environment."""
         self.env = env
@@ -339,6 +627,7 @@ class Phase2Trainer(Trainer):
         self,
         total_steps: int,
         run_name: Optional[str] = None,
+        resume: bool = True,
     ) -> Dict[str, List[float]]:
         """
         Run Phase 2 online training.
@@ -346,6 +635,7 @@ class Phase2Trainer(Trainer):
         Args:
             total_steps: Total training steps
             run_name: Name for this training run
+            resume: If True, resume from ppo_model.pt if it exists
 
         Returns:
             Dict of training metrics history
@@ -353,10 +643,18 @@ class Phase2Trainer(Trainer):
         if self.env is None:
             raise RuntimeError("No environment set. Call set_environment() first.")
 
-        run_name = run_name or f"phase2_ppo_cvar_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        run_name = run_name or f"phase2_ppo_cvar_{datetime.now().strftime('%Y%m%d_%H%M%S')}{self._get_gpu_suffix()}"
         self._init_tensorboard(run_name)
 
-        self.logger.info(f"Starting Phase 2 training: {total_steps} steps")
+        # Check for existing checkpoint to resume (run_name 기반)
+        start_step = 0
+        if resume:
+            checkpoint_path = self.find_checkpoint(run_name)
+            if checkpoint_path:
+                start_step = self.load_checkpoint(checkpoint_path)
+                self.logger.info(f"Resuming training from step {start_step}")
+
+        self.logger.info(f"Starting Phase 2 training: {total_steps} steps (starting from {start_step})")
 
         # Initialize rollout buffer
         self.rollout_buffer = RolloutBuffer(
@@ -375,6 +673,7 @@ class Phase2Trainer(Trainer):
             'cvar': [],
             'lambda_cvar': [],
             'episode_return': [],
+            'd_H': [],  # H-divergence for Theorem 2 validation
         }
 
         # Reset environment
@@ -384,7 +683,7 @@ class Phase2Trainer(Trainer):
 
         episode_return = 0
         n_episodes = 0
-        total_steps_done = 0
+        total_steps_done = start_step
 
         start_time = time.time()
 
@@ -412,13 +711,33 @@ class Phase2Trainer(Trainer):
                     done=terminated,
                 )
 
+                # Collect online states for H-divergence (Paper Theorem 2)
+                # Flatten market state: (N, D) -> (N*D,)
+                flat_state = market_state.flatten().reshape(1, -1)
+                self.h_div_monitor.add_online_states(flat_state)
+
                 episode_return += reward
                 total_steps_done += 1
+
+                # Update portfolio metrics tracker
+                self.portfolio_tracker.update(reward, weights=action)
 
                 if terminated or truncated:
                     # Log episode
                     history['episode_return'].append(episode_return)
                     self._log_metrics({'episode_return': episode_return}, total_steps_done, 'episode')
+
+                    # Log portfolio metrics (theory/cvar and portfolio/)
+                    portfolio_metrics = self.portfolio_tracker.get_all_metrics()
+                    self._log_metrics({
+                        'cvar_95': portfolio_metrics['cvar_95'],
+                        'cvar_violation_rate': portfolio_metrics['cvar_violation_rate'],
+                    }, total_steps_done, 'theory')
+                    self._log_metrics({
+                        'sharpe_rolling': portfolio_metrics['sharpe_rolling'],
+                        'max_drawdown': portfolio_metrics['max_drawdown'],
+                        'turnover': portfolio_metrics['turnover'],
+                    }, total_steps_done, 'portfolio')
 
                     # Reset
                     obs, info = self.env.reset()
@@ -447,7 +766,43 @@ class Phase2Trainer(Trainer):
                 if key in metrics:
                     history[key].append(metrics[key])
 
-            self._log_metrics(metrics, total_steps_done, 'train')
+            # Separate train and theory metrics
+            train_metrics = {k: v for k, v in metrics.items() if k not in ['gate_shapley_corr']}
+            self._log_metrics(train_metrics, total_steps_done, 'train')
+
+            # Log Shapley-Gate alignment under theory/ prefix (Paper Line 1375-1390)
+            if 'gate_shapley_corr' in metrics:
+                self._log_metrics({'gate_shapley_corr': metrics['gate_shapley_corr']}, total_steps_done, 'theory')
+
+            # Log gate and TERC metrics periodically
+            if total_steps_done % 1000 == 0:
+                if hasattr(self.agent, 'actor_critic') and hasattr(self.agent.actor_critic, 'get_all_tensorboard_metrics'):
+                    model_metrics = self.agent.actor_critic.get_all_tensorboard_metrics()
+                    if model_metrics:
+                        # Split metrics by prefix for proper TensorBoard organization
+                        gate_metrics = {k.replace('gate/', ''): v for k, v in model_metrics.items() if k.startswith('gate/')}
+                        terc_metrics = {k.replace('terc/', ''): v for k, v in model_metrics.items() if k.startswith('terc/')}
+
+                        if gate_metrics:
+                            self._log_metrics(gate_metrics, total_steps_done, 'gate')
+                        if terc_metrics:
+                            self._log_metrics(terc_metrics, total_steps_done, 'terc')
+
+            # Log H-divergence metrics periodically (Paper Theorem 2)
+            if total_steps_done % 5000 == 0:
+                h_div_stats = self.h_div_monitor.get_statistics()
+                if h_div_stats:
+                    d_H = h_div_stats.get('d_H_latest', 0.0)
+                    history['d_H'].append(d_H)
+                    self._log_metrics({'d_H': d_H}, total_steps_done, prefix='theory')
+
+                    # Compare with paper claims
+                    comparison = compare_with_paper_claims(d_H, method='CQL')
+                    self.logger.info(
+                        f"Step {total_steps_done} H-divergence: d_H={d_H:.4f} "
+                        f"(paper: {comparison['paper_claim_mean']:.2f}±{comparison['paper_claim_std']:.2f}, "
+                        f"reduction={comparison['reduction_from_baseline_pct']:.1f}%)"
+                    )
 
             # Save checkpoint
             if total_steps_done % self.config.save_interval == 0:
@@ -514,11 +869,61 @@ class Phase2Trainer(Trainer):
         }
 
     def _save_checkpoint(self, step: int, run_name: str, final: bool = False):
-        """Save training checkpoint."""
+        """Save training checkpoint with full state for resume."""
         suffix = 'final' if final else f'step_{step}'
         path = self.config.checkpoint_dir / f'{run_name}_{suffix}.pt'
-        self.agent.save(str(path))
+
+        # Save comprehensive checkpoint for resume
+        checkpoint = {
+            'step': step,
+            'run_name': run_name,
+            'actor_critic': self.agent.actor_critic.state_dict(),
+            'optimizer': self.agent.optimizer.state_dict(),
+            'lambda_cvar': self.agent.lambda_cvar,
+            'config': self.agent.config,
+            'total_steps': self.agent.total_steps,
+        }
+        if self.agent.scheduler is not None:
+            checkpoint['scheduler'] = self.agent.scheduler.state_dict()
+
+        torch.save(checkpoint, path)
         self.logger.info(f"Saved checkpoint: {path}")
+
+        # Also save as {run_name}_ppo_model.pt for easy resume (run_name으로 구분)
+        model_path = self.config.checkpoint_dir / f'{run_name}_ppo_model.pt'
+        torch.save(checkpoint, model_path)
+        self.logger.info(f"Saved latest model: {model_path}")
+
+    def load_checkpoint(self, path: Path) -> int:
+        """Load checkpoint and return the step to resume from."""
+        self.logger.info(f"Loading checkpoint from {path}")
+        checkpoint = torch.load(path, map_location=self.device, weights_only=False)
+
+        self.agent.actor_critic.load_state_dict(checkpoint['actor_critic'])
+        self.agent.optimizer.load_state_dict(checkpoint['optimizer'])
+        self.agent.lambda_cvar = checkpoint['lambda_cvar']
+        self.agent.total_steps = checkpoint['total_steps']
+
+        if self.agent.scheduler is not None and 'scheduler' in checkpoint:
+            self.agent.scheduler.load_state_dict(checkpoint['scheduler'])
+
+        step = checkpoint.get('step', 0)
+        self.logger.info(f"Resumed from step {step}")
+        return step
+
+    def find_checkpoint(self, run_name: str) -> Optional[Path]:
+        """Find checkpoint file for given run_name."""
+        # 1. run_name 전용 체크포인트
+        model_path = self.config.checkpoint_dir / f'{run_name}_ppo_model.pt'
+        if model_path.exists():
+            return model_path
+
+        # 2. 기존 ppo_model.pt (하위 호환)
+        legacy_path = self.config.checkpoint_dir / 'ppo_model.pt'
+        if legacy_path.exists():
+            return legacy_path
+
+        return None
 
 
 # ==============================================================================
@@ -627,6 +1032,7 @@ class HierarchicalTrainer(Trainer):
         self,
         total_steps: int,
         run_name: Optional[str] = None,
+        resume: bool = True,
     ) -> Dict[str, List[float]]:
         """
         Run hierarchical PPO training.
@@ -634,6 +1040,7 @@ class HierarchicalTrainer(Trainer):
         Args:
             total_steps: Total training steps
             run_name: Name for this training run
+            resume: If True, resume from hierarchical_model.pt if it exists
 
         Returns:
             Dict of training metrics history
@@ -641,13 +1048,22 @@ class HierarchicalTrainer(Trainer):
         if self.env is None:
             raise RuntimeError("No environment set. Call set_environment() first.")
 
+        run_name = run_name or f"hierarchical_ppo_{datetime.now().strftime('%Y%m%d_%H%M%S')}{self._get_gpu_suffix()}"
+
+        # Check for existing checkpoint to resume (run_name 기반)
+        start_step = 0
+        if resume:
+            checkpoint_path = self.find_checkpoint(run_name)
+            if checkpoint_path:
+                start_step = self.load_checkpoint(checkpoint_path)
+                self.logger.info(f"Resuming training from step {start_step}")
+
         if self.model is None:
             self._init_model()
 
-        run_name = run_name or f"hierarchical_ppo_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         self._init_tensorboard(run_name)
 
-        self.logger.info(f"Starting Hierarchical training: {total_steps} steps")
+        self.logger.info(f"Starting Hierarchical training: {total_steps} steps (starting from {start_step})")
         self.logger.info(f"Model config: {self.model_config}")
 
         # Training history
@@ -670,7 +1086,7 @@ class HierarchicalTrainer(Trainer):
 
         episode_return = 0
         n_episodes = 0
-        total_steps_done = 0
+        total_steps_done = start_step
 
         # Rollout storage (Lazy Agent - no trade_probs)
         rollout_states = []
@@ -969,23 +1385,31 @@ class HierarchicalTrainer(Trainer):
         return log_prob
 
     def _save_checkpoint(self, step: int, run_name: str, final: bool = False):
-        """Save training checkpoint."""
+        """Save training checkpoint with full state for resume."""
         suffix = 'final' if final else f'step_{step}'
         path = self.config.checkpoint_dir / f'{run_name}_{suffix}.pt'
 
-        torch.save({
+        checkpoint = {
             'step': step,
+            'run_name': run_name,
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'scheduler_state_dict': self.scheduler.state_dict(),
             'model_config': self.model_config,
-        }, path)
+        }
 
+        torch.save(checkpoint, path)
         self.logger.info(f"Saved checkpoint: {path}")
 
-    def load_checkpoint(self, path: Path):
-        """Load checkpoint."""
-        checkpoint = torch.load(path, map_location=self.device)
+        # Also save as {run_name}_hierarchical_model.pt for easy resume (run_name으로 구분)
+        model_path = self.config.checkpoint_dir / f'{run_name}_hierarchical_model.pt'
+        torch.save(checkpoint, model_path)
+        self.logger.info(f"Saved latest model: {model_path}")
+
+    def load_checkpoint(self, path: Path) -> int:
+        """Load checkpoint and return the step to resume from."""
+        self.logger.info(f"Loading checkpoint from {path}")
+        checkpoint = torch.load(path, map_location=self.device, weights_only=False)
 
         self.model_config = checkpoint['model_config']
         self._init_model()
@@ -994,9 +1418,23 @@ class HierarchicalTrainer(Trainer):
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
 
-        self.logger.info(f"Loaded checkpoint from {path}")
+        step = checkpoint.get('step', 0)
+        self.logger.info(f"Resumed from step {step}")
+        return step
 
-        return checkpoint['step']
+    def find_checkpoint(self, run_name: str) -> Optional[Path]:
+        """Find checkpoint file for given run_name."""
+        # 1. run_name 전용 체크포인트
+        model_path = self.config.checkpoint_dir / f'{run_name}_hierarchical_model.pt'
+        if model_path.exists():
+            return model_path
+
+        # 2. 기존 hierarchical_model.pt (하위 호환)
+        legacy_path = self.config.checkpoint_dir / 'hierarchical_model.pt'
+        if legacy_path.exists():
+            return legacy_path
+
+        return None
 
 
 # ========== Utility Functions ==========

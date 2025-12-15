@@ -219,11 +219,17 @@ class TrainingDataLoader:
 
         logger.info(f"Built tensors: states{states.shape}, returns{returns.shape}")
 
+        # Convert timestamps to ISO format strings for compatibility
+        timestamps_iso = [
+            ts.isoformat() if hasattr(ts, 'isoformat') else str(ts)
+            for ts in timestamps
+        ]
+
         return {
             'states': states,
             'returns': returns,
             'prices': prices,
-            'timestamps': np.array(timestamps),
+            'timestamps': np.array(timestamps_iso, dtype='U32'),
             'symbols': symbols,  # Add symbols for alpha loading
         }
 
@@ -252,6 +258,263 @@ class TrainingDataLoader:
         state[5:] = np.random.randn(self.state_dim - 5) * 0.1
 
         return state
+
+    def load_period_dynamic(
+        self,
+        start_date,
+        end_date,
+        interval: str = '5m',
+    ) -> Dict[str, np.ndarray]:
+        """
+        Load training data with DYNAMIC universe rebalancing.
+
+        Unlike load_period() which uses a static symbol list, this method:
+        1. Tracks slot->symbol mapping per timestamp
+        2. Handles universe rotations (symbol exits/enters slots)
+        3. Marks slot changes for rotation cost calculation
+
+        The agent learns to trade "slots" (Top 1, Top 2, ...) not fixed symbols.
+        When universe rebalances, weights carry over to new symbols in same slot.
+
+        Args:
+            start_date: Start date
+            end_date: End date
+            interval: Data interval
+
+        Returns:
+            Dict with:
+                - 'states': (T, N, D) market state tensor (per-slot)
+                - 'returns': (T, N) asset returns (per-slot)
+                - 'prices': (T, N) asset prices (per-slot)
+                - 'timestamps': (T,) timestamps
+                - 'slot_symbols': (T, N) symbol name for each slot at each time
+                - 'slot_changes': (T, N) boolean array marking slot symbol changes
+                - 'rebalance_mask': (T,) boolean array marking rebalance dates
+                - 'all_symbols': List of all unique symbols in period
+        """
+        # Parse string dates
+        if isinstance(start_date, str):
+            start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        if isinstance(end_date, str):
+            end_date = datetime.strptime(end_date, '%Y-%m-%d')
+
+        logger.info(f"Loading DYNAMIC universe data: {start_date} to {end_date}")
+
+        # Get universe timeline (date, slot, symbol mapping)
+        timeline = self.parquet_loader.get_universe_timeline(
+            start_date=start_date.date() if hasattr(start_date, 'date') else start_date,
+            end_date=end_date.date() if hasattr(end_date, 'date') else end_date,
+            top_n=self.n_assets,
+        )
+
+        if timeline.empty:
+            logger.warning("No universe timeline, falling back to static loading")
+            return self.load_period(start_date, end_date, interval)
+
+        # Get all unique symbols in period
+        all_symbols = timeline['symbol'].dropna().unique().tolist()
+        logger.info(f"Dynamic universe: {len(all_symbols)} unique symbols across period")
+
+        # Load OHLCV for all symbols
+        try:
+            ohlcv_dict = self.parquet_loader.load_ohlcv_multi(
+                symbols=all_symbols,
+                start_date=start_date,
+                end_date=end_date,
+                interval=interval,
+            )
+        except Exception as e:
+            logger.warning(f"Failed to load OHLCV: {e}, falling back to static")
+            return self.load_period(start_date, end_date, interval)
+
+        if not ohlcv_dict:
+            logger.warning("No OHLCV data, falling back to static")
+            return self.load_period(start_date, end_date, interval)
+
+        # Combine OHLCV into single DataFrame
+        dfs = []
+        for symbol, df in ohlcv_dict.items():
+            if df is not None and len(df) > 0:
+                df = df.copy()
+                df['symbol'] = symbol
+                dfs.append(df)
+
+        if not dfs:
+            logger.warning("All symbols empty, falling back to static")
+            return self.load_period(start_date, end_date, interval)
+
+        ohlcv_df = pd.concat(dfs, ignore_index=True)
+
+        # Get unique timestamps
+        timestamps = sorted(ohlcv_df['timestamp'].unique())
+        T = len(timestamps)
+        N = self.n_assets
+        D = self.state_dim
+
+        logger.info(f"Building dynamic tensors: T={T}, N={N} slots, D={D}")
+
+        # Create timestamp -> date mapping for universe lookup
+        ts_to_date = {ts: ts.date() if hasattr(ts, 'date') else pd.Timestamp(ts).date()
+                      for ts in timestamps}
+
+        # Build date -> slot -> symbol mapping
+        date_slot_symbol = {}
+        for _, row in timeline.iterrows():
+            dt = row['date']
+            slot = row['slot']
+            sym = row['symbol']
+            if dt not in date_slot_symbol:
+                date_slot_symbol[dt] = {}
+            date_slot_symbol[dt][slot] = sym
+
+        # Build slot_symbols array (T, N) - which symbol is in each slot at each time
+        slot_symbols = np.empty((T, N), dtype='U20')  # Unicode strings
+        slot_changes = np.zeros((T, N), dtype=bool)
+        rebalance_mask = np.zeros(T, dtype=bool)
+
+        prev_slot_syms = None
+        for t, ts in enumerate(timestamps):
+            dt = ts_to_date[ts]
+
+            # Get slot mapping for this date
+            if dt in date_slot_symbol:
+                slot_map = date_slot_symbol[dt]
+            else:
+                # Find nearest previous date
+                available_dates = [d for d in date_slot_symbol.keys() if d <= dt]
+                if available_dates:
+                    nearest_date = max(available_dates)
+                    slot_map = date_slot_symbol[nearest_date]
+                else:
+                    slot_map = {}
+
+            # Fill slot symbols (slot 1 -> index 0, slot 2 -> index 1, ...)
+            curr_slot_syms = []
+            for slot_idx in range(N):
+                slot_num = slot_idx + 1  # 1-indexed slots
+                sym = slot_map.get(slot_num, 'UNKNOWN')
+                slot_symbols[t, slot_idx] = sym
+                curr_slot_syms.append(sym)
+
+            # Check for slot changes
+            if prev_slot_syms is not None:
+                for slot_idx in range(N):
+                    if curr_slot_syms[slot_idx] != prev_slot_syms[slot_idx]:
+                        slot_changes[t, slot_idx] = True
+                        rebalance_mask[t] = True
+
+            prev_slot_syms = curr_slot_syms
+
+        logger.info(f"Rebalance events: {rebalance_mask.sum()} timestamps with slot changes")
+        logger.info(f"Total slot changes: {slot_changes.sum()}")
+
+        # Build per-symbol price/return pivots
+        price_pivot = ohlcv_df.pivot_table(
+            index='timestamp', columns='symbol', values='close', aggfunc='first'
+        ).reindex(index=timestamps).ffill().bfill()
+
+        open_pivot = ohlcv_df.pivot_table(
+            index='timestamp', columns='symbol', values='open', aggfunc='first'
+        ).reindex(index=timestamps).ffill().bfill()
+
+        high_pivot = ohlcv_df.pivot_table(
+            index='timestamp', columns='symbol', values='high', aggfunc='first'
+        ).reindex(index=timestamps).ffill().bfill()
+
+        low_pivot = ohlcv_df.pivot_table(
+            index='timestamp', columns='symbol', values='low', aggfunc='first'
+        ).reindex(index=timestamps).ffill().bfill()
+
+        volume_pivot = ohlcv_df.pivot_table(
+            index='timestamp', columns='symbol', values='volume', aggfunc='first'
+        ).reindex(index=timestamps).ffill().bfill()
+
+        # Build slot-indexed tensors (VECTORIZED - O(N) instead of O(T*N))
+        prices = np.zeros((T, N), dtype=np.float32)
+        opens = np.zeros((T, N), dtype=np.float32)
+        highs = np.zeros((T, N), dtype=np.float32)
+        lows = np.zeros((T, N), dtype=np.float32)
+        volumes = np.zeros((T, N), dtype=np.float32)
+
+        # Convert to numpy arrays once (avoid repeated pandas iloc)
+        price_values = price_pivot.values
+        open_values = open_pivot.values
+        high_values = high_pivot.values
+        low_values = low_pivot.values
+        volume_values = volume_pivot.values
+
+        # Create column name -> index mapping
+        col_to_idx = {col: i for i, col in enumerate(price_pivot.columns)}
+
+        # Vectorized OHLCV loading: loop over slots (N=20) instead of T*N
+        logger.info(f"Vectorized OHLCV loading: {N} slots, {T} timestamps...")
+        for slot_idx in range(N):
+            slot_syms = slot_symbols[:, slot_idx]  # (T,) symbols for this slot
+            unique_syms = np.unique(slot_syms)
+
+            for sym in unique_syms:
+                if sym not in col_to_idx:
+                    continue
+                col_idx = col_to_idx[sym]
+                mask = (slot_syms == sym)  # Boolean mask: which timestamps have this symbol
+                prices[mask, slot_idx] = price_values[mask, col_idx]
+                opens[mask, slot_idx] = open_values[mask, col_idx]
+                highs[mask, slot_idx] = high_values[mask, col_idx]
+                lows[mask, slot_idx] = low_values[mask, col_idx]
+                volumes[mask, slot_idx] = volume_values[mask, col_idx]
+
+        # Calculate returns (FULLY VECTORIZED)
+        prices_safe = np.where(prices > 0, prices, 1e-8)
+        returns = np.zeros((T, N), dtype=np.float32)
+
+        # Vectorized log returns with slot change handling
+        # Where slot changed: return = 0, otherwise: log(price_t / price_{t-1})
+        returns[1:] = np.where(
+            slot_changes[1:],
+            0.0,
+            np.log(prices_safe[1:] / prices_safe[:-1])
+        )
+
+        returns = np.nan_to_num(returns, nan=0.0, posinf=0.0, neginf=0.0)
+
+        # Build state features (T, N, D)
+        states = np.zeros((T, N, D), dtype=np.float32)
+
+        opens_safe = np.where(opens > 0, opens, 1e-8)
+        lows_safe = np.where(lows > 0, lows, 1e-8)
+
+        states[:, :, 0] = np.log(prices / opens_safe)  # log(close/open)
+        states[:, :, 1] = np.log(highs / prices_safe)  # log(high/close)
+        states[:, :, 2] = np.log(prices / lows_safe)   # log(close/low)
+        states[:, :, 3] = np.log1p(volumes) / 20       # normalized log volume
+        states[:, :, 4] = prices / 10000               # normalized price
+
+        # Lagged returns
+        for lag in range(1, min(32, D - 5) + 1):
+            if lag < T:
+                states[lag:, :, 4 + lag] = returns[lag:] * np.sqrt(lag)
+
+        states = np.nan_to_num(states, nan=0.0, posinf=0.0, neginf=0.0).astype(np.float32)
+
+        # Timestamps as ISO strings
+        timestamps_iso = [
+            ts.isoformat() if hasattr(ts, 'isoformat') else str(ts)
+            for ts in timestamps
+        ]
+
+        logger.info(f"Dynamic data ready: states{states.shape}, {rebalance_mask.sum()} rebalances")
+
+        return {
+            'states': states,
+            'returns': returns,
+            'prices': prices,
+            'timestamps': np.array(timestamps_iso, dtype='U32'),
+            'slot_symbols': slot_symbols,           # (T, N) which symbol in each slot
+            'slot_changes': slot_changes,           # (T, N) boolean slot changes
+            'rebalance_mask': rebalance_mask,       # (T,) rebalance dates
+            'all_symbols': all_symbols,             # All unique symbols
+            'symbols': all_symbols,                 # Compatibility
+        }
 
     def _create_mock_data(
         self,
@@ -288,12 +551,13 @@ class TrainingDataLoader:
         # Generate prices from returns
         prices = np.exp(np.cumsum(returns, axis=0)) * 100
 
-        # Generate timestamps
+        # Generate timestamps as ISO format strings
         timestamps = pd.date_range(start_date, end_date, periods=T)
+        timestamps_iso = [ts.isoformat() for ts in timestamps]
 
         return {
             'states': states,
             'returns': returns,
             'prices': prices.astype(np.float32),
-            'timestamps': timestamps.to_numpy(),
+            'timestamps': np.array(timestamps_iso, dtype='U32'),
         }

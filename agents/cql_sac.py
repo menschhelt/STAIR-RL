@@ -55,14 +55,15 @@ class CQLSACConfig:
 
     # CQL hyperparameters
     lambda_cql: float = 1.0       # CQL regularization weight
-    cql_n_actions: int = 10       # Number of actions to sample for CQL
+    cql_n_actions: int = 5        # Number of actions to sample for CQL (reduced from 10 for speed)
     cql_temp: float = 1.0         # Temperature for logsumexp
 
     # Gradient penalty (Lipschitz constraint)
     lambda_gp: float = 10.0       # Gradient penalty weight
 
     # Semantic smoothing (temporal consistency, paper: λ=0.1)
-    lambda_smooth: float = 0.1    # Semantic smoothing weight
+    # Set to 0 to avoid 4x encode overhead (re-encode after backward)
+    lambda_smooth: float = 0.0    # Disabled for training speed
 
     # Architecture selection
     use_hierarchical: bool = True  # Use HierarchicalActorCritic (True: full multi-modal architecture)
@@ -72,8 +73,13 @@ class CQLSACConfig:
     gdelt_embeddings_path: Optional[str] = None  # Path to GDELT embeddings HDF5
     nostr_embeddings_path: Optional[str] = None  # Path to Nostr embeddings HDF5
 
+    # TERC (Transfer Entropy with Recursive Conditioning) - Paper Line 756
+    use_terc: bool = True         # Enable TERC token filtering + semantic gate (paper default)
+    terc_tau: float = 0.15        # Transfer entropy threshold (nats)
+    terc_use_learned: bool = True # Use learned importance (faster) vs actual TE (slower)
+
     # Training
-    batch_size: int = 256
+    batch_size: int = 384  # A100 40GB optimal (measured: 18GB@256 → ~27GB@384)
     grad_clip: float = 1.0        # Gradient clipping
 
 
@@ -135,7 +141,7 @@ class CQLSACAgent:
         if cfg.use_hierarchical:
             # Use HierarchicalActorCritic with adapter
             hierarchical_model = HierarchicalActorCritic(
-                n_alphas=292,  # Alpha 101 + Alpha 191
+                n_alphas=101,  # Alpha 101 only (Alpha 191 not yet available)
                 n_assets=cfg.n_assets,
                 d_alpha=64,
                 d_text=64,
@@ -143,6 +149,10 @@ class CQLSACAgent:
                 d_global=6,
                 d_portfolio=cfg.portfolio_dim,
                 n_quantiles=cfg.n_quantiles,
+                # TERC (Transfer Entropy with Recursive Conditioning) - Paper Line 756
+                use_terc=cfg.use_terc,
+                terc_tau=cfg.terc_tau,
+                terc_use_learned=cfg.terc_use_learned,
             ).to(self.device)
 
             self.adapter = HierarchicalActorCriticAdapter(
@@ -156,7 +166,15 @@ class CQLSACAgent:
             # Expose networks for compatibility
             self.encoder = self.adapter.model.encoder
             self.actor = self.adapter.model.actor
-            self.critic = self.adapter.model.critic
+
+            # CQL-SAC needs Q(s,a) function, not V(s) function
+            # HierarchicalCritic is V(s), so we use TwinCritic for Q(s,a)
+            # Encoder output: d_temporal + d_global + d_portfolio = 128 + 6 + 22 = 156
+            encoder_output_dim = 128 + 6 + cfg.portfolio_dim  # d_temporal + d_global + d_portfolio
+            self.critic = TwinCritic(
+                state_dim=encoder_output_dim,
+                action_dim=cfg.n_assets,
+            ).to(self.device)
             self.target_critic = copy.deepcopy(self.critic)
 
         else:
@@ -299,6 +317,7 @@ class CQLSACAgent:
                 - next_market_states: (batch, n_assets, state_dim)
                 - next_portfolio_states: (batch, portfolio_dim)
                 - dones: (batch,)
+                - _use_precomputed: (bool) Whether to use fast path with precomputed features
 
         Returns:
             Dict of loss values for logging
@@ -316,15 +335,19 @@ class CQLSACAgent:
 
         batch_size = market_states.shape[0]
 
-        # Extract timestamps from batch (if available)
-        timestamps = batch.get('timestamps', None)
-        next_timestamps = batch.get('next_timestamps', None)
+        # Check if precomputed features are available
+        use_precomputed = batch.get('_use_precomputed', False)
 
-        # Encode current state (dual outputs)
-        z_pooled, z_unpooled = self.encode_state(market_states, portfolio_states, timestamps=timestamps)
-
-        # Encode next state (with gradients for semantic smoothing)
-        next_z_pooled, next_z_unpooled = self.encode_state(next_market_states, next_portfolio_states, timestamps=next_timestamps)
+        if use_precomputed:
+            # FAST PATH: Use precomputed features (skips build_state_dict)
+            z_pooled, z_unpooled = self.adapter.encode_state_fast(batch, prefix='')
+            next_z_pooled, next_z_unpooled = self.adapter.encode_state_fast(batch, prefix='next_')
+        else:
+            # SLOW PATH: Build state_dict from timestamps (backward compatible)
+            timestamps = batch.get('timestamps', None)
+            next_timestamps = batch.get('next_timestamps', None)
+            z_pooled, z_unpooled = self.encode_state(market_states, portfolio_states, timestamps=timestamps)
+            next_z_pooled, next_z_unpooled = self.encode_state(next_market_states, next_portfolio_states, timestamps=next_timestamps)
 
         # ========== Semantic Smoothing Loss (Paper: L_smooth) ==========
         # L_smooth = λ × E[‖φ(H_t) - φ(H_{t+1})‖²]
@@ -344,8 +367,12 @@ class CQLSACAgent:
             self.actor_optimizer.step()
 
             # Re-encode states for critic/actor updates (graph is clean now)
-            z_pooled, z_unpooled = self.encode_state(market_states, portfolio_states, timestamps=timestamps)
-            next_z_pooled, next_z_unpooled = self.encode_state(next_market_states, next_portfolio_states, timestamps=next_timestamps)
+            if use_precomputed:
+                z_pooled, z_unpooled = self.adapter.encode_state_fast(batch, prefix='')
+                next_z_pooled, next_z_unpooled = self.adapter.encode_state_fast(batch, prefix='next_')
+            else:
+                z_pooled, z_unpooled = self.encode_state(market_states, portfolio_states, timestamps=timestamps)
+                next_z_pooled, next_z_unpooled = self.encode_state(next_market_states, next_portfolio_states, timestamps=next_timestamps)
 
         # ========== Update Critic ==========
         critic_loss, cql_loss, td_loss = self._update_critic(
@@ -361,6 +388,9 @@ class CQLSACAgent:
 
         self.total_steps += 1
 
+        # Compute total loss for logging
+        total_loss = critic_loss + actor_loss + smooth_loss_value
+
         return {
             'critic_loss': critic_loss,
             'cql_loss': cql_loss,
@@ -369,6 +399,7 @@ class CQLSACAgent:
             'actor_loss': actor_loss,
             'alpha_loss': alpha_loss,
             'alpha': self.alpha.item(),
+            'total_loss': total_loss,
         }
 
     def _update_critic(
@@ -589,6 +620,9 @@ class ReplayBuffer:
     Experience replay buffer for offline RL.
 
     Stores transitions and samples random batches for training.
+
+    OPTIMIZED: Supports precomputed features via timestamp_indices for
+    O(1) lookup instead of per-step build_state_dict() calls.
     """
 
     def __init__(
@@ -598,6 +632,7 @@ class ReplayBuffer:
         state_dim: int,
         portfolio_dim: int,
         device: str = 'cpu',
+        temporal_window: int = 24,
     ):
         """
         Initialize replay buffer.
@@ -608,11 +643,14 @@ class ReplayBuffer:
             state_dim: State feature dimension per asset
             portfolio_dim: Portfolio state dimension
             device: Storage device
+            temporal_window: Temporal window size for precomputed features
         """
         self.capacity = capacity
         self.device = device
         self.position = 0
         self.size = 0
+        self.n_assets = n_assets
+        self.temporal_window = temporal_window
 
         # Pre-allocate storage
         self.market_states = np.zeros((capacity, n_assets, state_dim), dtype=np.float32)
@@ -626,6 +664,20 @@ class ReplayBuffer:
         # Timestamp storage (ISO format strings, max 32 characters)
         self.timestamps = np.zeros(capacity, dtype='U32')
         self.next_timestamps = np.zeros(capacity, dtype='U32')
+
+        # OPTIMIZED: Integer timestamp indices for O(1) preloaded array lookup
+        self.timestamp_indices = np.zeros(capacity, dtype=np.int32)
+        self.next_timestamp_indices = np.zeros(capacity, dtype=np.int32)
+
+        # Preloaded feature arrays (set via set_preloaded_features())
+        # These are SHARED references, not copies - memory efficient
+        # Arrays are NOT temporally expanded - expansion happens in sample()
+        self._preloaded_alphas: Optional[np.ndarray] = None      # (T_total, N_slots, 101)
+        self._preloaded_gdelt: Optional[np.ndarray] = None       # (T_total, 768)
+        self._preloaded_nostr: Optional[np.ndarray] = None       # (T_total, 768)
+        self._preloaded_macro: Optional[np.ndarray] = None       # (T_total, n_macro)
+        self._preloaded_mask: Optional[np.ndarray] = None        # (T_total, 1) or None
+        self._use_precomputed = False
 
     def add(
         self,
@@ -659,11 +711,80 @@ class ReplayBuffer:
         self.position = (self.position + 1) % self.capacity
         self.size = min(self.size + 1, self.capacity)
 
+    def set_preloaded_features(
+        self,
+        alphas: np.ndarray,
+        gdelt: np.ndarray,
+        nostr: np.ndarray,
+        macro: np.ndarray,
+        mask: Optional[np.ndarray] = None,
+    ) -> None:
+        """
+        Set preloaded feature arrays for O(1) batch lookup.
+
+        These are SHARED references (no copy) for memory efficiency.
+        Arrays are NOT temporally expanded - expansion happens in sample().
+        Call this ONCE after precomputing all features.
+
+        Args:
+            alphas: (T_total, N_slots, 101) - Alpha factors per timestamp
+            gdelt: (T_total, 768) - GDELT embeddings per timestamp
+            nostr: (T_total, 768) - Nostr embeddings per timestamp
+            macro: (T_total, n_macro) - Macro features per timestamp
+            mask: (T_total, 1) - Social signal mask (optional)
+        """
+        self._preloaded_alphas = alphas
+        self._preloaded_gdelt = gdelt
+        self._preloaded_nostr = nostr
+        self._preloaded_macro = macro
+        self._preloaded_mask = mask
+        self._use_precomputed = True
+
+        import logging
+        logging.info(f"ReplayBuffer: Preloaded features set!")
+        logging.info(f"  Alphas: {alphas.shape}")
+        logging.info(f"  GDELT: {gdelt.shape}")
+        logging.info(f"  Nostr: {nostr.shape}")
+        logging.info(f"  Macro: {macro.shape}")
+        if mask is not None:
+            logging.info(f"  Mask: {mask.shape}")
+
+    def _expand_temporal(self, ts_indices: np.ndarray, preloaded: np.ndarray) -> np.ndarray:
+        """
+        Expand single-timestamp data to temporal window.
+
+        Args:
+            ts_indices: (B,) base timestamp indices
+            preloaded: (T_total, ...) preloaded array
+
+        Returns:
+            Expanded array of shape (B, T_window, ...)
+        """
+        B = len(ts_indices)
+        T = self.temporal_window
+        T_total = preloaded.shape[0]
+
+        # Compute temporal indices: for each ts_idx, get [ts_idx - T + 1, ..., ts_idx]
+        # Shape: (B, T_window)
+        offsets = np.arange(T - 1, -1, -1)  # [T-1, T-2, ..., 0]
+        temporal_indices = ts_indices[:, np.newaxis] - offsets[np.newaxis, :]
+        temporal_indices = np.clip(temporal_indices, 0, T_total - 1)  # Clamp to valid range
+
+        # Gather using advanced indexing
+        # preloaded[temporal_indices] -> (B, T_window, ...)
+        return preloaded[temporal_indices]
+
     def sample(self, batch_size: int) -> Dict[str, torch.Tensor]:
-        """Sample a random batch."""
+        """
+        Sample a random batch.
+
+        If preloaded features are set, includes precomputed alphas, embeddings, macro.
+        Temporal expansion is done on-the-fly from single-timestamp preloads.
+        Otherwise, returns only market_states and timestamps for build_state_dict().
+        """
         indices = np.random.randint(0, self.size, size=batch_size)
 
-        return {
+        batch = {
             'market_states': torch.tensor(self.market_states[indices], device=self.device),
             'portfolio_states': torch.tensor(self.portfolio_states[indices], device=self.device),
             'actions': torch.tensor(self.actions[indices], device=self.device),
@@ -671,9 +792,60 @@ class ReplayBuffer:
             'next_market_states': torch.tensor(self.next_market_states[indices], device=self.device),
             'next_portfolio_states': torch.tensor(self.next_portfolio_states[indices], device=self.device),
             'dones': torch.tensor(self.dones[indices], device=self.device),
-            'timestamps': self.timestamps[indices].tolist(),  # Convert to list of strings
+            'timestamps': self.timestamps[indices].tolist(),
             'next_timestamps': self.next_timestamps[indices].tolist(),
         }
+
+        # FAST PATH: Use precomputed features (skips build_state_dict)
+        if self._use_precomputed and self._preloaded_alphas is not None:
+            ts_idx = self.timestamp_indices[indices]
+            next_ts_idx = self.next_timestamp_indices[indices]
+
+            # Expand to temporal window on-the-fly: (B,) -> (B, T_window, ...)
+            # This trades CPU for memory (no pre-expanded storage)
+            batch['alphas'] = torch.from_numpy(
+                self._expand_temporal(ts_idx, self._preloaded_alphas).astype(np.float32)
+            ).to(self.device)  # (B, T_window, N_slots, 101)
+
+            batch['gdelt_embeddings_marketwide'] = torch.from_numpy(
+                self._expand_temporal(ts_idx, self._preloaded_gdelt).astype(np.float32)
+            ).to(self.device)  # (B, T_window, 768)
+
+            batch['nostr_embeddings_marketwide'] = torch.from_numpy(
+                self._expand_temporal(ts_idx, self._preloaded_nostr).astype(np.float32)
+            ).to(self.device)  # (B, T_window, 768)
+
+            batch['global_features'] = torch.from_numpy(
+                self._expand_temporal(ts_idx, self._preloaded_macro).astype(np.float32)
+            ).to(self.device)  # (B, T_window, n_macro)
+
+            if self._preloaded_mask is not None:
+                batch['social_signal_mask'] = torch.from_numpy(
+                    self._expand_temporal(ts_idx, self._preloaded_mask).astype(np.float32)
+                ).to(self.device)  # (B, T_window, 1)
+
+            # Next state features (also temporally expanded)
+            batch['next_alphas'] = torch.from_numpy(
+                self._expand_temporal(next_ts_idx, self._preloaded_alphas).astype(np.float32)
+            ).to(self.device)
+
+            batch['next_gdelt_embeddings_marketwide'] = torch.from_numpy(
+                self._expand_temporal(next_ts_idx, self._preloaded_gdelt).astype(np.float32)
+            ).to(self.device)
+
+            batch['next_nostr_embeddings_marketwide'] = torch.from_numpy(
+                self._expand_temporal(next_ts_idx, self._preloaded_nostr).astype(np.float32)
+            ).to(self.device)
+
+            batch['next_global_features'] = torch.from_numpy(
+                self._expand_temporal(next_ts_idx, self._preloaded_macro).astype(np.float32)
+            ).to(self.device)
+
+            batch['_use_precomputed'] = True
+        else:
+            batch['_use_precomputed'] = False
+
+        return batch
 
     def load_from_data(
         self,
@@ -683,9 +855,10 @@ class ReplayBuffer:
         rewards: np.ndarray,
         dones: np.ndarray,
         timestamps: Optional[np.ndarray] = None,
+        timestamp_indices: Optional[np.ndarray] = None,
     ):
         """
-        Load pre-collected offline data into buffer.
+        Load pre-collected offline data into buffer (VECTORIZED).
 
         Args:
             market_states: (T, n_assets, state_dim)
@@ -694,26 +867,56 @@ class ReplayBuffer:
             rewards: (T,)
             dones: (T,)
             timestamps: (T,) Optional array of ISO timestamp strings
+            timestamp_indices: (T,) Optional array of integer indices for preloaded arrays
         """
         T = len(rewards)
-        assert T <= self.capacity, f"Data size {T} exceeds capacity {self.capacity}"
+        n_transitions = T - 1  # -1 because we need next state
+        assert n_transitions <= self.capacity, f"Data size {n_transitions} exceeds capacity {self.capacity}"
 
-        for t in range(T - 1):  # -1 because we need next state
-            # Prepare timestamp arguments
-            timestamp = timestamps[t] if timestamps is not None else None
-            next_timestamp = timestamps[t + 1] if timestamps is not None else None
+        # Vectorized batch copy (O(1) instead of O(T) loop)
+        end_idx = min(self.position + n_transitions, self.capacity)
+        first_batch = end_idx - self.position
 
-            self.add(
-                market_state=market_states[t],
-                portfolio_state=portfolio_states[t],
-                action=actions[t],
-                reward=rewards[t],
-                next_market_state=market_states[t + 1],
-                next_portfolio_state=portfolio_states[t + 1],
-                done=dones[t],
-                timestamp=timestamp,
-                next_timestamp=next_timestamp,
-            )
+        # First batch: from position to end (or capacity)
+        self.market_states[self.position:end_idx] = market_states[:first_batch]
+        self.portfolio_states[self.position:end_idx] = portfolio_states[:first_batch]
+        self.actions[self.position:end_idx] = actions[:first_batch]
+        self.rewards[self.position:end_idx] = rewards[:first_batch]
+        self.next_market_states[self.position:end_idx] = market_states[1:first_batch + 1]
+        self.next_portfolio_states[self.position:end_idx] = portfolio_states[1:first_batch + 1]
+        self.dones[self.position:end_idx] = dones[:first_batch].astype(np.float32)
+
+        if timestamps is not None:
+            self.timestamps[self.position:end_idx] = timestamps[:first_batch]
+            self.next_timestamps[self.position:end_idx] = timestamps[1:first_batch + 1]
+
+        # OPTIMIZED: Store integer timestamp indices for O(1) preloaded lookup
+        if timestamp_indices is not None:
+            self.timestamp_indices[self.position:end_idx] = timestamp_indices[:first_batch]
+            self.next_timestamp_indices[self.position:end_idx] = timestamp_indices[1:first_batch + 1]
+
+        # If we need to wrap around to beginning of buffer
+        remaining = n_transitions - first_batch
+        if remaining > 0:
+            self.market_states[:remaining] = market_states[first_batch:n_transitions]
+            self.portfolio_states[:remaining] = portfolio_states[first_batch:n_transitions]
+            self.actions[:remaining] = actions[first_batch:n_transitions]
+            self.rewards[:remaining] = rewards[first_batch:n_transitions]
+            self.next_market_states[:remaining] = market_states[first_batch + 1:n_transitions + 1]
+            self.next_portfolio_states[:remaining] = portfolio_states[first_batch + 1:n_transitions + 1]
+            self.dones[:remaining] = dones[first_batch:n_transitions].astype(np.float32)
+
+            if timestamps is not None:
+                self.timestamps[:remaining] = timestamps[first_batch:n_transitions]
+                self.next_timestamps[:remaining] = timestamps[first_batch + 1:n_transitions + 1]
+
+            if timestamp_indices is not None:
+                self.timestamp_indices[:remaining] = timestamp_indices[first_batch:n_transitions]
+                self.next_timestamp_indices[:remaining] = timestamp_indices[first_batch + 1:n_transitions + 1]
+
+        # Update position and size
+        self.position = (self.position + n_transitions) % self.capacity
+        self.size = min(self.size + n_transitions, self.capacity)
 
     def __len__(self) -> int:
         return self.size

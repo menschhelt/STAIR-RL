@@ -1,0 +1,67 @@
+{
+  "equal_weight": {
+    "strategy": "Equal-Weight (EW)",
+    "total_return": -0.9877110281893322,
+    "annual_return": -0.9920633000183816,
+    "sharpe_ratio": -1.1231298988232865,
+    "sortino_ratio": -1.1026833204309834,
+    "max_drawdown": -0.991599879421563,
+    "calmar_ratio": -1.000467518165708,
+    "cvar_95": -0.013234753117445593,
+    "volatility": 2.1159193148326154,
+    "total_turnover": 247.4,
+    "total_cost": 0.22266
+  },
+  "cap_weight": {
+    "strategy": "Cap-Weight (CW)",
+    "total_return": -0.9990526172697176,
+    "annual_return": -0.9995257207285744,
+    "sharpe_ratio": -1.5055022732900187,
+    "sortino_ratio": -1.5072025103484736,
+    "max_drawdown": -0.9994692149057695,
+    "calmar_ratio": -1.0000565134434585,
+    "cvar_95": -0.01664976850523826,
+    "volatility": 2.607487696986878,
+    "total_turnover": 398.61872099266594,
+    "total_cost": 0.3587568488933993
+  },
+  "markowitz": {
+    "strategy": "Markowitz (MV)",
+    "total_return": -0.9977313780959216,
+    "annual_return": -0.9987613127974301,
+    "sharpe_ratio": -0.6533493442296348,
+    "sortino_ratio": -0.6574213485720681,
+    "max_drawdown": -0.9982066103926142,
+    "calmar_ratio": -1.0005549589278533,
+    "cvar_95": -0.02097543139534029,
+    "volatility": 3.042525311660929,
+    "total_turnover": 950.8886066255966,
+    "total_cost": 0.8557997459630369
+  },
+  "min_variance": {
+    "strategy": "Minimum Variance (MinVar)",
+    "total_return": -0.899520341565446,
+    "annual_return": -0.9200352475976818,
+    "sharpe_ratio": -0.2124310609652589,
+    "sortino_ratio": -0.2167725197407423,
+    "max_drawdown": -0.9516408325148324,
+    "calmar_ratio": -0.9667638449483221,
+    "cvar_95": -0.014470464773430456,
+    "volatility": 2.0487698736058624,
+    "total_turnover": 735.9807895589353,
+    "total_cost": 0.6623827106030418
+  },
+  "equal_risk": {
+    "strategy": "Equal Risk Contribution (ERC)",
+    "total_return": -0.9341065327598104,
+    "annual_return": -0.9497134642660435,
+    "sharpe_ratio": -0.6098193231254416,
+    "sortino_ratio": -0.5975707283749142,
+    "max_drawdown": -0.9560273641168925,
+    "calmar_ratio": -0.9933972672123363,
+    "cvar_95": -0.010992377263738078,
+    "volatility": 1.8291520807739599,
+    "total_turnover": 266.8808208771013,
+    "total_cost": 0.24019273878939118
+  }
+}
