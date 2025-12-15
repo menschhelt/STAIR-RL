@@ -24,7 +24,6 @@ import gym
 from gym import spaces
 
 from environments.trading_env import TradingEnv
-from config.settings import load_config
 
 
 def make_env(

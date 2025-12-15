@@ -117,10 +117,9 @@ def run_phase1_cql_sac(
     Uses historical data (2021.01 - 2023.06) to pre-train agent
     with Conservative Q-Learning to avoid overestimation.
     """
-    from agents.cql_sac import CQLSACAgent, CQLSACConfig
-    from training.replay_buffer import ReplayBuffer
+    from agents.cql_sac import CQLSACAgent, CQLSACConfig, ReplayBuffer
     from environments.trading_env import TradingEnv, EnvConfig
-    from backtesting.data_loader import BacktestDataLoader
+    from training.data_loader import TrainingDataLoader
 
     logger.info("=" * 60)
     logger.info("Phase 1: CQL-SAC Offline Pre-training")
@@ -129,16 +128,16 @@ def run_phase1_cql_sac(
 
     # Load training data
     logger.info("Loading training data...")
-    data_loader = BacktestDataLoader(
+    data_loader = TrainingDataLoader(
         data_dir=DATA_DIR,
-        feature_dir=DATA_DIR / 'features',
+        n_assets=config.universe.top_n,
     )
 
     train_data = data_loader.load_period(
         start_date=config.backtest.train_start,
         end_date=config.backtest.train_end,
     )
-    logger.info(f"Training data loaded: {len(train_data)} rows")
+    logger.info(f"Training data loaded: {train_data['states'].shape[0]} timesteps")
 
     # Create environment
     env_config = EnvConfig(
@@ -296,10 +295,9 @@ def run_phase2_ppo_cvar(
     Fine-tunes the pre-trained agent with PPO and CVaR constraint
     on validation data (2023.07 - 2023.12).
     """
-    from agents.ppo_cvar import PPOCVaRAgent, PPOCVaRConfig
-    from training.rollout_buffer import RolloutBuffer
+    from agents.ppo_cvar import PPOCVaRAgent, PPOCVaRConfig, RolloutBuffer
     from environments.trading_env import TradingEnv, EnvConfig
-    from backtesting.data_loader import BacktestDataLoader
+    from training.data_loader import TrainingDataLoader
 
     logger.info("=" * 60)
     logger.info("Phase 2: PPO-CVaR Online Fine-tuning")
@@ -308,16 +306,16 @@ def run_phase2_ppo_cvar(
 
     # Load validation data
     logger.info("Loading validation data...")
-    data_loader = BacktestDataLoader(
+    data_loader = TrainingDataLoader(
         data_dir=DATA_DIR,
-        feature_dir=DATA_DIR / 'features',
+        n_assets=config.universe.top_n,
     )
 
     val_data = data_loader.load_period(
         start_date=config.backtest.val_start,
         end_date=config.backtest.val_end,
     )
-    logger.info(f"Validation data loaded: {len(val_data)} rows")
+    logger.info(f"Validation data loaded: {val_data['states'].shape[0]} timesteps")
 
     # Create environment
     env_config = EnvConfig(

@@ -123,6 +123,34 @@ class HierarchicalStateBuilder:
         else:
             self.macro_loader = None
 
+        # Initialize AlphaLoader for Alpha101 factors
+        if self.alpha_cache_dir.exists():
+            from agents.alpha_loader import AlphaLoader
+            self.alpha_loader = AlphaLoader(
+                alpha_cache_dir=self.alpha_cache_dir,
+                n_alphas=n_alphas,
+                device=device,
+            )
+        else:
+            self.alpha_loader = None
+
+        # Symbol list for alpha loading (set by environment or training loop)
+        self._current_symbols: Optional[List[str]] = None
+
+    def set_symbols(self, symbols: List[str]) -> None:
+        """
+        Set the current symbol list for alpha loading.
+
+        Args:
+            symbols: List of symbol names (e.g., ['BTCUSDT', 'ETHUSDT', ...])
+        """
+        self._current_symbols = symbols
+
+    def preload_alphas(self) -> None:
+        """Preload all alpha files into memory for faster access."""
+        if self.alpha_loader is not None:
+            self.alpha_loader.preload_all_alphas()
+
     def build_state_dict(
         self,
         market_state: torch.Tensor,
@@ -150,24 +178,50 @@ class HierarchicalStateBuilder:
         device = market_state.device
 
         # ======================
-        # 1. Alphas (B, T, N, 292)
+        # 1. Alphas (B, T, N, 101)
         # ======================
-        # For mock data: pad state_dim → 292
-        # For real data: this will be replaced with actual alpha factors
-        alphas_current = market_state  # (B, N, state_dim)
+        if self.alpha_loader is not None and self._current_symbols is not None and timestamps is not None:
+            # Load actual Alpha101 factors from cache
+            import numpy as np
+            from datetime import datetime as dt
 
-        if state_dim < self.n_alphas:
-            # Pad to n_alphas
-            alphas_padded = F.pad(alphas_current, (0, self.n_alphas - state_dim))
-        elif state_dim > self.n_alphas:
-            # Truncate (should not happen in practice)
-            alphas_padded = alphas_current[..., :self.n_alphas]
+            # Parse timestamps
+            ts_list = []
+            for ts in timestamps[-self.temporal_window:]:
+                if isinstance(ts, str):
+                    ts_list.append(pd.Timestamp(ts))
+                else:
+                    ts_list.append(pd.Timestamp(ts))
+
+            # Get alphas for current symbols and timestamps
+            alpha_np = self.alpha_loader.get_alphas_for_symbols(
+                symbols=self._current_symbols[:N],
+                timestamps=ts_list,
+            )  # (T, N, 101)
+
+            # Convert to tensor and add batch dimension
+            alphas = torch.from_numpy(alpha_np).to(device=device, dtype=torch.float32)
+            alphas = alphas.unsqueeze(0).repeat(B, 1, 1, 1)  # (B, T, N, 101)
+
+            # Pad temporal dimension if needed
+            if alphas.shape[1] < self.temporal_window:
+                pad_size = self.temporal_window - alphas.shape[1]
+                alphas = F.pad(alphas, (0, 0, 0, 0, pad_size, 0))  # Pad T dimension
         else:
-            alphas_padded = alphas_current
+            # Fallback: use market_state features (padded to n_alphas)
+            alphas_current = market_state  # (B, N, state_dim)
 
-        # Create temporal dimension by repeating current state
-        # TODO: Replace with actual temporal buffer when available
-        alphas = alphas_padded.unsqueeze(1).repeat(1, self.temporal_window, 1, 1)  # (B, T, N, 292)
+            if state_dim < self.n_alphas:
+                # Pad to n_alphas
+                alphas_padded = F.pad(alphas_current, (0, self.n_alphas - state_dim))
+            elif state_dim > self.n_alphas:
+                # Truncate
+                alphas_padded = alphas_current[..., :self.n_alphas]
+            else:
+                alphas_padded = alphas_current
+
+            # Create temporal dimension by repeating current state
+            alphas = alphas_padded.unsqueeze(1).repeat(1, self.temporal_window, 1, 1)  # (B, T, N, 101)
 
         # ======================
         # 2. News Embeddings - Market-Wide (B, T, 768) [NO N dimension]
