@@ -1,0 +1,47 @@
+# STAIR-RL Requirements
+# Python 3.10+ recommended
+
+# Core ML/DL
+torch>=2.0.0
+pytorch-lightning>=2.0.0
+torchmetrics>=1.0.0
+
+# Reinforcement Learning
+gymnasium>=0.29.0
+
+# Data Processing
+numpy>=1.24.0
+pandas>=2.0.0
+pyarrow>=14.0.0
+h5py>=3.9.0
+
+# Scientific Computing
+scipy>=1.11.0
+
+# Visualization
+matplotlib>=3.7.0
+tensorboard>=2.14.0
+
+# Configuration
+pyyaml>=6.0
+
+# Progress Bar
+tqdm>=4.65.0
+
+# Web Scraping (for data collection)
+aiohttp>=3.8.0
+beautifulsoup4>=4.12.0
+websockets>=10.0
+
+# NLP (for embeddings)
+transformers>=4.30.0
+sentence-transformers>=2.2.0
+
+# Optimization (for benchmarks)
+cvxpy>=1.4.0
+
+# Logging
+colorama>=0.4.6
+
+# Testing (optional)
+pytest>=7.0.0
