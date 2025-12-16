@@ -389,6 +389,7 @@ class TradingEnv(gym.Env):
             'cash_ratio': self._portfolio.cash_ratio,
             'gross_exposure': np.abs(self._portfolio.weights).sum(),
             'net_exposure': self._portfolio.weights.sum(),
+            'weights': self._portfolio.weights.copy(),  # For backtest logging
         }
 
         # Add timestamp if available in data

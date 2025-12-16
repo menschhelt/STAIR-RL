@@ -28,6 +28,7 @@ import torch
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config.settings import Config, DATA_DIR, BASE_DIR
+from scripts.run_training import preload_data_for_fast_training
 
 logging.basicConfig(
     level=logging.INFO,
@@ -59,9 +60,8 @@ def run_backtest(
     """
     from agents.ppo_cvar import PPOCVaRAgent
     from environments.trading_env import TradingEnv, EnvConfig
-    from backtesting.data_loader import BacktestDataLoader
-    from backtesting.engine import BacktestEngine
-    from backtesting.metrics import compute_all_metrics
+    from training.data_loader import TrainingDataLoader
+    from backtesting.metrics import PerformanceMetrics
 
     logger.info("=" * 60)
     logger.info("STAIR-RL Backtest")
@@ -70,20 +70,20 @@ def run_backtest(
     logger.info(f"Initial NAV: ${initial_nav:,.0f}")
     logger.info("=" * 60)
 
-    # Load test data
-    logger.info("Loading test data...")
-    data_loader = BacktestDataLoader(
+    # Load test data with dynamic universe (same as training)
+    logger.info("Loading test data with dynamic universe...")
+    data_loader = TrainingDataLoader(
         data_dir=DATA_DIR,
-        feature_dir=DATA_DIR / 'features',
+        n_assets=config.universe.top_n,
     )
 
-    test_data = data_loader.load_period(
+    test_data = data_loader.load_period_dynamic(
         start_date=start_date,
         end_date=end_date,
     )
-    logger.info(f"Test data loaded: {len(test_data)} rows")
+    logger.info(f"Test data loaded: {test_data['states'].shape[0]} timesteps")
 
-    if len(test_data) == 0:
+    if test_data['states'].shape[0] == 0:
         logger.error("No test data available")
         return None
 
@@ -93,6 +93,7 @@ def run_backtest(
         target_leverage=config.rl.target_leverage,
         transaction_cost_rate=config.backtest.taker_fee + config.backtest.slippage,
         initial_nav=initial_nav,
+        nav_threshold=0.0,  # Disable early termination for backtesting
     )
 
     env = TradingEnv(
@@ -101,19 +102,39 @@ def run_backtest(
     )
 
     # Get dimensions
-    state_dim = env.observation_space.shape[0]
-    action_dim = env.action_space.shape[0]
-    logger.info(f"State dim: {state_dim}, Action dim: {action_dim}")
+    # observation_space is Dict: {'market': (N, state_dim), 'portfolio': (N+2,)}
+    market_space = env.observation_space['market']
+    state_dim = market_space.shape[1]  # state_dim per asset
+    action_dim = env.action_space.shape[0]  # N assets
+    logger.info(f"State dim: {state_dim}, Action dim (n_assets): {action_dim}")
 
     # Load agent
     logger.info(f"Loading model from {model_path}...")
-    agent = PPOCVaRAgent(
+    from agents.ppo_cvar import PPOCVaRConfig
+
+    # Create config matching the trained model
+    agent_config = PPOCVaRConfig(
+        n_assets=action_dim,
         state_dim=state_dim,
-        action_dim=action_dim,
-        device=device,
     )
-    agent.load(model_path)
-    agent.eval()  # Set to evaluation mode
+
+    agent = PPOCVaRAgent(
+        config=agent_config,
+        device=str(device),
+    )
+    agent.load(str(model_path))
+    # Set to evaluation mode (no exploration noise)
+
+    # Preload ALL features for fast inference (same as training)
+    logger.info("Preloading hierarchical features for fast inference...")
+    preload_data_for_fast_training(
+        agent=agent,
+        symbols=test_data['all_symbols'],
+        timestamps=test_data['timestamps'],
+        start_date=start_date,
+        end_date=end_date,
+        slot_symbols=test_data['slot_symbols'],
+    )
 
     # Run backtest
     logger.info("Running backtest...")
@@ -128,9 +149,19 @@ def run_backtest(
     step = 0
 
     while not done:
-        # Get action from policy (no exploration)
-        with torch.no_grad():
-            action = agent.get_action_deterministic(state)
+        # Get action from policy (deterministic for evaluation)
+        # State is Dict: {'market': (n_assets, state_dim), 'portfolio': (portfolio_dim,)}
+        market_state = state['market']
+        portfolio_state = state['portfolio']
+        timestamp = info.get('timestamp')
+        if timestamp is not None:
+            timestamp = str(timestamp)
+
+        action, _, _ = agent.select_action(
+            market_state, portfolio_state,
+            deterministic=True,
+            timestamp=timestamp
+        )
 
         # Step environment
         next_state, reward, terminated, truncated, info = env.step(action)
@@ -145,7 +176,7 @@ def run_backtest(
 
         returns_history.append({
             'timestamp': info.get('timestamp'),
-            'return': info.get('portfolio_return', 0),
+            'return': info.get('port_return', 0),
             'step': step,
         })
 
@@ -183,12 +214,17 @@ def run_backtest(
 
     # Compute metrics
     logger.info("Computing metrics...")
-    metrics = compute_all_metrics(
-        nav_series=nav_df['nav'],
-        returns_series=returns_df['return'],
-        initial_nav=initial_nav,
-        periods_per_year=252 * 24 * 12 if config.backtest.granularity == '5m' else 252,
+    performance = PerformanceMetrics()
+    returns_array = returns_df['return'].values
+    nav_array = nav_df['nav'].values
+    periods_per_year = 365 * 24 * 12 if config.backtest.granularity == '5m' else 365
+    metrics = performance.calculate_all(
+        returns=returns_array,
+        equity_curve=nav_array,
+        periods_per_year=periods_per_year,
     )
+    # Rename for compatibility with report
+    metrics['annual_return'] = metrics.get('annualized_return', 0)
 
     # Print results
     logger.info("\n" + "=" * 60)
@@ -202,7 +238,7 @@ def run_backtest(
     logger.info(f"Calmar Ratio: {metrics['calmar_ratio']:.3f}")
     logger.info(f"CVaR (95%): {metrics['cvar_95']*100:.2f}%")
     logger.info(f"Volatility: {metrics['volatility']*100:.2f}%")
-    logger.info(f"Total Turnover: {metrics.get('total_turnover', 0):.2f}")
+    logger.info(f"Turnover: {metrics.get('turnover', 0):.2f}")
     logger.info("=" * 60)
 
     # Save results

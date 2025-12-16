@@ -1,0 +1,23 @@
+{
+  "total_return": -0.9900843829880658,
+  "annualized_return": -0.9936353592734464,
+  "cagr": -0.9936514185096554,
+  "volatility": 1.3993467237685289,
+  "downside_volatility": 2.0162191519794037,
+  "sharpe_ratio": -2.9139760282692784,
+  "sortino_ratio": -2.022430351529713,
+  "calmar_ratio": -1.0017106214573919,
+  "cvar_95": -0.010866147862617179,
+  "max_drawdown": -0.9919545597549809,
+  "max_drawdown_duration": 95097,
+  "win_rate": 0.24448406740073406,
+  "profit_factor": 0.9637136743294359,
+  "avg_win_loss_ratio": 0.9661797817401822,
+  "expectancy": -3.879055182932499e-05,
+  "n_periods": 95904,
+  "n_positive": 23447,
+  "n_negative": 23507,
+  "best_return": 0.10422716289758682,
+  "worst_return": -0.11399122327566147,
+  "annual_return": -0.9936353592734464
+}

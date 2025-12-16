@@ -32,7 +32,7 @@ echo ""
 # 1. Transfer Learning Model (Phase 2) Backtest
 # ============================================
 
-TRANSFER_MODEL="checkpoints/phase2_warmup_fixed/phase2/ppo_cvar_final.pt"
+TRANSFER_MODEL="checkpoints/phase2_adjusted/phase2/ppo_cvar_final.pt"
 TRANSFER_OUTPUT="backtest_results/transfer_learning"
 
 if [ -f "$TRANSFER_MODEL" ]; then
