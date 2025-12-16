@@ -181,7 +181,8 @@ class PPOCVaRConfig:
     gae_lambda: float = 0.95
     gamma: float = 0.99
     alpha_cvar: float = 0.95  # Confidence level
-    kappa: float = 0.05  # Risk tolerance (5%)
+    kappa: float = 0.10  # Risk tolerance (10%) - relaxed from 5% for faster convergence
+    eta_lambda: float = 0.05  # Lambda learning rate (increased from 0.01 for faster adaptation)
     training_steps: int = 100_000
 
 
@@ -297,7 +298,7 @@ class Config:
                 training_steps=cql_data.get('training_steps', 500_000)
             ),
             ppo_cvar=PPOCVaRConfig(
-                learning_rate=ppo_data.get('learning_rate', 1e-4),
+                learning_rate=ppo_data.get('learning_rate', 1e-5),  # Lower than Phase 1 for stable fine-tuning
                 clip_epsilon=ppo_data.get('clip_epsilon', 0.2),
                 ppo_epochs=ppo_data.get('ppo_epochs', 10),
                 horizon=ppo_data.get('horizon', 2048),

@@ -58,6 +58,7 @@ class EnvConfig:
     # Episode parameters
     initial_nav: float = 100_000.0
     episode_length: Optional[int] = None  # None = use full data
+    nav_threshold: float = 0.3  # Terminate if NAV drops below this ratio (30% = 70% loss)
 
 
 @dataclass
@@ -335,9 +336,9 @@ class TradingEnv(gym.Env):
         truncated = False
 
         # Terminate if NAV drops below threshold
-        if self._portfolio.nav < self.config.initial_nav * 0.5:  # 50% loss
+        if self._portfolio.nav < self.config.initial_nav * self.config.nav_threshold:
             terminated = True
-            self.logger.warning(f"Episode terminated: NAV dropped to {self._portfolio.nav:.0f}")
+            self.logger.warning(f"Episode terminated: NAV dropped to {self._portfolio.nav:.0f} (threshold: {self.config.nav_threshold:.0%})")
 
         # Truncate if end of data
         max_idx = len(self.data['returns']) - 1

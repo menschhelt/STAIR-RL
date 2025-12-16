@@ -46,7 +46,7 @@ class PPOCVaRConfig:
     hidden_dim: int = 128
 
     # PPO hyperparameters
-    lr: float = 1e-4              # Learning rate
+    lr: float = 1e-5              # Learning rate (lower than Phase 1's 3e-5 for stable fine-tuning)
     gamma: float = 0.99           # Discount factor
     gae_lambda: float = 0.95      # GAE lambda
     clip_epsilon: float = 0.2     # PPO clip range
@@ -56,8 +56,9 @@ class PPOCVaRConfig:
 
     # CVaR parameters
     alpha_cvar: float = 0.95      # Confidence level (95%)
-    kappa: float = 0.05           # Risk tolerance (5%)
-    eta_lambda: float = 0.01      # Lambda learning rate
+    kappa: float = 0.20           # Risk tolerance (20%) - relaxed for extreme bear market
+    eta_lambda: float = 0.05      # Lambda learning rate (5x increase for faster adaptation)
+    lambda_max: float = 5.0       # Lambda upper bound to prevent runaway penalty
 
     # Regularization
     entropy_coef: float = 0.01    # Entropy bonus coefficient
@@ -87,6 +88,10 @@ class PPOCVaRConfig:
     # LR scheduling
     lr_decay: bool = True
     min_lr: float = 1e-5
+
+    # Warmup (freeze encoder during initial steps for stable fine-tuning)
+    warmup_steps: int = 5000      # Freeze encoder for first N steps (0 = no warmup)
+    warmup_lr_scale: float = 0.1  # Use lower LR during warmup
 
 
 class RolloutBuffer:
@@ -261,6 +266,50 @@ class PPOCVaRAgent:
         # Training step counter
         self.total_steps = 0
 
+        # Warmup state tracking
+        self._encoder_frozen = False
+        self._warmup_complete = False
+
+    def freeze_encoder(self):
+        """Freeze encoder weights during warmup period."""
+        if self._encoder_frozen:
+            return
+        for param in self.actor_critic.encoder.parameters():
+            param.requires_grad = False
+        self._encoder_frozen = True
+
+    def unfreeze_encoder(self):
+        """Unfreeze encoder weights after warmup."""
+        if not self._encoder_frozen:
+            return
+        for param in self.actor_critic.encoder.parameters():
+            param.requires_grad = True
+        self._encoder_frozen = False
+
+    def check_warmup(self):
+        """Check and handle warmup state transitions."""
+        cfg = self.config
+        if cfg.warmup_steps <= 0:
+            return  # No warmup configured
+
+        if self.total_steps < cfg.warmup_steps:
+            # Still in warmup - ensure encoder is frozen
+            if not self._encoder_frozen:
+                self.freeze_encoder()
+                import logging
+                logging.getLogger(__name__).info(
+                    f"Warmup started: Encoder frozen for {cfg.warmup_steps} steps"
+                )
+        else:
+            # Warmup complete - unfreeze encoder
+            if self._encoder_frozen and not self._warmup_complete:
+                self.unfreeze_encoder()
+                self._warmup_complete = True
+                import logging
+                logging.getLogger(__name__).info(
+                    f"Warmup complete at step {self.total_steps}: Encoder unfrozen"
+                )
+
     def _build_networks(self):
         """Build neural networks."""
         cfg = self.config
@@ -422,6 +471,9 @@ class PPOCVaRAgent:
         """
         cfg = self.config
 
+        # Check warmup state (freeze/unfreeze encoder)
+        self.check_warmup()
+
         # Get rollout data
         data = rollout_buffer.get()
         batch_size = len(rollout_buffer)
@@ -555,15 +607,16 @@ class PPOCVaRAgent:
             self.scheduler.step()
 
         # ========== Update CVaR Lagrange Multiplier ==========
-        # Dual ascent: λ ← [λ + η(CVaR_α - κ)]₊
+        # Dual ascent: λ ← clip([λ + η(CVaR_α - κ)]₊, 0, λ_max)
         all_returns = data['returns'].cpu().numpy()
         current_cvar = self.compute_cvar(all_returns)
-        self.lambda_cvar = max(0.0, self.lambda_cvar + cfg.eta_lambda * (current_cvar - cfg.kappa))
+        self.lambda_cvar = min(cfg.lambda_max, max(0.0, self.lambda_cvar + cfg.eta_lambda * (current_cvar - cfg.kappa)))
 
         # Store episode returns for CVaR tracking
         self.episode_returns.extend(all_returns.tolist())
 
-        self.total_steps += 1
+        # Increment by horizon (env steps consumed), not by 1 (update count)
+        self.total_steps += cfg.horizon
 
         # Base metrics
         metrics = {
@@ -573,6 +626,7 @@ class PPOCVaRAgent:
             'cvar': current_cvar,
             'lambda_cvar': self.lambda_cvar,
             'lr': self.optimizer.param_groups[0]['lr'],
+            'encoder_frozen': float(self._encoder_frozen),  # 1.0 if frozen, 0.0 if not
         }
 
         # Periodically compute Shapley-Gate alignment (Paper Line 1375-1390)

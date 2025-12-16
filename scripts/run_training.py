@@ -709,6 +709,7 @@ def run_phase2_ppo_cvar(
         gamma=config.rl.ppo_cvar.gamma,
         alpha_cvar=config.rl.ppo_cvar.alpha_cvar,
         kappa=config.rl.ppo_cvar.kappa,
+        eta_lambda=config.rl.ppo_cvar.eta_lambda,
         horizon=config.rl.ppo_cvar.horizon,
         batch_size=config.rl.ppo_cvar.batch_size,
     )
@@ -783,18 +784,19 @@ def run_phase2_ppo_cvar(
     logger.info("Starting PPO-CVaR training...")
     total_steps = start_step
     episode = start_episode
+    last_checkpoint_update = 0  # Track last checkpoint to save every 5 updates
+
+    # Initialize episode tracking
+    state, _ = env.reset()
+    episode_reward = 0
+    episode_steps = 0
+    episode_costs = 0
+    episode_turnover = 0
 
     while total_steps < steps:
-        state, _ = env.reset()
-        episode_reward = 0
-        episode_steps = 0
-        episode_costs = 0
-        episode_turnover = 0
-
-        # Collect rollout
+        # Collect rollout (continue across episodes until buffer is full)
         while not rollout_buffer.is_full():
             # Get action from policy
-            # state is dict with 'market' and 'portfolio' keys
             market_state = state['market']
             portfolio_state = state['portfolio']
             action, log_prob, value = agent.select_action(market_state, portfolio_state)
@@ -817,66 +819,75 @@ def run_phase2_ppo_cvar(
                 episode_turnover += info['turnover']
 
             if done:
-                break
+                # Episode ended - log and reset, but continue collecting
+                writer.add_scalar('Episode/Reward', episode_reward, episode)
+                writer.add_scalar('Episode/Steps', episode_steps, episode)
+                writer.add_scalar('Episode/TransactionCost', episode_costs, episode)
+                writer.add_scalar('Episode/Turnover', episode_turnover, episode)
+
+                if episode % 10 == 0:
+                    logger.info(
+                        f"Episode {episode} ended | Steps: {episode_steps} | "
+                        f"Reward: {episode_reward:.4f} | Total: {total_steps:,}/{steps:,}"
+                    )
+
+                episode += 1
+                episode_reward = 0
+                episode_steps = 0
+                episode_costs = 0
+                episode_turnover = 0
+
+                # Reset environment and continue collecting
+                state, _ = env.reset()
+                continue  # Continue filling buffer
 
             state = next_state
 
-        # Update policy
-        if rollout_buffer.is_full() or done:
+        # Update policy (only when buffer is full)
+        if rollout_buffer.is_full():
             # Compute returns and advantages
             market_state = state['market']
             portfolio_state = state['portfolio']
-            last_value = agent.get_value(market_state, portfolio_state) if not done else 0
+            last_value = agent.get_value(market_state, portfolio_state)
             rollout_buffer.compute_gae(last_value, agent.config.gamma, agent.config.gae_lambda)
 
             # PPO update
             metrics = agent.update(rollout_buffer)
             rollout_buffer.reset()
 
-            # TensorBoard logging (per episode)
-            writer.add_scalar('Episode/Reward', episode_reward, episode)
-            writer.add_scalar('Episode/Steps', episode_steps, episode)
-            writer.add_scalar('Episode/TransactionCost', episode_costs, episode)
-            writer.add_scalar('Episode/Turnover', episode_turnover, episode)
-
-            # PPO metrics
+            # PPO metrics (logged per update, not per episode)
             writer.add_scalar('Loss/Policy', metrics.get('policy_loss', 0), total_steps)
             writer.add_scalar('Loss/Value', metrics.get('value_loss', 0), total_steps)
-            writer.add_scalar('Loss/Entropy', metrics.get('entropy_loss', 0), total_steps)
-            writer.add_scalar('Loss/Total', metrics.get('total_loss', 0), total_steps)
+            writer.add_scalar('Loss/Entropy', metrics.get('entropy', metrics.get('entropy_loss', 0)), total_steps)
+            total_loss = metrics.get('policy_loss', 0) + 0.5 * metrics.get('value_loss', 0)
+            writer.add_scalar('Loss/Total', metrics.get('total_loss', total_loss), total_steps)
 
             # CVaR metrics
             if 'cvar' in metrics:
                 writer.add_scalar('CVaR/Value', metrics['cvar'], total_steps)
             if 'lambda_cvar' in metrics:
                 writer.add_scalar('CVaR/Lambda', metrics['lambda_cvar'], total_steps)
-            if 'cvar_violation' in metrics:
-                writer.add_scalar('CVaR/Violation', metrics['cvar_violation'], total_steps)
 
-            # Policy metrics
-            if 'policy_entropy' in metrics:
-                writer.add_scalar('Policy/Entropy', metrics['policy_entropy'], total_steps)
-            if 'kl_divergence' in metrics:
-                writer.add_scalar('Policy/KL_Divergence', metrics['kl_divergence'], total_steps)
-            if 'clip_fraction' in metrics:
-                writer.add_scalar('Policy/ClipFraction', metrics['clip_fraction'], total_steps)
+            # Warmup metrics
+            if 'encoder_frozen' in metrics:
+                writer.add_scalar('Warmup/EncoderFrozen', metrics['encoder_frozen'], total_steps)
 
-            # Console logging (every 10 episodes)
-            if episode % 10 == 0:
-                logger.info(
-                    f"Episode {episode} | Steps: {total_steps:,}/{steps:,} | "
-                    f"Reward: {episode_reward:.4f} | "
-                    f"CVaR: {metrics.get('cvar', 0):.4f} | "
-                    f"Lambda: {metrics.get('lambda_cvar', 0):.4f}"
-                )
+            # Console logging (per PPO update = every 2048 steps)
+            logger.info(
+                f"Update @ {total_steps:,}/{steps:,} | Episodes: {episode} | "
+                f"Policy Loss: {metrics.get('policy_loss', 0):.4f} | "
+                f"CVaR: {metrics.get('cvar', 0):.4f} | "
+                f"Lambda: {metrics.get('lambda_cvar', 0):.4f} | "
+                f"Frozen: {metrics.get('encoder_frozen', 0):.0f}"
+            )
 
-        episode += 1
-
-        # Checkpoint (every 5000 steps, same as Phase 1)
-        if total_steps % 5000 == 0 and total_steps > 0:
+        # Checkpoint every 5 PPO updates (~10k steps = 5 × 2048)
+        n_updates = total_steps // config.rl.ppo_cvar.horizon
+        if n_updates >= last_checkpoint_update + 5:
             checkpoint_path = checkpoint_dir / f'ppo_cvar_step_{total_steps}.pt'
             agent.save(checkpoint_path)
             logger.info(f"Checkpoint saved: {checkpoint_path}")
+            last_checkpoint_update = n_updates
 
     # Close TensorBoard writer
     writer.close()
@@ -885,6 +896,261 @@ def run_phase2_ppo_cvar(
     final_path = checkpoint_dir / 'ppo_cvar_final.pt'
     agent.save(final_path)
     logger.info(f"Phase 2 completed. Model saved: {final_path}")
+
+    return agent
+
+
+def run_ppo_only(
+    config: Config,
+    device: torch.device,
+    steps: int,
+    checkpoint_dir: Path,
+    embedding_dir: Path = None,
+    n_envs: int = 1,
+    lr: float = None,
+    resume_path: Path = None,
+):
+    """
+    PPO-Only Training (Baseline without Transfer Learning).
+
+    Trains PPO-CVaR from scratch on the SAME period as Phase 2 (2023.01 - 2024.06)
+    without CQL-SAC pre-training. This serves as a fair baseline to evaluate
+    the effectiveness of the 2-phase transfer learning approach.
+
+    Fair comparison setup:
+    - Transfer Learning: Phase 1 pretrain (18mo) + Phase 2 finetune (18mo)
+    - PPO-Only: Same Phase 2 period (18mo), but random initialization
+
+    Key differences from Phase 2:
+    - No pretrained weights (random initialization)
+    - Higher learning rate (3e-4 vs 1e-4) for faster convergence from scratch
+    - No warmup (encoder not frozen)
+    """
+    from agents.ppo_cvar import PPOCVaRAgent, PPOCVaRConfig, RolloutBuffer
+    from environments.trading_env import TradingEnv, EnvConfig
+    from training.data_loader import TrainingDataLoader
+
+    logger.info("=" * 60)
+    logger.info("PPO-Only Training (Baseline)")
+    logger.info(f"Training steps: {steps:,}")
+    logger.info("=" * 60)
+
+    # Load SAME period as Phase 2 for fair comparison (18 months)
+    # 2023-01-01 to 2024-06-30
+    logger.info("Loading Phase 2 period data (18 months) for fair comparison...")
+    data_loader = TrainingDataLoader(
+        data_dir=DATA_DIR,
+        n_assets=config.universe.top_n,
+    )
+
+    # Use same period as Phase 2 (val_start to val_end)
+    full_start = config.backtest.val_start  # 2023-01-01
+    full_end = config.backtest.val_end      # 2024-06-30
+    logger.info(f"Period: {full_start} to {full_end} (same as Phase 2)")
+
+    full_data = data_loader.load_period_dynamic(
+        start_date=full_start,
+        end_date=full_end,
+    )
+    logger.info(f"Data loaded: {full_data['states'].shape[0]} timesteps (18 months)")
+
+    # Log dynamic universe stats
+    if 'slot_changes' in full_data:
+        rebalances = full_data['rebalance_mask'].sum()
+        total_changes = full_data['slot_changes'].sum()
+        logger.info(f"Dynamic universe: {rebalances} rebalance events, {total_changes} total slot changes")
+        logger.info(f"All symbols in period: {len(full_data.get('all_symbols', []))}")
+
+    # Create environment
+    env_config = EnvConfig(
+        n_assets=config.universe.top_n,
+        target_leverage=config.rl.target_leverage,
+        transaction_cost_rate=config.backtest.taker_fee + config.backtest.slippage,
+    )
+
+    env = TradingEnv(
+        data=full_data,
+        config=env_config,
+    )
+
+    # Get dimensions
+    market_space = env.observation_space['market']
+    state_dim = market_space.shape[1]
+    action_dim = env.action_space.shape[0]
+
+    # Create agent config with HIGHER learning rate for scratch training
+    final_lr = lr if lr is not None else 3e-4  # 3x higher than Phase 2 default
+
+    agent_config = PPOCVaRConfig(
+        n_assets=action_dim,
+        state_dim=state_dim,
+        lr=final_lr,
+        clip_epsilon=config.rl.ppo_cvar.clip_epsilon,
+        ppo_epochs=config.rl.ppo_cvar.ppo_epochs,
+        gae_lambda=config.rl.ppo_cvar.gae_lambda,
+        gamma=config.rl.ppo_cvar.gamma,
+        alpha_cvar=config.rl.ppo_cvar.alpha_cvar,
+        kappa=config.rl.ppo_cvar.kappa,
+        eta_lambda=config.rl.ppo_cvar.eta_lambda,
+        horizon=config.rl.ppo_cvar.horizon,
+        batch_size=config.rl.ppo_cvar.batch_size,
+        warmup_steps=0,  # No warmup for scratch training
+    )
+
+    logger.info(f"Learning rate: {final_lr} (higher for scratch training)")
+    logger.info(f"Warmup: disabled (training from scratch)")
+
+    # Set embedding paths if provided
+    if embedding_dir:
+        agent_config.gdelt_embeddings_path = str(embedding_dir / 'gdelt_embeddings.h5')
+        agent_config.nostr_embeddings_path = str(embedding_dir / 'nostr_embeddings.h5')
+        logger.info(f"Using embeddings from: {embedding_dir}")
+
+    # Initialize agent (NO pretrained weights)
+    agent = PPOCVaRAgent(
+        config=agent_config,
+        device=str(device),
+    )
+    logger.info("Agent initialized from SCRATCH (random weights)")
+
+    # Resume from checkpoint if provided
+    start_step = 0
+    start_episode = 0
+    if resume_path and resume_path.exists():
+        logger.info(f"Resuming from checkpoint: {resume_path}")
+        agent.load(str(resume_path))
+        try:
+            step_str = resume_path.stem.split('_')[-1]
+            start_step = int(step_str)
+            start_episode = start_step // config.rl.ppo_cvar.horizon
+            logger.info(f"Resuming from step {start_step}, episode ~{start_episode}")
+        except (ValueError, IndexError):
+            logger.warning("Could not parse step from checkpoint filename, starting from 0")
+
+    # Preload data for fast training
+    symbols = full_data.get('all_symbols', full_data.get('symbols', [f'ASSET_{i}' for i in range(config.universe.top_n)]))
+    preload_data_for_fast_training(
+        agent=agent,
+        symbols=symbols,
+        timestamps=full_data['timestamps'],
+        start_date=full_start,
+        end_date=full_end,
+        slot_symbols=full_data.get('slot_symbols'),
+    )
+
+    # Rollout buffer
+    portfolio_dim = action_dim + 2
+    rollout_buffer = RolloutBuffer(
+        horizon=config.rl.ppo_cvar.horizon,
+        n_assets=action_dim,
+        state_dim=state_dim,
+        portfolio_dim=portfolio_dim,
+        device=device,
+    )
+
+    # Setup TensorBoard
+    tb_log_dir = checkpoint_dir / 'tensorboard'
+    tb_log_dir.mkdir(exist_ok=True)
+    writer = SummaryWriter(log_dir=str(tb_log_dir))
+
+    # Auto-start TensorBoard server
+    tb_process, tb_port = start_tensorboard(tb_log_dir)
+
+    # Training loop (same as Phase 2)
+    logger.info("Starting PPO-Only training...")
+    total_steps = start_step
+    episode = start_episode
+    last_checkpoint_update = 0
+
+    state, _ = env.reset()
+    episode_reward = 0
+    episode_steps = 0
+    episode_costs = 0
+    episode_turnover = 0
+
+    while total_steps < steps:
+        while not rollout_buffer.is_full():
+            market_state = state['market']
+            portfolio_state = state['portfolio']
+            action, log_prob, value = agent.select_action(market_state, portfolio_state)
+
+            next_state, reward, terminated, truncated, info = env.step(action)
+            done = terminated or truncated
+
+            rollout_buffer.add(market_state, portfolio_state, action, reward, value, log_prob, done)
+
+            episode_reward += reward
+            episode_steps += 1
+            total_steps += 1
+
+            if 'transaction_cost' in info:
+                episode_costs += info['transaction_cost']
+            if 'turnover' in info:
+                episode_turnover += info['turnover']
+
+            if done:
+                writer.add_scalar('Episode/Reward', episode_reward, episode)
+                writer.add_scalar('Episode/Steps', episode_steps, episode)
+                writer.add_scalar('Episode/TransactionCost', episode_costs, episode)
+                writer.add_scalar('Episode/Turnover', episode_turnover, episode)
+
+                if episode % 10 == 0:
+                    logger.info(
+                        f"Episode {episode} ended | Steps: {episode_steps} | "
+                        f"Reward: {episode_reward:.4f} | Total: {total_steps:,}/{steps:,}"
+                    )
+
+                episode += 1
+                episode_reward = 0
+                episode_steps = 0
+                episode_costs = 0
+                episode_turnover = 0
+
+                state, _ = env.reset()
+                continue
+
+            state = next_state
+
+        # Update policy
+        if rollout_buffer.is_full():
+            market_state = state['market']
+            portfolio_state = state['portfolio']
+            last_value = agent.get_value(market_state, portfolio_state)
+            rollout_buffer.compute_gae(last_value, agent.config.gamma, agent.config.gae_lambda)
+
+            metrics = agent.update(rollout_buffer)
+            rollout_buffer.reset()
+
+            writer.add_scalar('Loss/Policy', metrics.get('policy_loss', 0), total_steps)
+            writer.add_scalar('Loss/Value', metrics.get('value_loss', 0), total_steps)
+            writer.add_scalar('Loss/Entropy', metrics.get('entropy', 0), total_steps)
+
+            if 'cvar' in metrics:
+                writer.add_scalar('CVaR/Value', metrics['cvar'], total_steps)
+            if 'lambda_cvar' in metrics:
+                writer.add_scalar('CVaR/Lambda', metrics['lambda_cvar'], total_steps)
+
+            logger.info(
+                f"Update @ {total_steps:,}/{steps:,} | Episodes: {episode} | "
+                f"Policy Loss: {metrics.get('policy_loss', 0):.4f} | "
+                f"CVaR: {metrics.get('cvar', 0):.4f} | "
+                f"Lambda: {metrics.get('lambda_cvar', 0):.4f}"
+            )
+
+        # Checkpoint every 5 PPO updates
+        n_updates = total_steps // config.rl.ppo_cvar.horizon
+        if n_updates >= last_checkpoint_update + 5:
+            checkpoint_path = checkpoint_dir / f'ppo_only_step_{total_steps}.pt'
+            agent.save(checkpoint_path)
+            logger.info(f"Checkpoint saved: {checkpoint_path}")
+            last_checkpoint_update = n_updates
+
+    writer.close()
+
+    # Save final model
+    final_path = checkpoint_dir / 'ppo_only_final.pt'
+    agent.save(final_path)
+    logger.info(f"PPO-Only training completed. Model saved: {final_path}")
 
     return agent
 
@@ -942,6 +1208,10 @@ def main():
     parser.add_argument(
         '--all', action='store_true',
         help='Run full training pipeline (Phase 1 + Phase 2)'
+    )
+    parser.add_argument(
+        '--ppo-only', action='store_true',
+        help='Run PPO-only baseline (no CQL pretraining, 36 months from scratch)'
     )
     parser.add_argument(
         '--steps', type=int, default=None,
@@ -1032,6 +1302,16 @@ def main():
     # Run training
     if args.all:
         run_full_training(config, device, checkpoint_dir, embedding_dir, args.n_envs)
+    elif args.ppo_only:
+        steps = args.steps or 500_000  # Default 500k for PPO-only (same as Phase 1)
+        resume_path = Path(args.resume) if args.resume else None
+        (checkpoint_dir / 'ppo_only').mkdir(exist_ok=True)
+        run_ppo_only(
+            config, device, steps, checkpoint_dir / 'ppo_only',
+            embedding_dir, args.n_envs,
+            lr=args.lr_actor,  # Use lr_actor as general LR for PPO
+            resume_path=resume_path
+        )
     elif args.phase == 1:
         steps = args.steps or config.rl.cql_sac.training_steps
         resume_path = Path(args.resume) if args.resume else None
@@ -1049,7 +1329,7 @@ def main():
             embedding_dir, args.n_envs, resume_path=resume_path
         )
     else:
-        logger.error("Please specify --phase 1, --phase 2, or --all")
+        logger.error("Please specify --phase 1, --phase 2, --all, or --ppo-only")
         sys.exit(1)
 
 
